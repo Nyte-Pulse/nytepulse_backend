@@ -1,6 +1,7 @@
 package NytePulse.backend.controller;
 
 import NytePulse.backend.dto.OtpVerificationRequest;
+import NytePulse.backend.dto.ResetPasswordRequest;
 import NytePulse.backend.service.EmailService;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.security.SecureRandom;
 
 @RestController
-@RequestMapping("/api/auth/email")
+@RequestMapping("/api/otp/email")
 public class EmailController {
 
     private final EmailService emailService;
@@ -47,4 +48,5 @@ public class EmailController {
             return ResponseEntity.badRequest().body("Failed to verify OTP: " + e.getMessage());
         }
     }
+
 }

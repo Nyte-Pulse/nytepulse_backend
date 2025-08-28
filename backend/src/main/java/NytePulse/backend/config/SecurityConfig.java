@@ -48,7 +48,9 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/api/auth/**").permitAll()
+                        auth.requestMatchers("/api/auth/**","/api/auth/email/request-password-reset",
+                                        "/api/otp/email/sendOtp/**",
+                                        "/api/auth/email/reset-password","/api/otp/email/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/user").hasRole("USER")
                                 .requestMatchers(HttpMethod.GET, "/api/admin").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.GET, "/api/club").hasRole("CLUB_OWNER")

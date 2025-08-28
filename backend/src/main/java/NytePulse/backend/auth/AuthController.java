@@ -3,17 +3,17 @@ package NytePulse.backend.auth;
 
 
 import NytePulse.backend.config.JwtTokenProvider;
+import NytePulse.backend.dto.ResetPasswordRequest;
+import NytePulse.backend.service.EmailService;
 import NytePulse.backend.service.centralServices.UserService;
+import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 @RestController
@@ -28,6 +28,10 @@ public class AuthController {
 
     @Autowired
     private JwtTokenProvider tokenProvider;
+
+    @Autowired
+    private  EmailService emailService;
+
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -48,4 +52,32 @@ public class AuthController {
         String jwt = tokenProvider.generateToken(authentication);
         return ResponseEntity.ok(new JwtResponse(jwt));
     }
+
+    @PostMapping("/request-password-reset")
+    public ResponseEntity<String> requestPasswordReset(@RequestParam String email) {
+        try {
+            if (email == null || email.trim().isEmpty() || !email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+                return ResponseEntity.badRequest().body("Invalid email address");
+            }
+            String otp = emailService.sendPasswordResetOtp(email);
+            System.out.println("Password reset OTP sent to: " + email + ", OTP: " + otp); // For debugging
+            return ResponseEntity.ok("Password reset OTP sent to " + email);
+        } catch (MessagingException e) {
+            return ResponseEntity.badRequest().body("Failed to send OTP: " + e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Failed to process request: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            emailService.resetPassword(request);
+            return ResponseEntity.ok("Password reset successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Failed to reset password: " + e.getMessage());
+        }
+    }
+
+
 }
