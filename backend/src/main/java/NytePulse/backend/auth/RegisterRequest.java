@@ -5,6 +5,9 @@ public class RegisterRequest {
     private String username;
     private String email;
     private String password;
+    private String accountType;
+
+    private String name;
     private String role;  // "USER", "ADMIN", "CLUB_OWNER" (for demo; in production, restrict admin creation)
 
     // Getters and Setters
@@ -38,5 +41,20 @@ public class RegisterRequest {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getAccountType() {
+        return accountType;
+    }
+
+    public void setAccountType(String accountType) {
+        this.accountType = accountType;
+    }
+
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
     }
 }
