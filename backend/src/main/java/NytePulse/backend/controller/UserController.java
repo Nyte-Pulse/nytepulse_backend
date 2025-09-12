@@ -27,10 +27,6 @@ public class UserController {
         return userDetailsService.updateUserDetails(userId, userDetailsDto);
     }
 
-
-    /**
-     * Update bio only
-     */
     @PatchMapping("/{userId}/bio")
     public ResponseEntity<?> updateBio(
             @PathVariable String userId,
@@ -42,9 +38,6 @@ public class UserController {
         return userDetailsService.updateUserDetails(userId, updateRequest);
     }
 
-    /**
-     * Update gender only
-     */
     @PatchMapping("/{userId}/gender")
     public ResponseEntity<?> updateGender(
             @PathVariable String userId,
@@ -56,9 +49,6 @@ public class UserController {
         return userDetailsService.updateUserDetails(userId, updateRequest);
     }
 
-    /**
-     * Update profile picture ID only
-     */
     @PatchMapping("/{userId}/profile-picture")
     public ResponseEntity<?> updateProfilePicture(
             @PathVariable String userId,
@@ -69,4 +59,6 @@ public class UserController {
 
         return userDetailsService.updateUserDetails(userId, updateRequest);
     }
+
+
 }

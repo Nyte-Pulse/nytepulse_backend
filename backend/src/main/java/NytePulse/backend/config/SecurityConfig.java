@@ -9,6 +9,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -17,6 +18,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Autowired
@@ -52,7 +54,7 @@ public class SecurityConfig {
                                         "/api/otp/email/sendOtp/**",
                                         "/api/auth/email/reset-password","/api/otp/email/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/user").hasRole("USER")
-                                .requestMatchers(HttpMethod.GET, "/api/admin").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.GET, "/api/admin/**").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.GET, "/api/club").hasRole("CLUB_OWNER")
                                 .anyRequest().authenticated()
                 );

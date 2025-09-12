@@ -1,15 +1,13 @@
 package NytePulse.backend.repository;
 
-import NytePulse.backend.entity.EventCount;
+import NytePulse.backend.entity.CountEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 
 @Repository
-public interface EventCountRepository extends JpaRepository<EventCount,Long> {
+public interface EventCountRepository extends JpaRepository<CountEvent,Long> {
 
-    EventCount findByUserId(String userId);
+    CountEvent findByUserId(String userId);
 
 }

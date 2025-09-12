@@ -1,13 +1,16 @@
 package NytePulse.backend.dto;
 
+import java.time.LocalDateTime;
+import java.util.Date;
+
 public class EventDetailsDto {
 
     private String name;
     private String userId;
     private String description;
     private String category;
-    private String startDateTime;
-    private String endDateTime;
+    private Date startDateTime;
+    private Date endDateTime;
     private String ageRestriction;
     private String dressCode;
     private String ticketType;
@@ -15,8 +18,25 @@ public class EventDetailsDto {
     private String posterUrl;
     private String status;
     private String highlightTags;
-    private String venueId;
-    private String organizerId;
+    private Long venueId;
+
+    private String venueName;
+    private String venueAddress;
+    private String venueCity;
+    private Double venueLongitude;
+    private Double venueLatitude;
+
+    private String organizerName;
+
+    private String organizerContact;
+
+    private String organizerEmail;
+
+    private String locationName;
+
+    private int isActive;
+
+    private  LocalDateTime createdAt;
 
 
     public String getName() {
@@ -51,19 +71,19 @@ public class EventDetailsDto {
         this.category = category;
     }
 
-    public String getStartDateTime() {
+    public Date getStartDateTime() {
         return startDateTime;
     }
 
-    public void setStartDateTime(String startDateTime) {
+    public void setStartDateTime(Date startDateTime) {
         this.startDateTime = startDateTime;
     }
 
-    public String getEndDateTime() {
+    public Date getEndDateTime() {
         return endDateTime;
     }
 
-    public void setEndDateTime(String endDateTime) {
+    public void setEndDateTime(Date endDateTime) {
         this.endDateTime = endDateTime;
     }
 
@@ -123,19 +143,97 @@ public class EventDetailsDto {
         this.highlightTags = highlightTags;
     }
 
-    public String getVenueId() {
+    public Long getVenueId() {
         return venueId;
     }
 
-    public void setVenueId(String venueId) {
+    public void setVenueId(Long venueId) {
         this.venueId = venueId;
     }
 
-    public String getOrganizerId() {
-        return organizerId;
+    public String getVenueName() {
+        return venueName;
     }
 
-    public void setOrganizerId(String organizerId) {
-        this.organizerId = organizerId;
+    public void setVenueName(String venueName) {
+        this.venueName = venueName;
+    }
+
+    public String getVenueAddress() {
+        return venueAddress;
+    }
+
+    public void setVenueAddress(String venueAddress) {
+        this.venueAddress = venueAddress;
+    }
+
+    public String getVenueCity() {
+        return venueCity;
+    }
+
+    public void setVenueCity(String venueCity) {
+        this.venueCity = venueCity;
+    }
+
+    public Double getVenueLongitude() {
+        return venueLongitude;
+    }
+
+    public void setVenueLongitude(Double venueLongitude) {
+        this.venueLongitude = venueLongitude;
+    }
+
+    public Double getVenueLatitude() {
+        return venueLatitude;
+    }
+
+    public void setVenueLatitude(Double venueLatitude) {
+        this.venueLatitude = venueLatitude;
+    }
+
+    public String getOrganizerName() {
+        return organizerName;
+    }
+
+    public void setOrganizerName(String organizerName) {
+        this.organizerName = organizerName;
+    }
+
+    public String getOrganizerContact() {
+        return organizerContact;
+    }
+
+    public void setOrganizerContact(String organizerContact) {
+        this.organizerContact = organizerContact;
+    }
+
+    public String getOrganizerEmail() {
+        return organizerEmail;
+    }
+
+    public void setOrganizerEmail(String organizerEmail) {
+        this.organizerEmail = organizerEmail;
+    }
+
+    public String getLocationName() {
+        return locationName;
+    }
+
+    public void setLocationName(String locationName) {
+        this.locationName = locationName;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public int getIsActive() {
+        return isActive;
+    }
+    public void setIsActive(int isActive) {
+        this.isActive = isActive;
     }
 }

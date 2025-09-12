@@ -6,4 +6,5 @@ import org.springframework.http.ResponseEntity;
 
 public interface UserDetailsService {
     ResponseEntity<?> updateUserDetails(String userId, UserDetailsDto userDetailsDto);
+
 }

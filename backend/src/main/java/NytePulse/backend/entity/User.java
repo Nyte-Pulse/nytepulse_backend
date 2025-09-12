@@ -27,7 +27,7 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String accountType;
 
     @Column(nullable = false, unique = true)
@@ -35,6 +35,13 @@ public class User {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    // One-to-many relationships for better control
+    @OneToMany(mappedBy = "follower", cascade = CascadeType.ALL)
+    private Set<UserRelationship> following = new HashSet<>();
+
+    @OneToMany(mappedBy = "following", cascade = CascadeType.ALL)
+    private Set<UserRelationship> followers = new HashSet<>();
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
@@ -113,4 +120,5 @@ public class User {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
 }

@@ -1,7 +1,6 @@
 package NytePulse.backend.service.impl;
 
 import NytePulse.backend.dto.UserDetailsDto;
-import NytePulse.backend.dto.UserDetailsUpdateRequest;
 import NytePulse.backend.entity.UserDetails;
 import NytePulse.backend.repository.UserDetailsRepository;
 import NytePulse.backend.service.centralServices.UserDetailsService;
@@ -98,4 +97,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     .body("Error updating user details: " + e.getMessage());
         }
     }
+
+
 }

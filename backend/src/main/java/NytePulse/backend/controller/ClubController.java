@@ -2,7 +2,7 @@ package NytePulse.backend.controller;
 
 
 import NytePulse.backend.dto.ClubDetailsDto;
-import NytePulse.backend.service.centralServices.ClubDetailsService;
+import NytePulse.backend.service.centralServices.ClubService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,13 +13,18 @@ import org.springframework.web.bind.annotation.*;
 public class ClubController {
 
     @Autowired
-    private ClubDetailsService clubDetailsService;
+    private ClubService clubService;
 
-    @PutMapping("/{userId}")
+    @PutMapping("/update/{userId}")
     public ResponseEntity<?> updateClubDetails(
             @PathVariable String userId,
             @RequestBody ClubDetailsDto clubDetailsDto) {
-        return clubDetailsService.updateClubDetails(userId, clubDetailsDto);
+        return clubService.updateClubDetails(userId, clubDetailsDto);
+    }
+
+    @GetMapping("/getClubById/{userId}")
+    public ResponseEntity<?> getClubDetailsByUserId(@PathVariable String userId) {
+        return clubService.getClubDetailsByUserId(userId);
     }
 
 }

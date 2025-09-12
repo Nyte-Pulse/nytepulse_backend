@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "event_count")
-public class EventCount {
+public class CountEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,7 +17,7 @@ public class EventCount {
     @Column(name = "count", nullable = false)
     private Long EventCount= 0L;
 
-    public EventCount() {
+    public CountEvent() {
     }
 
     public Long getId() {
