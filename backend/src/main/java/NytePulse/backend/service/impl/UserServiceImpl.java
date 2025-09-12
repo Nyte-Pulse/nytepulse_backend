@@ -1,31 +1,24 @@
 package NytePulse.backend.service.impl;
 
 import NytePulse.backend.auth.RegisterRequest;
-import NytePulse.backend.entity.ClubDetails;
-import NytePulse.backend.entity.Role;
-import NytePulse.backend.entity.User;
-import NytePulse.backend.entity.UserDetails;
-import NytePulse.backend.exception.AppException;
-import NytePulse.backend.repository.ClubDetailsRepository;
-import NytePulse.backend.repository.RoleRepository;
-import NytePulse.backend.repository.UserDetailsRepository;
-import NytePulse.backend.repository.UserRepository;
+import NytePulse.backend.entity.*;
+import NytePulse.backend.repository.*;
 import NytePulse.backend.service.centralServices.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 @Service
@@ -38,6 +31,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private UserRelationshipRepository relationshipRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -124,7 +120,7 @@ public class UserServiceImpl implements UserService {
                 request.getAccountType()
         );
 
-        if("USER".equals(request.getAccountType())){
+        if ("USER".equals(request.getAccountType())) {
             UserDetails savedUserDetails = userDetailsRepository.save(userDetails);
 
             Map<String, Object> response = new HashMap<>();
@@ -159,4 +155,160 @@ public class UserServiceImpl implements UserService {
 
         return ResponseEntity.ok(savedUser);
     }
+
+    @Override
+    public ResponseEntity<?> followUser(String followerUserId, String followingUserId) {
+        try {
+            if (followerUserId.equals(followingUserId)) {
+                throw new IllegalArgumentException("User cannot follow themselves");
+            }
+
+            // Check if already following
+            if (relationshipRepository.isFollowing(followerUserId, followingUserId)) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("Already following user: " + followingUserId);
+
+            }
+            // Find users
+            User follower = userRepository.findByUserId(followerUserId);
+
+            User following = userRepository.findByUserId(followingUserId);
+
+            // Create relationship
+            UserRelationship relationship = new UserRelationship(follower, following);
+            relationshipRepository.save(relationship);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Successfully followed user: " + followingUserId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error while following user: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to follow the user.");
+        }
+
+    }
+
+
+    @Override
+    public ResponseEntity<?> getFollowers(String userId) {
+        try {
+            Page<User> followers = relationshipRepository.getFollowers(userId, Pageable.unpaged());
+
+            List<Map<String, String>> followerList = new ArrayList<>();
+            for (User follower : followers) {
+                Map<String, String> followerInfo = new HashMap<>();
+                followerInfo.put("userId", follower.getUserId());
+                followerInfo.put("username", follower.getUsername());
+                followerInfo.put("email", follower.getEmail());
+                followerList.add(followerInfo);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("count", followerList.size());
+            response.put("followers", followerList);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error while fetching followers: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to fetch followers.");
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getFollowing(String userId) {
+        try {
+            Page<User> following = relationshipRepository.getFollowing(userId, Pageable.unpaged());
+
+            List<Map<String, String>> followingList = new ArrayList<>();
+            for (User followee : following) {
+                Map<String, String> followeeInfo = new HashMap<>();
+                followeeInfo.put("userId", followee.getUserId());
+                followeeInfo.put("username", followee.getUsername());
+                followeeInfo.put("email", followee.getEmail());
+                followingList.add(followeeInfo);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("count", followingList.size());
+            response.put("followers", followingList);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error while fetching following: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to fetch following.");
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> unfollowUser(String userId, String followingUserId) {
+        try {
+            if (userId.equals(followingUserId)) {
+                throw new IllegalArgumentException("User cannot unfollow themselves");
+            }
+
+            Optional<UserRelationship> relationshipOpt = relationshipRepository.findByFollowerUserIdAndFollowingUserId(userId, followingUserId);
+            if (relationshipOpt.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("Not following user: " + followingUserId);
+            }
+
+            relationshipRepository.delete(relationshipOpt.get());
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Successfully unfollowed user: " + followingUserId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error while unfollowing user: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to unfollow the user.");
+        }
+    }
+
+
+    @Override
+    public Boolean isFollowing(String followerUserId, String followingUserId) {
+        return relationshipRepository.isFollowing(followerUserId, followingUserId);
+    }
+
+    @Override
+    public ResponseEntity<?> getFollowersCount(String userId) {
+        try {
+            long count = relationshipRepository.countFollowers(userId);
+            Map<String, Long> response = new HashMap<>();
+            response.put("followersCount", count);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error while counting followers: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to count followers.");
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getFollowingCount(String userId) {
+        try {
+            long count = relationshipRepository.countFollowing(userId);
+            Map<String, Long> response = new HashMap<>();
+            response.put("followingCount", count);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error while counting following: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to count following.");
+        }
+    }
+
 }

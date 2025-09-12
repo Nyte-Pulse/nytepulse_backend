@@ -2,10 +2,14 @@ package NytePulse.backend.controller;
 
 import NytePulse.backend.dto.UserDetailsDto;
 import NytePulse.backend.service.centralServices.UserDetailsService;
+import NytePulse.backend.service.centralServices.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -16,13 +20,16 @@ public class UserController {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private UserService userService;
+
     /**
      * Update user details (bio, birthday, profile_picture_id, gender)
      */
     @PutMapping("/{userId}")
     public ResponseEntity<?> updateUserDetails(
             @PathVariable String userId,
-             @RequestBody UserDetailsDto userDetailsDto) {
+            @RequestBody UserDetailsDto userDetailsDto) {
 
         return userDetailsService.updateUserDetails(userId, userDetailsDto);
     }
@@ -60,5 +67,49 @@ public class UserController {
         return userDetailsService.updateUserDetails(userId, updateRequest);
     }
 
+    @PostMapping("/{userId}/follow/{followingUserId}")
+    public ResponseEntity<?> followUser(@PathVariable String userId, @PathVariable String followingUserId) {
+        return userService.followUser(userId, followingUserId);
+    }
 
+    @GetMapping("/{userId}/followers")
+    public ResponseEntity<?> getFollowers(@PathVariable String userId) {
+        ;
+        return userService.getFollowers(userId);
+    }
+
+    @GetMapping("/{userId}/following")
+    public ResponseEntity<?> getFollowing(@PathVariable String userId) {
+        return userService.getFollowing(userId);
+    }
+
+    @DeleteMapping("/{userId}/unfollow/{followingUserId}")
+    public ResponseEntity<?> unfollowUser(@PathVariable String userId, @PathVariable String followingUserId) {
+        return userService.unfollowUser(userId, followingUserId);
+    }
+
+    @GetMapping("/{userId}/follow-status/{targetUserId}")
+    public ResponseEntity<?> getFollowStatus(@PathVariable String userId, @PathVariable String targetUserId) {
+
+        boolean isFollowing = userService.isFollowing(userId, targetUserId);
+        boolean isFollowedBy = userService.isFollowing(targetUserId, userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("isFollowing", isFollowing);
+        response.put("isFollowedBy", isFollowedBy);
+        response.put("userId", userId);
+        response.put("targetUserId", targetUserId);
+        return ResponseEntity.ok(response);
+
+    }
+
+    @GetMapping("FollowersCount/{userId}")
+    public ResponseEntity<?> getFollowersCount(@PathVariable String userId) {
+        return userService.getFollowersCount(userId);
+    }
+
+    @GetMapping("FollowingCount/{userId}")
+    public ResponseEntity<?> getFollowingCount(@PathVariable String userId) {
+        return userService.getFollowingCount(userId);
+    }
 }

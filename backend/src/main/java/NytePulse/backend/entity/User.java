@@ -36,13 +36,6 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    // One-to-many relationships for better control
-    @OneToMany(mappedBy = "follower", cascade = CascadeType.ALL)
-    private Set<UserRelationship> following = new HashSet<>();
-
-    @OneToMany(mappedBy = "following", cascade = CascadeType.ALL)
-    private Set<UserRelationship> followers = new HashSet<>();
-
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
