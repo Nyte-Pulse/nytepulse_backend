@@ -1,0 +1,25 @@
+package NytePulse.backend.service.centralServices;
+
+import NytePulse.backend.dto.EventDetailsDto;
+import NytePulse.backend.dto.SaveEventDto;
+import NytePulse.backend.dto.ReportEventDto;
+import org.springframework.http.ResponseEntity;
+
+public interface EventService {
+
+    ResponseEntity<?> saveEvent( EventDetailsDto eventDetailsDto);
+
+    ResponseEntity<?> searchEvents(EventDetailsDto eventDetailsDto);
+
+    ResponseEntity<?> getEventById(String eventId);
+
+    ResponseEntity<?> saveEventByUser(SaveEventDto saveEventDto);
+
+    ResponseEntity<?> getSavedEventsByUser(String userId);
+
+    ResponseEntity<?> reportEvent(ReportEventDto reportEventDto);
+
+    ResponseEntity<?> getAllReportedEvents();
+
+    ResponseEntity<?> disableReportedEventByAdmin(String eventId);
+}
