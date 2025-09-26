@@ -1,6 +1,7 @@
 package NytePulse.backend.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ public class User {
     private String email;
 
     @Column(nullable = false)
+    @JsonIgnore  // ADD THIS - Hide password from API response
     private String password;
 
     @Column(nullable = false)

@@ -1,0 +1,319 @@
+package NytePulse.backend.service.impl;
+
+import NytePulse.backend.dto.BunnyNetUploadResult;
+
+import NytePulse.backend.dto.PostShareInfoDTO;
+import NytePulse.backend.dto.ShareResponseDTO;
+import NytePulse.backend.entity.Media;
+import NytePulse.backend.entity.Post;
+import NytePulse.backend.entity.User;
+import NytePulse.backend.repository.MediaRepository;
+import NytePulse.backend.repository.PostRepository;
+import NytePulse.backend.repository.UserRepository;
+import NytePulse.backend.service.BunnyNetService;
+import NytePulse.backend.service.centralServices.PostService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class PostServiceImpl implements PostService {
+
+    @Autowired
+    private PostRepository postRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private MediaRepository mediaRepository;
+    @Autowired
+    private BunnyNetService bunnyNetService;
+
+    @Value("${app.base-url:http://localhost:8080}")
+    private String baseUrl;
+
+    @Override
+    public ResponseEntity<?> createPost(String content, String userId, MultipartFile[] files){
+        try {
+        if (content == null || content.trim().isEmpty()) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Content is required");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+
+        User user = userRepository.findByUserId(userId);
+
+        // Create and save the post
+        Post post = new Post();
+        post.setContent(content);
+        post.setUser(user);
+        Post savedPost = postRepository.save(post);
+
+        // Process and upload files to BunnyNet
+        List<Media> mediaList = new ArrayList<>();
+
+        if (files != null) {
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
+                    Media media = processAndUploadFile(file, savedPost);
+                    mediaList.add(mediaRepository.save(media));
+                }
+            }
+        }
+
+        savedPost.setMedia(mediaList);
+       return ResponseEntity.ok(savedPost);}
+        catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to create Post");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    private Media processAndUploadFile(MultipartFile file, Post post) throws IOException {
+        String contentType = file.getContentType();
+        BunnyNetUploadResult result;
+
+        if (contentType != null && contentType.startsWith("image/")) {
+            result = bunnyNetService.uploadImage(file);
+        } else if (contentType != null && contentType.startsWith("video/")) {
+            String title = "Video for post " + post.getId();
+            result = bunnyNetService.uploadVideo(file, title);
+        } else {
+            throw new IllegalArgumentException("Unsupported file type: " + contentType);
+        }
+
+        Media media = new Media();
+        media.setFileName(result.getFileName());
+        media.setFileType(contentType);
+        media.setBunnyUrl(result.getCdnUrl());
+        media.setBunnyVideoId(result.getBunnyVideoId());
+        media.setFileSize(result.getFileSize());
+        media.setMediaType(result.getMediaType());
+        media.setPost(post);
+
+        return media;
+    }
+
+    public List<Post> getAllPosts() {
+        return postRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    @Override
+    public ResponseEntity<?> getPostsByUser(String userId) {
+        try {
+            User user = userRepository.findByUserId(userId);
+            if (user == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "User not found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+
+            List<Post> posts = postRepository.findByUserOrderByCreatedAtDesc(user);
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", userId);
+            response.put("posts", posts);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to retrieve posts");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @Override
+    public Post getPostById(Long id) {
+        return postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+    }
+
+
+    @Override
+    public ResponseEntity<?> generateShareLink(Long postId) {
+        try{
+        Post post = getPostById(postId);
+        // Generate share URL
+        String shareUrl = baseUrl + "/api/posts/share/" + postId;
+
+        // Create share text
+        String shareText = createShareText(post);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("shareUrl", shareUrl);
+        response.put("shareText", shareText);
+        response.put("postId", postId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    } catch (Exception e) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Failed to generate share link");
+        errorResponse.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+    }
+
+    @Override
+    public ResponseEntity<?> getPostShareInfo(Long postId) {
+        try{
+        Post post = getPostById(postId);
+
+        PostShareInfoDTO shareInfo = new PostShareInfoDTO();
+        shareInfo.setId(post.getId());
+        shareInfo.setContent(post.getContent());
+        shareInfo.setAuthorUsername(post.getUser().getUsername());
+        shareInfo.setAuthorUserId(post.getUser().getUserId());
+        shareInfo.setCreatedAt(post.getCreatedAt());
+        shareInfo.setShareCount(post.getShareCount());
+        shareInfo.setShareUrl(baseUrl + "/api/posts/share/" + postId);
+
+        // Get first media URL if available
+        if (post.getMedia() != null && !post.getMedia().isEmpty()) {
+            Media firstMedia = post.getMedia().get(0);
+            shareInfo.setFirstMediaUrl(firstMedia.getBunnyUrl());
+            shareInfo.setMediaType(firstMedia.getMediaType().toString());
+        }
+
+        return ResponseEntity.ok(shareInfo);
+
+    } catch (Exception e) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Failed to get Post Share Info");
+        errorResponse.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+    }
+
+    @Override
+    public void trackShareClick(Long postId) {
+        postRepository.incrementShareCount(postId);
+    }
+
+
+    private String createShareText(Post post) {
+        String content = post.getContent();
+        if (content.length() > 100) {
+            content = content.substring(0, 100) + "...";
+        }
+
+        return String.format(
+                "Check out this post by %s: %s - Shared via NytePulse",
+                post.getUser().getUsername(),
+                content
+        );
+    }
+
+    @Override
+    public ResponseEntity<?> updatePost(Long postId, String content, String userId,
+                           MultipartFile[] newFiles, List<Long> removeMediaIds) {
+
+        try {
+        Post post = getPostById(postId);
+
+        // Update content if provided
+        if (content != null && !content.trim().isEmpty()) {
+            post.setContent(content);
+        }
+
+        // Remove specified media
+        if (removeMediaIds != null && !removeMediaIds.isEmpty()) {
+            removeMediaFromPost(postId, removeMediaIds, userId);
+        }
+
+        // Add new media files
+        if (newFiles != null && newFiles.length > 0) {
+            List<Media> newMediaList = new ArrayList<>();
+            for (MultipartFile file : newFiles) {
+                if (!file.isEmpty()) {
+                    Media media = processAndUploadFile(file, post);
+                    newMediaList.add(mediaRepository.save(media));
+                }
+            }
+
+            // Add new media to existing media list
+            if (post.getMedia() == null) {
+                post.setMedia(new ArrayList<>());
+            }
+            post.getMedia().addAll(newMediaList);
+        }
+
+        // Set updated timestamp
+        post.setUpdatedAt(LocalDateTime.now());
+
+        Post updatedPost = postRepository.save(post);
+        return ResponseEntity.ok(updatedPost);
+    } catch (Exception e) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Failed to update Post");
+        errorResponse.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    }
+
+    @Override
+    public ResponseEntity<?> updatePostContent(Long postId, String content, String userId) {
+
+        try{
+        Post post = getPostById(postId);
+        post.setContent(content);
+        post.setUpdatedAt(LocalDateTime.now());
+
+        Post updatedPost = postRepository.save(post);
+        return ResponseEntity.ok(updatedPost);
+    } catch (Exception e) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Failed to update Post Content");
+        errorResponse.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+    }
+
+    @Override
+    public ResponseEntity<?> removeMediaFromPost(Long postId, List<Long> mediaIds, String userId) {
+
+        try{
+        List<Media> mediaToRemove = mediaRepository.findByIdsAndPostId(mediaIds, postId);
+
+        if (mediaToRemove.size() != mediaIds.size()) {
+            throw new RuntimeException("Some media files not found or don't belong to this post");
+        }
+        
+        mediaRepository.deleteAll(mediaToRemove);
+        return ResponseEntity.ok().build();
+    } catch (Exception e) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Failed to remove Media From Post");
+        errorResponse.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    }
+
+    @Override
+    public ResponseEntity<?> canUserEditPost(Long postId, Long userId) {
+        try{
+        Post post = getPostById(postId);
+        boolean canEdit = post.getUser().getId().equals(userId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("canEdit", canEdit);
+        return ResponseEntity.ok(response);
+    } catch (Exception e) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Failed to can User Edit Post");
+        errorResponse.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+    }
+
+}
