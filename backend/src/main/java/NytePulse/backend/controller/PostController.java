@@ -107,11 +107,12 @@ public class PostController {
             return postService.removeMediaFromPost(postId, mediaIdsToRemove, userId);
     }
 
-    @GetMapping("/{postId}/can-edit")
-    public ResponseEntity<?> canUserEditPost(
+    @DeleteMapping("/deletePost/{postId}")
+    public ResponseEntity<?> deletePost(
             @PathVariable Long postId,
-            @RequestParam("userId") Long userId) {
+            @RequestParam("userId") String userId) {
 
-            return postService.canUserEditPost(postId, userId);
+            return postService.deletePost(postId, userId);
     }
+
 }

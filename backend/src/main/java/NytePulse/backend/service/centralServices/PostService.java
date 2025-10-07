@@ -26,5 +26,6 @@ public interface PostService {
                     MultipartFile[] newFiles, List<Long> removeMediaIds);
     ResponseEntity<?> updatePostContent(Long postId, String content, String userId);
     ResponseEntity<?> removeMediaFromPost(Long postId, List<Long> mediaIds, String userId);
-    ResponseEntity<?> canUserEditPost(Long postId, Long userId);
+
+    ResponseEntity<?> deletePost(Long postId, String userId);
 }

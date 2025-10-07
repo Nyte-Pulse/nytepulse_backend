@@ -12,6 +12,8 @@ import NytePulse.backend.repository.PostRepository;
 import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.PostService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,9 @@ import java.util.Map;
 
 @Service
 public class PostServiceImpl implements PostService {
+
+    private static final Logger log = LoggerFactory.getLogger(PostServiceImpl.class);
+
 
     @Autowired
     private PostRepository postRepository;
@@ -288,9 +293,34 @@ public class PostServiceImpl implements PostService {
         if (mediaToRemove.size() != mediaIds.size()) {
             throw new RuntimeException("Some media files not found or don't belong to this post");
         }
-        
+
+            List<String> successfulDeletions = new ArrayList<>();
+            List<String> failedDeletions = new ArrayList<>();
+
+            // Delete from BunnyNet first, then from database
+            for (Media media : mediaToRemove) {
+                boolean deletedFromBunny = bunnyNetService.deleteMedia(
+                        media.getFileName(),
+                        media.getBunnyVideoId(),
+                        media.getMediaType()
+                );
+
+                if (deletedFromBunny) {
+                    successfulDeletions.add(media.getFileName());
+                    log.info("Successfully deleted media from BunnyNet: {}", media.getFileName());
+                } else {
+                    failedDeletions.add(media.getFileName());
+                    log.warn("Failed to delete media from BunnyNet: {}", media.getFileName());
+                }
+            }
+
         mediaRepository.deleteAll(mediaToRemove);
-        return ResponseEntity.ok().build();
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Media removal process completed",
+                "successfulDeletions", successfulDeletions,
+                "failedDeletions", failedDeletions
+        ));
     } catch (Exception e) {
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("error", "Failed to remove Media From Post");
@@ -300,17 +330,45 @@ public class PostServiceImpl implements PostService {
 
     }
 
+
     @Override
-    public ResponseEntity<?> canUserEditPost(Long postId, Long userId) {
+    public ResponseEntity<?> deletePost(Long postId, String userId) {
         try{
         Post post = getPostById(postId);
-        boolean canEdit = post.getUser().getId().equals(userId);
+        if (!post.getUser().getUserId().equals(userId)) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Unauthorized");
+            errorResponse.put("message", "You can only delete your own posts");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
+
+        // Delete associated media from BunnyNet
+        List<Media> mediaList = post.getMedia();
+        if (mediaList != null && !mediaList.isEmpty()) {
+            for (Media media : mediaList) {
+                boolean deletedFromBunny = bunnyNetService.deleteMedia(
+                        media.getFileName(),
+                        media.getBunnyVideoId(),
+                        media.getMediaType()
+                );
+
+                if (deletedFromBunny) {
+                    log.info("Successfully deleted media from BunnyNet: {}", media.getFileName());
+                } else {
+                    log.warn("Failed to delete media from BunnyNet: {}", media.getFileName());
+                }
+            }
+        }
+
+        postRepository.delete(post);
+
         Map<String, Object> response = new HashMap<>();
-        response.put("canEdit", canEdit);
+        response.put("message", "Post deleted successfully");
+        response.put("postId", postId);
         return ResponseEntity.ok(response);
     } catch (Exception e) {
         Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Failed to can User Edit Post");
+        errorResponse.put("error", "Failed to delete Post");
         errorResponse.put("message", e.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
