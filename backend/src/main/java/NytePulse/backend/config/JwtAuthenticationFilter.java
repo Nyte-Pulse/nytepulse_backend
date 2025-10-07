@@ -1,8 +1,5 @@
 package NytePulse.backend.config;
 
-
-
-
 import NytePulse.backend.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

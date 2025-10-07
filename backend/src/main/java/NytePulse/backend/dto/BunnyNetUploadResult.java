@@ -1,4 +1,3 @@
-// BunnyNetUploadResult.java
 package NytePulse.backend.dto;
 
 import NytePulse.backend.entity.Media;
