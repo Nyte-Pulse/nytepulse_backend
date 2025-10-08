@@ -1,13 +1,8 @@
 package NytePulse.backend.controller;
 
-import NytePulse.backend.dto.ApiResponse;
-import NytePulse.backend.dto.LikeResponseDTO;
-import NytePulse.backend.dto.PostStatsDTO;
-import NytePulse.backend.service.centralServices.PostLikeService;
-import NytePulse.backend.service.centralServices.PostService;
+import NytePulse.backend.service.centralServices.PostLikeService;;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,36 +16,30 @@ public class PostLikeController {
 
     // Toggle like on a post
     @PostMapping("/like")
-    public ResponseEntity<?> toggleLike(
-            @PathVariable Long postId,
-            @RequestHeader("User-Id") Long userId) {
+    public ResponseEntity<?> toggleLike(@PathVariable Long postId, @RequestHeader("User-Id") Long userId) {
 
-            return postLikeService.toggleLike(postId, userId);
+        return postLikeService.toggleLike(postId, userId);
     }
 
     // Get like count for a post
     @GetMapping("/likes/count")
     public ResponseEntity<?> getLikeCount(@PathVariable Long postId) {
 
-            return  postLikeService.getLikeCount(postId);
+        return postLikeService.getLikeCount(postId);
     }
 
     // Check if post is liked by user
     @GetMapping("/likes/status")
-    public ResponseEntity<?> checkLikeStatus(
-            @PathVariable Long postId,
-            @RequestHeader("User-Id") Long userId) {
-            return postLikeService.isPostLikedByUser(postId, userId);
+    public ResponseEntity<?> checkLikeStatus(@PathVariable Long postId, @RequestHeader("User-Id") Long userId) {
+        return postLikeService.isPostLikedByUser(postId, userId);
 
     }
 
     // Get post statistics (likes + comments)
     @GetMapping("/stats")
-    public ResponseEntity<?> getPostStats(
-            @PathVariable Long postId,
-            @RequestHeader("User-Id") Long userId) {
+    public ResponseEntity<?> getPostStats(@PathVariable Long postId, @RequestHeader("User-Id") Long userId) {
 
-            return postLikeService.getPostStats(postId, userId);
+        return postLikeService.getPostStats(postId, userId);
 
     }
 }

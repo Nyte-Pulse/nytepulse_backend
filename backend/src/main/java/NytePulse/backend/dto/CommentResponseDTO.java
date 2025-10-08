@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -18,6 +20,15 @@ public class CommentResponseDTO {
     private UserBasicDTO user;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Reply information
+    private Long parentCommentId;
+    private List<CommentResponseDTO> replies = new ArrayList<>();
+
+    // Like information
+    private Long likeCount;
+    private boolean likedByCurrentUser;
+    private Long replyCount;
 
     public Long getId() {
         return id;
@@ -65,5 +76,45 @@ public class CommentResponseDTO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getParentCommentId() {
+        return parentCommentId;
+    }
+
+    public void setParentCommentId(Long parentCommentId) {
+        this.parentCommentId = parentCommentId;
+    }
+
+    public List<CommentResponseDTO> getReplies() {
+        return replies;
+    }
+
+    public void setReplies(List<CommentResponseDTO> replies) {
+        this.replies = replies;
+    }
+
+    public Long getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(Long likeCount) {
+        this.likeCount = likeCount;
+    }
+
+    public boolean isLikedByCurrentUser() {
+        return likedByCurrentUser;
+    }
+
+    public void setLikedByCurrentUser(boolean likedByCurrentUser) {
+        this.likedByCurrentUser = likedByCurrentUser;
+    }
+
+    public Long getReplyCount() {
+        return replyCount;
+    }
+
+    public void setReplyCount(Long replyCount) {
+        this.replyCount = replyCount;
     }
 }

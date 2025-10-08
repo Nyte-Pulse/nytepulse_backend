@@ -19,4 +19,10 @@ public interface CommentService {
 
     ResponseEntity<?> getCommentCount(Long postId);
 
+    ResponseEntity<?> addReply(Long commentId, Long userId, CommentRequestDTO commentRequestDTO);
+
+    ResponseEntity<?> getCommentsWithRepliesByPostId(Long postId, Long currentUserId);
+
+
+
 }
