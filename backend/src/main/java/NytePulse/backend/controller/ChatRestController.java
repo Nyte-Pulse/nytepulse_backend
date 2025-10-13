@@ -76,6 +76,7 @@ public class ChatRestController {
             @PathVariable Long messageId,
             @RequestHeader("User-Id") Long userId) {
 
+        System.out.println("hi");
             return chatService.deleteMessage(messageId, userId);
 
     }
