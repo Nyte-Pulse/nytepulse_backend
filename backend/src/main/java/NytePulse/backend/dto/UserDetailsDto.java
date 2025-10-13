@@ -51,13 +51,13 @@ public class UserDetailsDto {
     public UserDetailsDto() {
     }
 
-    public UserDetailsDto(String userId, String email, String username, String name, String accountType) {
-        this.userId = userId;
-        this.email = email;
-        this.username = username;
-        this.name = name;
-        this.accountType = accountType;
-    }
+//    public UserDetailsDto(String userId, String email, String username, String name, String accountType) {
+//        this.userId = userId;
+//        this.email = email;
+//        this.username = username;
+//        this.name = name;
+//        this.accountType = accountType;
+//    }
 
     // Getters and Setters
     public Long getUserDetailsId() {
