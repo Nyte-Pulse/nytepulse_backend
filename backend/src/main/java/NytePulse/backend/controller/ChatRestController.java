@@ -26,154 +26,58 @@ public class ChatRestController {
 
 
     @GetMapping("/conversations")
-    public ResponseEntity<?> getUserConversations(
-            @RequestHeader("User-Id") Long userId) {
+    public ResponseEntity<?> getUserConversations(@RequestHeader("User-Id") Long userId) {
 
-        try {
-            List<ConversationDTO> conversations = chatService.getUserConversations(userId);
+           return chatService.getUserConversations(userId);
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", conversations
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
     }
 
-    /**
-     * Create or get private conversation
-     */
     @PostMapping("/conversations/private/{otherUserId}")
-    public ResponseEntity<?> createPrivateConversation(
-            @PathVariable Long otherUserId,
-            @RequestHeader("User-Id") Long userId) {
+    public ResponseEntity<?> createPrivateConversation(@PathVariable Long otherUserId, @RequestHeader("User-Id") Long userId) {
 
-        try {;
-            ConversationDTO conversation = chatService.createOrGetPrivateConversation(userId, otherUserId);
+            return chatService.createOrGetPrivateConversation(userId, otherUserId);
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", conversation
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
     }
 
-    /**
-     * Create group conversation
-     */
     @PostMapping("/conversations/group")
-    public ResponseEntity<?> createGroupConversation(
-            @RequestBody Map<String, Object> payload,
-            @RequestHeader("User-Id") Long userId) {
+    public ResponseEntity<?> createGroupConversation(@RequestBody Map<String, Object> payload, @RequestHeader("User-Id") Long userId) {
 
-        try {
             String groupName = (String) payload.get("name");
             List<Long> participantIds = (List<Long>) payload.get("participantIds");
 
-            ConversationDTO conversation = chatService.createGroupConversation(
+            return chatService.createGroupConversation(
                     userId,
                     participantIds,
                     groupName
             );
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", conversation
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
     }
 
-    /**
-     * Get messages for a conversation (paginated)
-     */
     @GetMapping("/conversations/{conversationId}/messages")
-    public ResponseEntity<?> getConversationMessages(
-            @PathVariable Long conversationId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size,
-            @RequestHeader("User-Id") Long userId) {
+    public ResponseEntity<?> getConversationMessages(@PathVariable Long conversationId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size, @RequestHeader("User-Id") Long userId) {
 
-        try {
-            Page<ChatMessageDTO> messages = chatService.getConversationMessages(
+           return chatService.getConversationMessages(
                     conversationId,
                     userId,
                     page,
                     size
             );
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", messages.getContent(),
-                    "page", page,
-                    "totalPages", messages.getTotalPages(),
-                    "totalElements", messages.getTotalElements()
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
     }
 
-    /**
-     * Get unread count for conversation
-     */
     @GetMapping("/conversations/{conversationId}/unread")
-    public ResponseEntity<?> getUnreadCount(
-            @PathVariable Long conversationId,
-            @RequestHeader("User-Id") Long userId) {
+    public ResponseEntity<?> getUnreadCount(@PathVariable Long conversationId, @RequestHeader("User-Id") Long userId) {
 
-        try {
-            Integer unreadCount = chatService.getUnreadCount(conversationId, userId);
+           return chatService.getUnreadCount(conversationId, userId);
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "unreadCount", unreadCount
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
     }
 
-    /**
-     * Delete message
-     */
     @DeleteMapping("/messages/{messageId}")
     public ResponseEntity<?> deleteMessage(
             @PathVariable Long messageId,
             @RequestHeader("User-Id") Long userId) {
 
-        try {
-            chatService.deleteMessage(messageId, userId);
+            return chatService.deleteMessage(messageId, userId);
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Message deleted successfully"
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
     }
 
     @PostMapping("/conversations/{conversationId}/messages")

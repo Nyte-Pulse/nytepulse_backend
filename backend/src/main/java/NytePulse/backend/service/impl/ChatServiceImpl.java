@@ -5,16 +5,22 @@ import NytePulse.backend.entity.*;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.centralServices.ChatService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,57 +28,67 @@ import java.util.stream.Collectors;
 public class ChatServiceImpl implements ChatService {
 
     @Autowired
-    private  ConversationRepository conversationRepository;
+    private ConversationRepository conversationRepository;
     @Autowired
-    private  ConversationParticipantRepository participantRepository;
+    private ConversationParticipantRepository participantRepository;
     @Autowired
-    private  ChatMessageRepository messageRepository;
+    private ChatMessageRepository messageRepository;
     @Autowired
-    private  UserRepository userRepository;
+    private UserRepository userRepository;
     @Autowired
-    private  UserDetailsRepository userDetailsRepository;
+    private UserDetailsRepository userDetailsRepository;
 
     @Autowired
     private MessageStatusRepository messageStatusRepository;
 
+    private static final Logger logger = LoggerFactory.getLogger(ClubServiceImpl.class);
+
     @Override
     @Transactional
-    public ConversationDTO createOrGetPrivateConversation(Long userId1, Long userId2) {
-        // Check if conversation already exists
-        var existingConversation = conversationRepository
-                .findPrivateConversationBetweenUsers(userId1, userId2);
+    public ResponseEntity<?> createOrGetPrivateConversation(Long userId1, Long userId2) {
+        try {
+            // Check if conversation already exists
+            var existingConversation = conversationRepository
+                    .findPrivateConversationBetweenUsers(userId1, userId2);
 
-        if (existingConversation.isPresent()) {
-            return mapToConversationDTO(existingConversation.get(), userId1);
+            if (existingConversation.isPresent()) {
+                return ResponseEntity.ok(mapToConversationDTO(existingConversation.get(), userId1));
+            }
+
+            // Create new conversation
+            Conversation conversation = new Conversation();
+            conversation.setType(Conversation.ConversationType.PRIVATE);
+            conversation = conversationRepository.save(conversation);
+
+            // Add participants
+            User user1 = userRepository.findById(userId1)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            User user2 = userRepository.findById(userId2)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            ConversationParticipant participant1 = new ConversationParticipant();
+            participant1.setConversation(conversation);
+            participant1.setUser(user1);
+            participantRepository.save(participant1);
+
+            ConversationParticipant participant2 = new ConversationParticipant();
+            participant2.setConversation(conversation);
+            participant2.setUser(user2);
+            participantRepository.save(participant2);
+
+            return ResponseEntity.ok(mapToConversationDTO(conversation, userId1));
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to create Or Get Private Conversation");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
-
-        // Create new conversation
-        Conversation conversation = new Conversation();
-        conversation.setType(Conversation.ConversationType.PRIVATE);
-        conversation = conversationRepository.save(conversation);
-
-        // Add participants
-        User user1 = userRepository.findById(userId1)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        User user2 = userRepository.findById(userId2)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        ConversationParticipant participant1 = new ConversationParticipant();
-        participant1.setConversation(conversation);
-        participant1.setUser(user1);
-        participantRepository.save(participant1);
-
-        ConversationParticipant participant2 = new ConversationParticipant();
-        participant2.setConversation(conversation);
-        participant2.setUser(user2);
-        participantRepository.save(participant2);
-
-        return mapToConversationDTO(conversation, userId1);
     }
 
     @Override
     @Transactional
-    public ConversationDTO createGroupConversation(Long creatorId, List<Long> participantIds, String groupName) {
+    public ResponseEntity<?> createGroupConversation(Long creatorId, List<Long> participantIds, String groupName) {
+        try{
         Conversation conversation = new Conversation();
         conversation.setType(Conversation.ConversationType.GROUP);
         conversation.setName(groupName);
@@ -98,17 +114,33 @@ public class ChatServiceImpl implements ChatService {
             }
         }
 
-        return mapToConversationDTO(conversation, creatorId);
+        return ResponseEntity.ok(mapToConversationDTO(conversation, creatorId));
+    } catch (Exception e) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Failed to create Group Conversation");
+        errorResponse.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ConversationDTO> getUserConversations(Long userId) {
-        List<Conversation> conversations = conversationRepository.findByUserId(userId);
+    public ResponseEntity<?> getUserConversations(Long userId) {
 
-        return conversations.stream()
-                .map(conv -> mapToConversationDTO(conv, userId))
-                .collect(Collectors.toList());
+        try {
+            List<Conversation> conversations = conversationRepository.findByUserId(userId);
+
+            List<ConversationDTO> conversationDTOs = new ArrayList<>();
+            for (Conversation conversation : conversations) {
+                conversationDTOs.add(mapToConversationDTO(conversation, userId));
+            }
+            return ResponseEntity.ok(conversationDTOs);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get User Conversations");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     @Override
@@ -155,13 +187,27 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ChatMessageDTO> getConversationMessages(Long conversationId, Long userId,
-                                                        int page, int size) {
+    public ResponseEntity<?> getConversationMessages(Long conversationId, Long userId, int page, int size) {
+        try{
         Pageable pageable = PageRequest.of(page, size);
         Page<ChatMessage> messages = messageRepository
                 .findByConversationIdAndIsDeletedFalseOrderByCreatedAtDesc(conversationId, pageable);
 
-        return messages.map(this::mapToChatMessageDTO);
+        List<ChatMessageDTO> messageDTOs = messages.stream()
+                .map(this::mapToChatMessageDTO)
+                .collect(Collectors.toList());
+        Map<String, Object> response = new HashMap<>();
+        response.put("messages", messageDTOs);
+        response.put("currentPage", messages.getNumber());
+        response.put("totalItems", messages.getTotalElements());
+        response.put("totalPages", messages.getTotalPages());
+        return ResponseEntity.ok(response);
+    } catch (Exception e) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Failed to get Conversation Messages");
+        errorResponse.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
     }
 
     @Override
@@ -177,14 +223,15 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional(readOnly = true)
-    public Integer getUnreadCount(Long conversationId, Long userId) {
+    public ResponseEntity<?> getUnreadCount(Long conversationId, Long userId) {
         Long count = messageRepository.countUnreadMessages(conversationId, userId);
-        return count != null ? count.intValue() : 0;
+        return ResponseEntity.ok(Map.of("unreadCount", count));
     }
 
     @Override
     @Transactional
-    public void deleteMessage(Long messageId, Long userId) {
+    public ResponseEntity<?> deleteMessage(Long messageId, Long userId) {
+        try{
         ChatMessage message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new RuntimeException("Message not found"));
 
@@ -194,6 +241,16 @@ public class ChatServiceImpl implements ChatService {
 
         message.setIsDeleted(true);
         messageRepository.save(message);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Message deleted successfully"
+        ));
+    } catch (Exception e) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Failed to delete Messages");
+        errorResponse.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
     }
 
     // Helper methods
@@ -250,7 +307,7 @@ public class ChatServiceImpl implements ChatService {
         lastMessage.ifPresent(msg -> dto.setLastMessage(mapToChatMessageDTO(msg)));
 
         // Get unread count
-        dto.setUnreadCount(getUnreadCount(conversation.getId(), currentUserId));
+        dto.setUnreadCount(getUnreadCount(conversation.getId(), currentUserId).getStatusCodeValue());
 
         return dto;
     }
