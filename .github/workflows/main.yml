@@ -6,7 +6,7 @@ on:
 
 env:
   APP_NAME: backend
-  JAR_PATH: target/backend-0.0.1-SNAPSHOT.jar
+  JAR_PATH: backend/target/backend-0.0.1-SNAPSHOT.jar
 
 jobs:
   build:
@@ -23,7 +23,9 @@ jobs:
           cache: maven
 
       - name: Build with Maven
-        run: mvn clean package -DskipTests
+        run: |
+          cd backend
+          mvn clean package -DskipTests
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
