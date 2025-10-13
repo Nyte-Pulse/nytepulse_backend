@@ -51,7 +51,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("/api/auth/**","/api/auth/email/request-password-reset",
-                                        "/api/otp/email/sendOtp/**",
+                                        "/api/otp/email/sendOtp/**","/ws/**",
                                         "/api/auth/email/reset-password","/api/otp/email/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/user").hasRole("USER")
                                 .requestMatchers(HttpMethod.GET, "/api/admin/**").hasRole("ADMIN")

@@ -4,6 +4,8 @@ package NytePulse.backend.auth;
 
 import NytePulse.backend.config.JwtTokenProvider;
 import NytePulse.backend.dto.ResetPasswordRequest;
+import NytePulse.backend.entity.User;
+import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.EmailService;
 import NytePulse.backend.service.centralServices.UserService;
 import jakarta.mail.MessagingException;
@@ -35,6 +37,9 @@ public class AuthController {
     @Autowired
     private  EmailService emailService;
 
+    @Autowired
+    private UserRepository userRepository;
+
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -53,7 +58,10 @@ public class AuthController {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String jwt = tokenProvider.generateToken(authentication);
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String jwt = tokenProvider.generateToken(authentication,user.getId());
         return ResponseEntity.ok(new JwtResponse(jwt));
         } catch (BadCredentialsException ex) {
             return ResponseEntity

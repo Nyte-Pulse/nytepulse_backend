@@ -24,7 +24,7 @@ public class JwtTokenProvider {
     @Value("${app.jwt-expiration-milliseconds}")
     private long jwtExpirationDate;
 
-    public String generateToken(Authentication authentication) {
+    public String generateToken(Authentication authentication, Long userId) {
         String email = authentication.getName();
 
         String roles = authentication.getAuthorities().stream()
@@ -38,6 +38,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("roles", roles)
+                .claim("User-Id", userId)
                 .setIssuedAt(new Date())
                 .setExpiration(expireDate)
                 .signWith(key())
@@ -64,6 +65,27 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody();
         return claims.get("roles", String.class); // Extract roles from the token
+    }
+
+    public Long getUserIdFromJWT(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        // Get the User-Id claim (note the capital letters match your generateToken)
+        Object userIdObj = claims.get("User-Id");
+
+        if (userIdObj instanceof Integer) {
+            return ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            return (Long) userIdObj;
+        } else if (userIdObj instanceof String) {
+            return Long.parseLong((String) userIdObj);
+        }
+
+        throw new AppException(HttpStatus.BAD_REQUEST, "Invalid User-Id in token");
     }
 
     public boolean validateToken(String token) {
