@@ -20,6 +20,8 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -83,9 +85,7 @@ public class AuthController {
             String otp = emailService.sendPasswordResetOtp(email);
             System.out.println("Password reset OTP sent to: " + email + ", OTP: " + otp); // For debugging
             return ResponseEntity.ok("Password reset OTP sent to " + email);
-        } catch (MessagingException e) {
-            return ResponseEntity.badRequest().body("Failed to send OTP: " + e.getMessage());
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | IOException e) {
             return ResponseEntity.badRequest().body("Failed to process request: " + e.getMessage());
         }
     }
