@@ -26,24 +26,23 @@ public class EmailController {
     }
 
     @PostMapping("/sendOtp")
-    public ResponseEntity<String> sendOtp(@RequestParam String to) {
+    public ResponseEntity<?> sendOtp(@RequestParam String to) {
         try {
             if (to == null || to.trim().isEmpty() || !to.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
                 return ResponseEntity.badRequest().body("Invalid email address");
             }
             String otp = String.format("%06d", new SecureRandom().nextInt(999999));
-            emailService.sendOtp(to, otp);
-            return ResponseEntity.ok("OTP sent successfully to " + to);
+            return emailService.sendOtp(to, otp);
         } catch (MessagingException e) {
             return ResponseEntity.badRequest().body("Failed to send OTP: " + e.getMessage());
         }
     }
 
     @PostMapping("/verifyOtp")
-    public ResponseEntity<String> verifyOtp(@RequestBody OtpVerificationRequest request) {
+    public ResponseEntity<?> verifyOtp(@RequestBody OtpVerificationRequest request) {
         try {
-            emailService.verifyOtp(request);
-            return ResponseEntity.ok("Email verified successfully");
+           return emailService.verifyOtp(request);
+
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("Failed to verify OTP: " + e.getMessage());
         }

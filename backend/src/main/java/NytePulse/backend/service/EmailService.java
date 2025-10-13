@@ -9,6 +9,8 @@ import NytePulse.backend.repository.UserRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -72,7 +74,7 @@ public class EmailService {
     }
 
     @Transactional
-    public void sendOtp(String to, String otp) throws MessagingException {
+    public ResponseEntity<?> sendOtp(String to, String otp) throws MessagingException {
         MimeMessage mime = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mime, true, "utf-8");
 
@@ -97,13 +99,16 @@ public class EmailService {
         mailSender.send(mime);
         Otp otpEntity = new Otp(to, otp, LocalDateTime.now().plusMinutes(5));
         otpRepository.save(otpEntity);
+        return ResponseEntity.ok("OTP sent successfully to " + to);
     }
 
     @Transactional
-    public void verifyOtp(OtpVerificationRequest request) throws RuntimeException {
+    public ResponseEntity<?> verifyOtp(OtpVerificationRequest request) throws RuntimeException {
         if (request.getEmail() == null || request.getOtp() == null ||
                 !request.getEmail().matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
-            throw new RuntimeException("Invalid email or OTP");
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Invalid email or OTP");
         }
 
         Otp otp = otpRepository.findById(request.getEmail())
@@ -111,28 +116,37 @@ public class EmailService {
 
         if (otp.getExpiry().isBefore(LocalDateTime.now())) {
             otpRepository.delete(otp);
-            throw new RuntimeException("OTP has expired");
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("OTP has expired");
         }
 
         if (!otp.getOtp().equals(request.getOtp())) {
-            throw new RuntimeException("Invalid OTP");
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Invalid OTP");
         }
 
         otpRepository.delete(otp); // Delete OTP after successful verification
+        return ResponseEntity.ok("Email verified successfully");
     }
 
     @Transactional
-    public void resetPassword(ResetPasswordRequest request) throws RuntimeException {
+    public ResponseEntity<?> resetPassword(ResetPasswordRequest request) throws RuntimeException {
         if (request.getEmail() == null || !request.getEmail().matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
             throw new RuntimeException("Invalid email");
         }
         if (request.getNewPassword() == null || request.getNewPassword().length() < 8) {
-            throw new RuntimeException("Password must be at least 8 characters");
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Password must be at least 8 characters");
+
         }
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+        return ResponseEntity.ok("Password Reset successfully");
     }
 }

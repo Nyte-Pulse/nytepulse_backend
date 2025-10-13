@@ -4,14 +4,19 @@ package NytePulse.backend.auth;
 
 import NytePulse.backend.config.JwtTokenProvider;
 import NytePulse.backend.dto.ResetPasswordRequest;
+import NytePulse.backend.entity.User;
+import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.EmailService;
 import NytePulse.backend.service.centralServices.UserService;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +37,9 @@ public class AuthController {
     @Autowired
     private  EmailService emailService;
 
+    @Autowired
+    private UserRepository userRepository;
+
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -40,17 +48,30 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
+                        request.getEmail(),
                         request.getPassword()
                 )
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String jwt = tokenProvider.generateToken(authentication);
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String jwt = tokenProvider.generateToken(authentication,user.getId());
         return ResponseEntity.ok(new JwtResponse(jwt));
+        } catch (BadCredentialsException ex) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid email or password");
+        } catch (AuthenticationException ex) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Authentication failed: " + ex.getMessage());
+        }
     }
 
     @PostMapping("/request-password-reset")

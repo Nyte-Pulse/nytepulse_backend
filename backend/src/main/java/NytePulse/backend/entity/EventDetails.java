@@ -1,0 +1,279 @@
+package NytePulse.backend.entity;
+
+
+import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
+import java.util.Date;
+
+@Entity
+@Table(name = "event_details")
+public class EventDetails {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "event_id", unique = true, nullable = false)
+    private String eventId;
+
+
+    private String name;
+    private String clubId;
+    private String description;
+    private String category;
+
+    @Column(name = "start_date_time")
+    private Date startDateTime;
+
+    @Column(name = "end_date_time")
+    private Date endDateTime;
+
+    @Column(name = "age_restriction")
+    private String ageRestriction;
+
+    @Column(name = "dress_code")
+    private String dressCode;
+
+    @Column(name = "ticket_type")
+    private String ticketType;
+
+    @Column(name = "website_url")
+    private String websiteUrl;
+
+    @Column(name = "poster_url")
+    private String posterUrl;
+    private String status;
+
+    @Column(name = "highlight_tags")
+    private String highlightTags;
+
+    private String Address;
+    private String City;
+    private Double longitude;
+    private Double latitude;
+
+    @Column(name = "is_active")
+    private int isActive;
+
+    @Column(name = "organizer_name")
+    private String organizerName;
+
+
+    @Column(name = "organizer_contact")
+    private String organizerContact;
+
+    @Column(name = "organizer_email")
+    private String organizerEmail;
+
+    @Column(name = "location_name")
+    private String locationName;
+
+    @Column(name = "created_at", updatable = false)
+    private  LocalDateTime createdAt;
+
+
+
+    public EventDetails() {
+    }
+
+    public String getEventId() {
+        return eventId;
+    }
+
+    public void setEventId(String eventId) {
+        this.eventId = eventId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getClubId() {
+        return clubId;
+    }
+
+    public void setClubId(String clubId) {
+        this.clubId = clubId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public Date getStartDateTime() {
+        return startDateTime;
+    }
+
+    public void setStartDateTime(Date startDateTime) {
+        this.startDateTime = startDateTime;
+    }
+
+    public Date getEndDateTime() {
+        return endDateTime;
+    }
+
+    public void setEndDateTime(Date endDateTime) {
+        this.endDateTime = endDateTime;
+    }
+
+    public String getAgeRestriction() {
+        return ageRestriction;
+    }
+
+    public void setAgeRestriction(String ageRestriction) {
+        this.ageRestriction = ageRestriction;
+    }
+
+    public String getDressCode() {
+        return dressCode;
+    }
+
+    public void setDressCode(String dressCode) {
+        this.dressCode = dressCode;
+    }
+
+    public String getTicketType() {
+        return ticketType;
+    }
+
+    public void setTicketType(String ticketType) {
+        this.ticketType = ticketType;
+    }
+
+    public String getWebsiteUrl() {
+        return websiteUrl;
+    }
+
+    public void setWebsiteUrl(String websiteUrl) {
+        this.websiteUrl = websiteUrl;
+    }
+
+    public String getPosterUrl() {
+        return posterUrl;
+    }
+
+    public void setPosterUrl(String posterUrl) {
+        this.posterUrl = posterUrl;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getHighlightTags() {
+        return highlightTags;
+    }
+
+    public void setHighlightTags(String highlightTags) {
+        this.highlightTags = highlightTags;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getAddress() {
+        return Address;
+    }
+
+    public void setAddress(String address) {
+        Address = address;
+    }
+
+    public String getCity() {
+        return City;
+    }
+
+    public void setCity(String city) {
+        City = city;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public String getOrganizerName() {
+        return organizerName;
+    }
+
+    public void setOrganizerName(String organizerName) {
+        this.organizerName = organizerName;
+    }
+
+    public String getOrganizerContact() {
+        return organizerContact;
+    }
+
+    public void setOrganizerContact(String organizerContact) {
+        this.organizerContact = organizerContact;
+    }
+
+    public String getOrganizerEmail() {
+        return organizerEmail;
+    }
+
+    public void setOrganizerEmail(String organizerEmail) {
+        this.organizerEmail = organizerEmail;
+    }
+
+    public String getLocationName() {
+        return locationName;
+    }
+
+    public void setLocationName(String locationName) {
+        this.locationName = locationName;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public int getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(int isActive) {
+        this.isActive = isActive;
+    }
+}
