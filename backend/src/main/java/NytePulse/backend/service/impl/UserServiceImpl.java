@@ -76,7 +76,7 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByUsername(request.getUsername())) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body("Username is already taken!");
+                    .body("Username is already takenss!");
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
