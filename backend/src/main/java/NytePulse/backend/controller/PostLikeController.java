@@ -1,6 +1,6 @@
 package NytePulse.backend.controller;
 
-import NytePulse.backend.service.centralServices.PostLikeService;
+import NytePulse.backend.service.centralServices.PostLikeService;;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
