@@ -48,8 +48,8 @@ public class UserDetailsDto {
     private String name;
 
     // Constructors
-    public UserDetailsDto() {
-    }
+//    public UserDetailsDto() {
+//    }
 
 //    public UserDetailsDto(String userId, String email, String username, String name, String accountType) {
 //        this.userId = userId;
