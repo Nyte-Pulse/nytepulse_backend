@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 
 @RestController
@@ -33,7 +34,7 @@ public class EmailController {
             }
             String otp = String.format("%06d", new SecureRandom().nextInt(999999));
             return emailService.sendOtp(to, otp);
-        } catch (MessagingException e) {
+        } catch (IOException e) {
             return ResponseEntity.badRequest().body("Failed to send OTP: " + e.getMessage());
         }
     }
