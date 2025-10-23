@@ -70,7 +70,8 @@ public class AuthController {
             String jwt = tokenProvider.generateToken(authentication,user.getId());
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
-            return ResponseEntity.ok(new JwtResponse(jwt, refreshToken.getToken()));
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new JwtResponse(jwt, refreshToken.getToken()));
 
         } catch (BadCredentialsException ex) {
             return ResponseEntity
@@ -87,6 +88,7 @@ public class AuthController {
     public ResponseEntity<?> refreshtoken(@RequestBody TokenRefreshRequest request) {
         String requestRefreshToken = request.getRefreshToken();
 
+        System.out.println("Received refresh token: " + requestRefreshToken);
         return refreshTokenService.findByToken(requestRefreshToken)
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUser)

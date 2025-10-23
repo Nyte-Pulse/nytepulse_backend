@@ -20,4 +20,6 @@ public interface UserService {
     ResponseEntity<?> getFollowersCount(String userId);
 
     ResponseEntity<?> getFollowingCount(String userId);
+
+    ResponseEntity<?> getUserByUsername(String username);
 }

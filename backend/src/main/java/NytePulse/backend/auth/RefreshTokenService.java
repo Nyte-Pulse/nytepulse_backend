@@ -1,5 +1,6 @@
 package NytePulse.backend.auth;
 
+
 import NytePulse.backend.entity.User;
 import NytePulse.backend.exception.TokenRefreshException;
 import NytePulse.backend.repository.RefreshTokenRepository;
@@ -26,6 +27,7 @@ public class RefreshTokenService {
     private UserRepository userRepository;
 
     public Optional<RefreshToken> findByToken(String token) {
+        System.out.println("Finding refresh token: " + token);
         return refreshTokenRepository.findByToken(token);
     }
 
