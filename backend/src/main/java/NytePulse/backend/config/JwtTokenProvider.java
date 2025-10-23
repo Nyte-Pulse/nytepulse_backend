@@ -105,4 +105,16 @@ public class JwtTokenProvider {
             throw new AppException(HttpStatus.BAD_REQUEST, "JWT claims string is empty.");
         }
     }
+
+    public String generateTokenFromEmail(String email) {
+        Date currentDate = new Date();
+        Date expireDate = new Date(currentDate.getTime() + jwtExpirationDate);
+
+        return Jwts.builder()
+                .setSubject(email)
+                .setIssuedAt(currentDate)
+                .setExpiration(expireDate)
+                .signWith(key())
+                .compact();
+    }
 }

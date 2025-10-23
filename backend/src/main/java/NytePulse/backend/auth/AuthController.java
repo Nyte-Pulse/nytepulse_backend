@@ -5,6 +5,7 @@ package NytePulse.backend.auth;
 import NytePulse.backend.config.JwtTokenProvider;
 import NytePulse.backend.dto.ResetPasswordRequest;
 import NytePulse.backend.entity.User;
+import NytePulse.backend.exception.TokenRefreshException;
 import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.EmailService;
 import NytePulse.backend.service.centralServices.UserService;
@@ -42,6 +43,9 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private RefreshTokenService refreshTokenService;
+
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -63,8 +67,11 @@ public class AuthController {
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String jwt = tokenProvider.generateToken(authentication,user.getId());
-        return ResponseEntity.ok(new JwtResponse(jwt));
+            String jwt = tokenProvider.generateToken(authentication,user.getId());
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+            return ResponseEntity.ok(new JwtResponse(jwt, refreshToken.getToken()));
+
         } catch (BadCredentialsException ex) {
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)
@@ -74,6 +81,31 @@ public class AuthController {
                     .status(HttpStatus.UNAUTHORIZED)
                     .body("Authentication failed: " + ex.getMessage());
         }
+    }
+
+    @PostMapping("/refreshtoken")
+    public ResponseEntity<?> refreshtoken(@RequestBody TokenRefreshRequest request) {
+        String requestRefreshToken = request.getRefreshToken();
+
+        return refreshTokenService.findByToken(requestRefreshToken)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String token = tokenProvider.generateTokenFromEmail(user.getEmail());
+                    return ResponseEntity.ok(new TokenRefreshResponse(token, requestRefreshToken));
+                })
+                .orElseThrow(() -> new TokenRefreshException(requestRefreshToken,
+                        "Refresh token is not in database!"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody TokenRefreshRequest request) {
+        String refreshToken = request.getRefreshToken();
+
+        refreshTokenService.findByToken(refreshToken)
+                .ifPresent(token -> refreshTokenService.deleteByUserId(token.getUser().getId()));
+
+        return ResponseEntity.ok("Logged out successfully");
     }
 
     @PostMapping("/request-password-reset")
