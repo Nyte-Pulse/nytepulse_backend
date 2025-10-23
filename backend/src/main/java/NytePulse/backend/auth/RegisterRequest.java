@@ -10,7 +10,6 @@ public class RegisterRequest {
     private String name;
     private String role;  // "USER", "ADMIN", "CLUB_OWNER" (for demo; in production, restrict admin creation)
 
-    // Getters and Setters
     public String getUsername() {
         return username;
     }
