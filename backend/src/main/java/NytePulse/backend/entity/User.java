@@ -26,7 +26,7 @@ public class User {
     private String email;
 
     @Column(nullable = false)
-    @JsonIgnore  // ADD THIS - Hide password from API response
+    @JsonIgnore
     private String password;
 
     @Column(nullable = false)

@@ -21,6 +21,12 @@ public class RefreshToken {
     @Column(nullable = false)
     private Instant expiryDate;
 
+    @Column(name = "device_info")
+    private String deviceInfo;
+
+    @Column(name = "ip_address")
+    private String ipAddress;
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -52,5 +58,21 @@ public class RefreshToken {
 
     public void setExpiryDate(Instant expiryDate) {
         this.expiryDate = expiryDate;
+    }
+
+    public String getDeviceInfo() {
+        return deviceInfo;
+    }
+
+    public void setDeviceInfo(String deviceInfo) {
+        this.deviceInfo = deviceInfo;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
     }
 }

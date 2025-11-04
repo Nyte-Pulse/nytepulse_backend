@@ -23,9 +23,6 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    /**
-     * Update user details (bio, birthday, profile_picture_id, gender)
-     */
     @PutMapping("/{userId}")
     public ResponseEntity<?> updateUserDetails(
             @PathVariable String userId,
@@ -116,5 +113,10 @@ public class UserController {
     @GetMapping("/getUserByUsername/{username}")
     public ResponseEntity<?> getUserByUsername(@PathVariable String username) {
         return userService.getUserByUsername(username);
+    }
+
+    @PostMapping("/setAccountPrivateorPublic")
+    public ResponseEntity<?> setAccountPrivateOrPublic(@RequestParam String userId, @RequestParam Boolean isPrivate) {
+        return userDetailsService.setAccountPrivateOrPublic(userId, isPrivate);
     }
 }

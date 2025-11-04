@@ -10,6 +10,7 @@ import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.EmailService;
 import NytePulse.backend.service.centralServices.UserService;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 
 @RestController
@@ -53,7 +55,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         try {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -68,10 +70,18 @@ public class AuthController {
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             String jwt = tokenProvider.generateToken(authentication,user.getId());
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
-            return ResponseEntity.status(HttpStatus.OK)
-                    .body(new JwtResponse(jwt, refreshToken.getToken()));
+            // Get device info from request headers
+            String deviceInfo = httpRequest.getHeader("User-Agent");
+            String ipAddress = httpRequest.getRemoteAddr();
+
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(
+                    user.getId(),
+                    deviceInfo,
+                    ipAddress
+            );
+
+            return ResponseEntity.ok(new JwtResponse(jwt, refreshToken.getToken()));
 
         } catch (BadCredentialsException ex) {
             return ResponseEntity
@@ -104,14 +114,13 @@ public class AuthController {
     public ResponseEntity<?> logout(@RequestBody TokenRefreshRequest request) {
         String refreshToken = request.getRefreshToken();
 
-        refreshTokenService.findByToken(refreshToken)
-                .ifPresent(token -> refreshTokenService.deleteByUserId(token.getUser().getId()));
+        // Delete only this specific refresh token (logs out only this device)
+        refreshTokenService.deleteByToken(refreshToken);
 
-        return ResponseEntity.ok("Logged out successfully");
+        return ResponseEntity.ok("Logged out successfully from this device");
     }
-
     @PostMapping("/request-password-reset")
-    public ResponseEntity<String> requestPasswordReset(@RequestParam String email) {
+    public ResponseEntity<String> requestPasswordReset(@RequestParam String email) throws MessagingException   {
         try {
             if (email == null || email.trim().isEmpty() || !email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
                 return ResponseEntity.badRequest().body("Invalid email address");
@@ -119,8 +128,10 @@ public class AuthController {
             String otp = emailService.sendPasswordResetOtp(email);
             System.out.println("Password reset OTP sent to: " + email + ", OTP: " + otp); // For debugging
             return ResponseEntity.ok("Password reset OTP sent to " + email);
-        } catch (RuntimeException | IOException e) {
+        } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("Failed to process request: " + e.getMessage());
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
         }
     }
 

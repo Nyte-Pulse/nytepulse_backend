@@ -173,12 +173,11 @@ public class UserServiceImpl implements UserService {
                         .body("Already following user: " + followingUserId);
 
             }
-            // Find users
+
             User follower = userRepository.findByUserId(followerUserId);
 
             User following = userRepository.findByUserId(followingUserId);
 
-            // Create relationship
             UserRelationship relationship = new UserRelationship(follower, following);
             relationshipRepository.save(relationship);
 

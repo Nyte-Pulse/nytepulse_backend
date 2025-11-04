@@ -73,7 +73,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 userDetails.setProfilePictureId(userDetailsDto.getProfilePictureId());
             }
 
-            // Save updated user details
+            userDetails.setIsPrivate(userDetailsDto.getIsPrivate());
+
             UserDetails updatedUserDetails = userDetailsRepository.save(userDetails);
 
             logger.info("User details updated successfully for userId: {}", userId);
@@ -98,5 +99,28 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         }
     }
 
+    @Override
+    public ResponseEntity<?> setAccountPrivateOrPublic(String userId, Boolean isPrivate) {
+        try{
+        UserDetails userDetails = userDetailsRepository.findByUserId(userId);
+        if (userDetails == null) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "User details not found");
+            errorResponse.put("userId", userId);
+            errorResponse.put("message", "No user details found for the provided userId");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+        userDetails.setIsPrivate(isPrivate);
+        userDetailsRepository.save(userDetails);
 
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body("Account status update success");
+    } catch (Exception e) {
+        logger.error("Error updating user details for userId: {}", userId, e);
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error updating user details: " + e.getMessage());
+    }
+    }
 }
