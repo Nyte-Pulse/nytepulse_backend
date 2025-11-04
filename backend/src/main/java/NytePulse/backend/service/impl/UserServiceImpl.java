@@ -39,6 +39,9 @@ public class UserServiceImpl implements UserService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
+    private PostRepository postRepository;
+
+    @Autowired
     private ClubDetailsRepository clubDetailsRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
@@ -113,7 +116,7 @@ public class UserServiceImpl implements UserService {
         logger.info("User details saved successfully: {}", savedUser);
 
         UserDetails userDetails = new UserDetails(
-                savedUser.getUserId(),  // Pass userId as String
+                savedUser.getUserId(),
                 request.getEmail(),
                 request.getUsername(),
                 request.getName() != null ? request.getName() : request.getUsername(),
@@ -170,12 +173,11 @@ public class UserServiceImpl implements UserService {
                         .body("Already following user: " + followingUserId);
 
             }
-            // Find users
+
             User follower = userRepository.findByUserId(followerUserId);
 
             User following = userRepository.findByUserId(followingUserId);
 
-            // Create relationship
             UserRelationship relationship = new UserRelationship(follower, following);
             relationshipRepository.save(relationship);
 
@@ -310,5 +312,53 @@ public class UserServiceImpl implements UserService {
                     .body("An error occurred while trying to count following.");
         }
     }
+
+    @Override
+    public ResponseEntity<?> getUserByUsername(String username) {
+        try {
+            Optional<User> userOpt = userRepository.findByUsername(username);
+
+            if (userOpt.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body("User not found with username: " + username);
+            }
+
+            User user = userOpt.get();
+            String userId = user.getUserId();
+
+            long countFollowing = relationshipRepository.countFollowing(userId);
+            long countFollowers = relationshipRepository.countFollowers(userId);
+            List<Post> posts = postRepository.findByUserOrderByCreatedAtDesc(user);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("followingCount", String.valueOf(countFollowing));
+            response.put("followersCount", String.valueOf(countFollowers));
+            response.put("userId", userId);
+            response.put("username", user.getUsername());
+            response.put("email", user.getEmail());
+            response.put("postsCount", String.valueOf(posts.size()));
+            response.put("accountType", user.getAccountType());
+
+            if (userId.startsWith("US")) {
+                UserDetails userDetails = userDetailsRepository.findByUsername(username);
+                response.put("name", userDetails.getName());
+                response.put("bio", userDetails.getBio());
+            } else {
+                ClubDetails clubDetails = clubDetailsRepository.findByUsername(username);
+                response.put("name", clubDetails.getName());
+                response.put("bio", clubDetails.getBio());
+            }
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error while fetching user by username: {}", e.getMessage(), e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to fetch the user.");
+        }
+    }
+
 
 }

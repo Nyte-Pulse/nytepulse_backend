@@ -6,13 +6,9 @@ import NytePulse.backend.service.EmailService;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.security.SecureRandom;
 
 @RestController
@@ -34,19 +30,33 @@ public class EmailController {
             }
             String otp = String.format("%06d", new SecureRandom().nextInt(999999));
             return emailService.sendOtp(to, otp);
-        } catch (IOException e) {
+        } catch (MessagingException e) {
             return ResponseEntity.badRequest().body("Failed to send OTP: " + e.getMessage());
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @PostMapping("/verifyOtp")
     public ResponseEntity<?> verifyOtp(@RequestBody OtpVerificationRequest request) {
         try {
-           return emailService.verifyOtp(request);
-
+            return emailService.verifyOtp(request);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("Failed to verify OTP: " + e.getMessage());
         }
     }
 
+//    @PostMapping("/request-password-reset")
+//    public ResponseEntity<String> requestPasswordReset(@RequestParam String email) throws UnsupportedEncodingException {
+//        try {
+//            if (email == null || email.trim().isEmpty() || !email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+//                return ResponseEntity.badRequest().body("Invalid email address");
+//            }
+//            String otp = emailService.sendPasswordResetOtp(email);
+//            System.out.println("Password reset OTP sent to: " + email + ", OTP: " + otp);
+//            return ResponseEntity.ok("Password reset OTP sent to " + email);
+//        } catch (RuntimeException | MessagingException e) {
+//            return ResponseEntity.badRequest().body("Failed to process request: " + e.getMessage());
+//        }
+//    }
 }
