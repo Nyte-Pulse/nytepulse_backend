@@ -127,6 +127,7 @@ public class PostServiceImpl implements PostService {
             Map<String, Object> response = new HashMap<>();
             response.put("userId", userId);
             response.put("posts", posts);
+            response.put("postCount", posts.size());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 

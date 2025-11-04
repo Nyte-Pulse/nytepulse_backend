@@ -11,5 +11,7 @@ public interface ClubDetailsRepository extends JpaRepository<ClubDetails, Long> 
 
     ClubDetails findByUserId(String userId);
 
+    ClubDetails findByUsername(String username);
+
 //    Optional<ClubDetails> findById(Long  id);
 }
