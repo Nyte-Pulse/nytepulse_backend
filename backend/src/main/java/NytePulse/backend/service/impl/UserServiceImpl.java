@@ -360,5 +360,18 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    public ResponseEntity<?> checkUsernameAvailability(String username) {
+        try {
+            boolean exists = userRepository.existsByUsername(username);
+            Map<String, Boolean> response = new HashMap<>();
+            response.put("available", !exists);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error while checking username availability: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to check username availability.");
+        }
+    }
 
 }

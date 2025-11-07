@@ -22,4 +22,7 @@ public interface UserService {
     ResponseEntity<?> getFollowingCount(String userId);
 
     ResponseEntity<?> getUserByUsername(String username);
+
+    ResponseEntity<?> checkUsernameAvailability(String username);
+
 }
