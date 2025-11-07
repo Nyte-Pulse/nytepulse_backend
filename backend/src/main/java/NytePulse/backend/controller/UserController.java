@@ -119,4 +119,10 @@ public class UserController {
     public ResponseEntity<?> setAccountPrivateOrPublic(@RequestParam String userId, @RequestParam Boolean isPrivate) {
         return userDetailsService.setAccountPrivateOrPublic(userId, isPrivate);
     }
+
+    @GetMapping("checkUsernameAvailability/{username}")
+    public ResponseEntity<?> checkUsernameAvailability(@PathVariable String username) {
+        return userService.checkUsernameAvailability(username);
+    }
+
 }
