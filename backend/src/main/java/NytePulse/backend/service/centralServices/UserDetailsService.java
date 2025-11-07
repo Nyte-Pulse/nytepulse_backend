@@ -8,4 +8,6 @@ public interface UserDetailsService {
     ResponseEntity<?> updateUserDetails(String userId, UserDetailsDto userDetailsDto);
 
     ResponseEntity<?> setAccountPrivateOrPublic(String userId, Boolean isPrivate);
+
+
 }
