@@ -49,7 +49,7 @@ public class UserServiceImpl implements UserService {
     private static final ZoneId SRI_LANKA_ZONE = ZoneId.of("Asia/Colombo");
 
     private String generateUserId(String accountType) {
-        String prefix = "US";
+        String prefix = "PS";
         if ("BUSINESS".equalsIgnoreCase(accountType)) {
             prefix = "BS";
         }
@@ -123,7 +123,7 @@ public class UserServiceImpl implements UserService {
                 request.getAccountType()
         );
 
-        if ("USER".equals(request.getAccountType())) {
+        if ("PERSONAL".equals(request.getAccountType())) {
             UserDetails savedUserDetails = userDetailsRepository.save(userDetails);
 
             Map<String, Object> response = new HashMap<>();
@@ -155,8 +155,12 @@ public class UserServiceImpl implements UserService {
             response.put("updated_at", LocalDateTime.now(SRI_LANKA_ZONE));
             logger.info("ClubDetails saved successfully: {}", savedClubDetails);
         }
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.OK.value());
+        response.put("message", "Account created successfully!");
+        response.put("user", savedUser);
 
-        return ResponseEntity.ok(savedUser);
+        return ResponseEntity.ok(response);
     }
 
     @Override
