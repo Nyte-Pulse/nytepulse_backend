@@ -144,6 +144,4 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Failed to reset password: " + e.getMessage());
         }
     }
-
-
 }
