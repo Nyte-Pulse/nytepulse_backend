@@ -59,18 +59,18 @@ public class UserServiceImpl implements UserService {
         String lastUserId = (lastUser != null) ? lastUser.getUserId() : null;
 
         if (lastUserId == null) {
-            return prefix + "00001";
+            return prefix + "0000001";
         }
 
         try {
             String numberPart = lastUserId.substring(2); // Extract number part (assumes format XX00000)
             int number = Integer.parseInt(numberPart);
             number++;
-            return String.format(prefix + "%05d", number);
+            return String.format(prefix + "%07d", number);
         } catch (Exception e) {
             // Fallback if parsing fails
             logger.warn("Failed to parse userId: {}, using default", lastUserId);
-            return prefix + "00001";
+            return prefix + "0000001";
         }
     }
 
