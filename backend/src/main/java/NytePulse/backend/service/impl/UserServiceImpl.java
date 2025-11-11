@@ -363,8 +363,10 @@ public class UserServiceImpl implements UserService {
     public ResponseEntity<?> checkUsernameAvailability(String username) {
         try {
             boolean exists = userRepository.existsByUsername(username);
-            Map<String, Boolean> response = new HashMap<>();
+            Map<String, Object> response = new HashMap<>();
             response.put("available", !exists);
+            response.put("status", HttpStatus.OK.value());
+            response.put("message", !exists ? "Username is available" : "Username already exists");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error while checking username availability: {}", e.getMessage());
