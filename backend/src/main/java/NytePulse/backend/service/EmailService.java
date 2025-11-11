@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.UnsupportedEncodingException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class EmailService {
@@ -83,7 +85,13 @@ public class EmailService {
 
         Otp otpEntity = new Otp(to, otp, LocalDateTime.now().plusMinutes(5));
         otpRepository.save(otpEntity);
-        return ResponseEntity.ok("OTP sent successfully to " + to);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.OK.value());
+        response.put("message", "OTP sent successfully");
+        response.put("to", to);
+
+        return ResponseEntity.ok(response);
     }
 
     private void sendEmail(String to, String subject, String htmlContent) throws MessagingException, UnsupportedEncodingException {
