@@ -133,7 +133,11 @@ public class EmailService {
         }
 
         otpRepository.delete(otp);
-        return ResponseEntity.ok("Email verified successfully");
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.OK.value());
+        response.put("message", "Email verified successfully");
+        return ResponseEntity.ok(response);
     }
 
     @Transactional
