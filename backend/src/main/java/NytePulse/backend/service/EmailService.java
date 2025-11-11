@@ -121,15 +121,23 @@ public class EmailService {
 
         if (otp.getExpiry().isBefore(LocalDateTime.now())) {
             otpRepository.delete(otp);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            response.put("error", "OTP has expired");
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body("OTP has expired");
+                    .body(response);
         }
 
         if (!otp.getOtp().equals(request.getOtp())) {
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            response.put("error", "Invalid OTP");
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body("Invalid OTP");
+                    .body(response);
         }
 
         otpRepository.delete(otp);
