@@ -51,6 +51,12 @@ public class UserDetails {
     @Column(length = 100)
     private String name;
 
+    @Column(name = "profile_picture")
+    private String ProfilePicture;
+
+    @Column(name = "profile_picture_file_name")
+    private String ProfilePictureFileName;
+
     // Constructors
     public UserDetails() {
     }
@@ -170,4 +176,20 @@ public class UserDetails {
     public void setName(String name) {
         this.name = name;
     }
+
+    public String getProfilePicture() {
+        return ProfilePicture;
+    }
+    public void setProfilePicture(String profilePicture) {
+        ProfilePicture = profilePicture;
+    }
+
+    public String getProfilePictureFileName() {
+        return ProfilePictureFileName;
+    }
+
+    public void setProfilePictureFileName(String profilePictureFileName) {
+        ProfilePictureFileName = profilePictureFileName;
+    }
+
 }

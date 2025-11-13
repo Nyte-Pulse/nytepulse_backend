@@ -123,4 +123,31 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .body("Error updating user details: " + e.getMessage());
     }
     }
+
+    @Override
+    public ResponseEntity<?> getAccountNameByEmail(String email) {
+        try {
+            UserDetails userDetails = userDetailsRepository.findByEmail(email);
+            if (userDetails == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "User details not found");
+                errorResponse.put("email", email);
+                errorResponse.put("message", "No user details found for the provided email");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", userDetails.getUserId());
+            response.put("accountName", userDetails.getName());
+            response.put("profile Picture Url", userDetails.getProfilePicture());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error retrieving account name for email: {}", email, e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error retrieving account name: " + e.getMessage());
+        }
+    }
 }

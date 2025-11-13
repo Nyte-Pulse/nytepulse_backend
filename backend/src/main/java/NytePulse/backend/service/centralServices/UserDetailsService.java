@@ -10,4 +10,5 @@ public interface UserDetailsService {
     ResponseEntity<?> setAccountPrivateOrPublic(String userId, Boolean isPrivate);
 
 
+    ResponseEntity<?> getAccountNameByEmail(String email);
 }
