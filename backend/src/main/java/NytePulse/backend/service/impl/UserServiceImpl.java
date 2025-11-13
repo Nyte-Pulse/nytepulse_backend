@@ -1,8 +1,10 @@
 package NytePulse.backend.service.impl;
 
 import NytePulse.backend.auth.RegisterRequest;
+import NytePulse.backend.dto.BunnyNetUploadResult;
 import NytePulse.backend.entity.*;
 import NytePulse.backend.repository.*;
+import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,8 +16,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -43,6 +47,10 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private ClubDetailsRepository clubDetailsRepository;
+
+    @Autowired
+    private BunnyNetService bunnyNetService;
+
 
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
@@ -92,6 +100,7 @@ public class UserServiceImpl implements UserService {
         user.setAccountType(request.getAccountType());
 
         String userId = generateUserId(request.getAccountType());
+        System.out.println("Generated User ID: " + userId);
         user.setUserId(userId);
         LocalDateTime sriLankanTime = LocalDateTime.now(SRI_LANKA_ZONE);
         user.setCreatedAt(sriLankanTime);
@@ -378,6 +387,153 @@ public class UserServiceImpl implements UserService {
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred while trying to check username availability.");
         }
+    }
+
+    @Override
+    public ResponseEntity<?> uploadProfilePicture(MultipartFile file, String userId){
+
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("File is empty"));
+            }
+
+            // Validate file type
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("File must be an image"));
+            }
+
+            // Validate file size (e.g., max 5MB)
+            long maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.getSize() > maxSize) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("File size exceeds 5MB limit"));
+            }
+
+            logger.info("Uploading profile picture for user: {}", userId);
+
+            // Upload to BunnyNet
+            BunnyNetUploadResult result = bunnyNetService.uploadProfilePicture(file, userId);
+
+
+            UserDetails userDetailsOpt = userDetailsRepository.findByUserId(userId);
+
+            if (userDetailsOpt == null) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body("UserDetails not found for userId: " + userId);
+            }
+            userDetailsOpt.setProfilePicture(result.getCdnUrl());
+            userDetailsOpt.setProfilePictureFileName(result.getFileName());
+            userDetailsRepository.save(userDetailsOpt);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Profile picture uploaded successfully");
+            response.put("fileName", result.getFileName());
+            response.put("cdnUrl", result.getCdnUrl());
+            response.put("status", HttpStatus.valueOf(200).toString());
+            response.put("fileSize", result.getFileSize());
+
+            return ResponseEntity.ok(response);
+
+
+        } catch (Exception e) {
+            logger.error("Error while uploading profile picture: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to upload the profile picture.");
+        }
+
+    }
+
+    @Override
+    public ResponseEntity<?> updateProfilePicture(MultipartFile file,String userId,String oldFileName){
+
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("File is empty"));
+            }
+
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("File must be an image"));
+            }
+
+            logger.info("Updating profile picture for user: {}", userId);
+
+            BunnyNetUploadResult result = bunnyNetService.updateProfilePicture(file, userId, oldFileName);
+
+            UserDetails userDetailsOpt = userDetailsRepository.findByUserId(userId);
+
+            if (userDetailsOpt == null) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body("UserDetails not found for userId: " + userId);
+            }
+            userDetailsOpt.setProfilePicture(result.getCdnUrl());
+            userDetailsRepository.save(userDetailsOpt);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("status", HttpStatus.valueOf(200).toString());
+            response.put("message", "Profile picture updated successfully");
+            response.put("fileName", result.getFileName());
+            response.put("cdnUrl", result.getCdnUrl());
+            response.put("fileSize", result.getFileSize());
+
+            return ResponseEntity.ok(response);
+
+        } catch (IOException e) {
+            logger.error("Error updating profile picture: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Failed to update profile picture: " + e.getMessage()));
+        }
+
+    }
+
+    @Override
+    public ResponseEntity<?> deleteProfilePicture(String fileName,String userId){
+        try {
+            UserDetails userDetailsOpt = userDetailsRepository.findByUserId(userId);
+
+            if (userDetailsOpt == null) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body("UserDetails not found for userId: " + userId);
+            }
+            userDetailsOpt.setProfilePictureFileName("Empty");
+            userDetailsOpt.setProfilePicture("Empty");
+            userDetailsRepository.save(userDetailsOpt);
+            boolean deleted = bunnyNetService.deleteProfilePicture(fileName);
+
+            if (deleted) {
+                Map<String, String> response = new HashMap<>();
+                response.put("status", HttpStatus.valueOf(200).toString());
+                response.put("success", "true");
+                response.put("message", "Profile picture deleted successfully");
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(createErrorResponse("Profile picture not found"));
+            }
+
+        } catch (Exception e) {
+            logger.error("Error deleting profile picture: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Failed to delete profile picture: " + e.getMessage()));
+        }
+    }
+
+    private Map<String, String> createErrorResponse(String message) {
+        Map<String, String> error = new HashMap<>();
+        error.put("success", "false");
+        error.put("error", message);
+        return error;
     }
 
 }

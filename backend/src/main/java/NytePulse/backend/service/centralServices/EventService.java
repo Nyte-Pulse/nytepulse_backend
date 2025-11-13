@@ -4,10 +4,11 @@ import NytePulse.backend.dto.EventDetailsDto;
 import NytePulse.backend.dto.SaveEventDto;
 import NytePulse.backend.dto.ReportEventDto;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface EventService {
 
-    ResponseEntity<?> saveEvent( EventDetailsDto eventDetailsDto);
+    ResponseEntity<?> saveEvent(EventDetailsDto eventDetailsDto);
 
     ResponseEntity<?> searchEvents(EventDetailsDto eventDetailsDto);
 
