@@ -1,5 +1,6 @@
 package NytePulse.backend.service.impl;
 
+import NytePulse.backend.dto.BunnyNetUploadResult;
 import NytePulse.backend.dto.EventDetailsDto;
 import NytePulse.backend.dto.SaveEventDto;
 import NytePulse.backend.dto.ReportEventDto;
@@ -11,6 +12,7 @@ import NytePulse.backend.repository.EventCountRepository;
 import NytePulse.backend.repository.EventDetailsRepository;
 import NytePulse.backend.repository.ReportEventRepository;
 import NytePulse.backend.repository.SaveEventByUserRepository;
+import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.EventService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -41,6 +44,9 @@ public class EventServiceImpl implements EventService {
 
     @Autowired
     private ReportEventRepository reportEventRepository;
+
+    @Autowired
+    private BunnyNetService bunnyNetService;
 
     private static final Logger logger = LoggerFactory.getLogger(ClubServiceImpl.class);
 
@@ -69,6 +75,29 @@ public class EventServiceImpl implements EventService {
             }
             eventDetails.setEventId(newEventId);
 
+//            if (file.isEmpty()) {
+//                return ResponseEntity.badRequest()
+//                        .body(createErrorResponse("File is empty"));
+//            }
+//
+//            // Validate file type
+//            String contentType = file.getContentType();
+//            if (contentType == null || !contentType.startsWith("image/")) {
+//                return ResponseEntity.badRequest()
+//                        .body(createErrorResponse("File must be an image"));
+//            }
+//
+//            // Validate file size (e.g., max 5MB)
+//            long maxSize = 5 * 1024 * 1024; // 5MB
+//            if (file.getSize() > maxSize) {
+//                return ResponseEntity.badRequest()
+//                        .body(createErrorResponse("File size exceeds 5MB limit"));
+//            }
+//
+//            logger.info("Uploading profile picture for user: {}", eventDetailsDto.getUserId());
+//
+//            BunnyNetUploadResult result = bunnyNetService.uploadEventPoster(file, eventDetailsDto.getUserId());
+
 
             eventDetails.setName(eventDetailsDto.getName());
             eventDetails.setClubId(eventDetailsDto.getUserId());
@@ -80,7 +109,8 @@ public class EventServiceImpl implements EventService {
             eventDetails.setDressCode(eventDetailsDto.getDressCode());
             eventDetails.setTicketType(eventDetailsDto.getTicketType());
             eventDetails.setWebsiteUrl(eventDetailsDto.getWebsiteUrl());
-            eventDetails.setPosterUrl(eventDetailsDto.getPosterUrl());
+//            eventDetails.setPosterUrl(result.getCdnUrl());
+//            eventDetails.setEventPosterFileName(result.getFileName());
             eventDetails.setStatus(eventDetailsDto.getStatus());
             eventDetails.setHighlightTags(eventDetailsDto.getHighlightTags());
             eventDetails.setAddress(eventDetailsDto.getVenueAddress());
@@ -133,6 +163,8 @@ public class EventServiceImpl implements EventService {
             response.put("posterUrl", savedEventDetails.getPosterUrl());
             response.put("status", savedEventDetails.getStatus());
             response.put("highlightTags", savedEventDetails.getHighlightTags());
+//            response.put("fileName", result.getFileName());
+//            response.put("cdnUrl", result.getCdnUrl());
             response.put("updated_at", LocalDateTime.now(SRI_LANKA_ZONE));
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -432,5 +464,13 @@ public class EventServiceImpl implements EventService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+    private Map<String, String> createErrorResponse(String message) {
+        Map<String, String> error = new HashMap<>();
+        error.put("success", "false");
+        error.put("error", message);
+        return error;
+    }
+
 
 }

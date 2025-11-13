@@ -2,6 +2,7 @@ package NytePulse.backend.service.centralServices;
 
 import NytePulse.backend.auth.RegisterRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
 
@@ -25,4 +26,9 @@ public interface UserService {
 
     ResponseEntity<?> checkUsernameAvailability(String username);
 
+    ResponseEntity<?> uploadProfilePicture(MultipartFile file, String userId);
+
+    ResponseEntity<?> updateProfilePicture(MultipartFile file, String userId, String oldFileName);
+
+    ResponseEntity<?> deleteProfilePicture(String fileName,String userId);
 }

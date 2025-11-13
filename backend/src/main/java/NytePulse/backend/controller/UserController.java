@@ -1,14 +1,23 @@
 package NytePulse.backend.controller;
 
+import NytePulse.backend.dto.BunnyNetUploadResult;
 import NytePulse.backend.dto.UserDetailsDto;
+import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.UserDetailsService;
 import NytePulse.backend.service.centralServices.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,6 +31,13 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+
+    @Autowired
+    private BunnyNetService bunnyNetService;
+
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
+
 
     @PutMapping("/{userId}")
     public ResponseEntity<?> updateUserDetails(
@@ -124,5 +140,73 @@ public class UserController {
     public ResponseEntity<?> checkUsernameAvailability(@PathVariable String username) {
         return userService.checkUsernameAvailability(username);
     }
+
+    @PostMapping("/profilePicture/upload")
+    public ResponseEntity<?> uploadProfilePicture(@RequestParam("file") MultipartFile file, @RequestParam("userId") String userId) {
+        return userService.uploadProfilePicture(file, userId);
+    }
+
+    @PutMapping("/profilePicture/update")
+    public ResponseEntity<?> updateProfilePicture(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("userId") String userId,
+            @RequestParam(value = "oldFileName", required = false) String oldFileName) {
+
+        return userService.updateProfilePicture(file, userId, oldFileName);
+    }
+
+    /**
+     * Get profile picture URL
+     */
+//    @GetMapping("/url/{fileName}")
+//    public ResponseEntity<?> getProfilePictureUrl(@PathVariable String fileName) {
+//        try {
+//            String cdnUrl = bunnyNetService.getProfilePictureUrl(fileName);
+//
+//            Map<String, String> response = new HashMap<>();
+//            response.put("success", "true");
+//            response.put("fileName", fileName);
+//            response.put("cdnUrl", cdnUrl);
+//
+//            return ResponseEntity.ok(response);
+//
+//        } catch (Exception e) {
+//            log.error("Error getting profile picture URL: {}", e.getMessage());
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(createErrorResponse("Failed to get profile picture URL"));
+//        }
+//    }
+
+    /**
+     * Download profile picture directly
+     */
+//    @GetMapping("/download/{fileName}")
+//    public ResponseEntity<byte[]> downloadProfilePicture(@PathVariable String fileName) {
+//        try {
+//            byte[] imageBytes = bunnyNetService.downloadProfilePicture(fileName);
+//
+//            HttpHeaders headers = new HttpHeaders();
+//            headers.setContentType(MediaType.IMAGE_JPEG);
+//            headers.setContentLength(imageBytes.length);
+//            headers.setCacheControl("public, max-age=31536000"); // Cache for 1 year
+//
+//            return new ResponseEntity<>(imageBytes, headers, HttpStatus.OK);
+//
+//        } catch (IOException e) {
+//            log.error("Error downloading profile picture: {}", e.getMessage());
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+//        }
+//    }
+
+    @DeleteMapping("/profilePicture/delete")
+    public ResponseEntity<?> deleteProfilePicture(@RequestParam String fileName,@RequestParam  String userId) {
+        return userService.deleteProfilePicture(fileName,userId);
+    }
+
+    @GetMapping("/getAccountNameByEmail")
+    public ResponseEntity<?> getAccountNameByEmail(@RequestParam String email) {
+        return userDetailsService.getAccountNameByEmail(email);
+    }
+    
 
 }

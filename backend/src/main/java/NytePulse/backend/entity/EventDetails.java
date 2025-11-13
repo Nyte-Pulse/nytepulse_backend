@@ -69,6 +69,9 @@ public class EventDetails {
     @Column(name = "location_name")
     private String locationName;
 
+    @Column(name = "event_poster_file_name")
+    private String eventPosterFileName;
+
     @Column(name = "created_at", updatable = false)
     private  LocalDateTime createdAt;
 
@@ -275,5 +278,12 @@ public class EventDetails {
 
     public void setIsActive(int isActive) {
         this.isActive = isActive;
+    }
+
+    public String getEventPosterFileName() {
+        return eventPosterFileName;
+    }
+    public void setEventPosterFileName(String eventPosterFileName) {
+        this.eventPosterFileName = eventPosterFileName;
     }
 }

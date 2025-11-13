@@ -20,12 +20,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.UUID;
 
 @Service
 public class BunnyNetService {
 
-    // Manual logger definition
     private static final Logger log = LoggerFactory.getLogger(BunnyNetService.class);
 
     @Autowired
@@ -34,14 +37,188 @@ public class BunnyNetService {
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
 
+    private static final String PROFILE_PICTURE_FOLDER = "profile_picture";
+    private static final String EVENT_POSTER_FOLDER = "event_poster";
+
     public BunnyNetService() {
         this.webClient = WebClient.builder().build();
         this.objectMapper = new ObjectMapper();
     }
+    public BunnyNetUploadResult uploadEventPoster(MultipartFile file, String userId) throws IOException {
+        log.info("Uploading event poster for user: {}", userId);
+
+        String fileName = generateEventPosterFileName(userId, file.getOriginalFilename());
+        String uploadPath = "/" + EVENT_POSTER_FOLDER + "/" + fileName;
+
+        String uploadUrl = bunnyNetConfig.getStorage().getBaseUrl() +
+                "/" + bunnyNetConfig.getStorage().getZoneName() + uploadPath;
+
+        log.info("Profile picture upload URL: {}", uploadUrl);
+
+        try {
+            webClient.put()
+                    .uri(uploadUrl)
+                    .header("AccessKey", bunnyNetConfig.getStorage().getAccessKey())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(BodyInserters.fromResource(file.getResource()))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            String cdnUrl = bunnyNetConfig.getStorage().getCdnUrl() + uploadPath;
+
+            log.info("Event poster uploaded successfully: {}", cdnUrl);
+
+            return BunnyNetUploadResult.builder()
+                    .fileName(fileName)
+                    .cdnUrl(cdnUrl)
+                    .fileSize(file.getSize())
+                    .mediaType(Media.MediaType.IMAGE)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Failed to upload event poster: {}", e.getMessage());
+            throw new IOException("Failed to upload event poster", e);
+        }
+    }
+
+    private String generateEventPosterFileName(String userId, String originalFilename) {
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        return userId + "_" + System.currentTimeMillis() + extension;
+    }
 
     /**
-     * Upload image to BunnyNet Storage
+     * Upload profile picture to specific folder
      */
+    public BunnyNetUploadResult uploadProfilePicture(MultipartFile file, String userId) throws IOException {
+        log.info("Uploading profile picture for user: {}", userId);
+
+        String fileName = generateProfilePictureFileName(userId, file.getOriginalFilename());
+        String uploadPath = "/" + PROFILE_PICTURE_FOLDER + "/" + fileName;
+
+        String uploadUrl = bunnyNetConfig.getStorage().getBaseUrl() +
+                "/" + bunnyNetConfig.getStorage().getZoneName() + uploadPath;
+
+        log.info("Profile picture upload URL: {}", uploadUrl);
+
+        try {
+            webClient.put()
+                    .uri(uploadUrl)
+                    .header("AccessKey", bunnyNetConfig.getStorage().getAccessKey())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(BodyInserters.fromResource(file.getResource()))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            String cdnUrl = bunnyNetConfig.getStorage().getCdnUrl() + uploadPath;
+
+            log.info("Profile picture uploaded successfully: {}", cdnUrl);
+
+            return BunnyNetUploadResult.builder()
+                    .fileName(fileName)
+                    .cdnUrl(cdnUrl)
+                    .fileSize(file.getSize())
+                    .mediaType(Media.MediaType.IMAGE)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Failed to upload profile picture: {}", e.getMessage());
+            throw new IOException("Failed to upload profile picture", e);
+        }
+    }
+
+    /**
+     * Get profile picture URL
+     */
+    public String getProfilePictureUrl(String fileName) {
+        return bunnyNetConfig.getStorage().getCdnUrl() +
+                "/" + PROFILE_PICTURE_FOLDER + "/" + fileName;
+    }
+
+
+    /**
+     * Download profile picture as byte array
+     */
+    public byte[] downloadProfilePicture(String fileName) throws IOException {
+        String downloadUrl = bunnyNetConfig.getStorage().getBaseUrl() +
+                "/" + bunnyNetConfig.getStorage().getZoneName() +
+                "/" + PROFILE_PICTURE_FOLDER + "/" + fileName;
+
+        log.info("Downloading profile picture from: {}", downloadUrl);
+
+        try {
+            return webClient.get()
+                    .uri(downloadUrl)
+                    .header("AccessKey", bunnyNetConfig.getStorage().getAccessKey())
+                    .retrieve()
+                    .bodyToMono(byte[].class)
+                    .block();
+
+        } catch (Exception e) {
+            log.error("Failed to download profile picture: {}", e.getMessage());
+            throw new IOException("Failed to download profile picture", e);
+        }
+    }
+
+    /**
+     * Delete profile picture from storage
+     */
+    public boolean deleteProfilePicture(String fileName) {
+        try {
+            String deleteUrl = bunnyNetConfig.getStorage().getBaseUrl() +
+                    "/" + bunnyNetConfig.getStorage().getZoneName() +
+                    "/" + PROFILE_PICTURE_FOLDER + "/" + fileName;
+
+            webClient.method(HttpMethod.DELETE)
+                    .uri(deleteUrl)
+                    .header("AccessKey", bunnyNetConfig.getStorage().getAccessKey())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info("Successfully deleted profile picture: {}", fileName);
+            return true;
+
+        } catch (Exception e) {
+            log.error("Failed to delete profile picture: {} - Error: {}", fileName, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Generate filename for profile pictures with userId
+     */
+    private String generateProfilePictureFileName(String userId, String originalFilename) {
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        return userId + "_" + System.currentTimeMillis() + extension;
+    }
+
+    /**
+     * Update user profile picture (delete old and upload new)
+     */
+    public BunnyNetUploadResult updateProfilePicture(MultipartFile file, String userId, String oldFileName)
+            throws IOException {
+
+        // Delete old profile picture if exists
+        if (oldFileName != null && !oldFileName.isEmpty()) {
+            deleteProfilePicture(oldFileName);
+        }
+
+        // Upload new profile picture
+        return uploadProfilePicture(file, userId);
+
+    }
+
+        /**
+         * Upload image to BunnyNet Storage
+         */
     public BunnyNetUploadResult uploadImage(MultipartFile file) throws IOException {
         // DEBUG: Print the configuration values
         log.info("DEBUG - Storage Access Key: {}", bunnyNetConfig.getStorage().getAccessKey());
