@@ -158,24 +158,24 @@ public class UserController {
     /**
      * Get profile picture URL
      */
-    @GetMapping("/url/{fileName}")
-    public ResponseEntity<?> getProfilePictureUrl(@PathVariable String fileName) {
-        try {
-            String cdnUrl = bunnyNetService.getProfilePictureUrl(fileName);
-
-            Map<String, String> response = new HashMap<>();
-            response.put("success", "true");
-            response.put("fileName", fileName);
-            response.put("cdnUrl", cdnUrl);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Error getting profile picture URL: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Failed to get profile picture URL"));
-        }
-    }
+//    @GetMapping("/url/{fileName}")
+//    public ResponseEntity<?> getProfilePictureUrl(@PathVariable String fileName) {
+//        try {
+//            String cdnUrl = bunnyNetService.getProfilePictureUrl(fileName);
+//
+//            Map<String, String> response = new HashMap<>();
+//            response.put("success", "true");
+//            response.put("fileName", fileName);
+//            response.put("cdnUrl", cdnUrl);
+//
+//            return ResponseEntity.ok(response);
+//
+//        } catch (Exception e) {
+//            log.error("Error getting profile picture URL: {}", e.getMessage());
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(createErrorResponse("Failed to get profile picture URL"));
+//        }
+//    }
 
     /**
      * Download profile picture directly
@@ -203,11 +203,10 @@ public class UserController {
         return userService.deleteProfilePicture(fileName,userId);
     }
 
-    private Map<String, String> createErrorResponse(String message) {
-        Map<String, String> error = new HashMap<>();
-        error.put("success", "false");
-        error.put("error", message);
-        return error;
+    @GetMapping("/getAccountNameByEmail")
+    public ResponseEntity<?> getAccountNameByEmail(@RequestParam String email) {
+        return userDetailsService.getAccountNameByEmail(email);
     }
+    
 
 }
