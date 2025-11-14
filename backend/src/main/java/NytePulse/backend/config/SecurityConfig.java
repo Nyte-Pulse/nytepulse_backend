@@ -53,7 +53,7 @@ public class SecurityConfig {
                         auth.requestMatchers("/api/auth/**","/api/auth/email/request-password-reset",
                                         "/api/otp/email/sendOtp/**","/ws/**",
                                         "/api/auth/refreshtoken", "/api/auth/logout","/api/user-details/checkUsernameAvailability/**","/api/user-details/getAccountNameByEmail",
-                                        "/api/auth/email/reset-password","/api/otp/email/**").permitAll()
+                                        "/api/auth/email/reset-password","/api/otp/email/**","/api/auth/register").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/user").hasRole("USER")
                                 .requestMatchers(HttpMethod.GET, "/api/admin/**").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.GET, "/api/club").hasRole("CLUB_OWNER")
