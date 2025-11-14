@@ -149,7 +149,10 @@ public class AuthController {
         try {
             return emailService.resetPassword(request);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("Failed to reset password: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
+            errorResponse.put("message", "Failed to reset password: " + e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 }
