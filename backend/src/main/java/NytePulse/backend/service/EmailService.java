@@ -163,6 +163,9 @@ public class EmailService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        return ResponseEntity.status(HttpStatus.OK).body("Password Reset successfully");
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.OK.value());
+        response.put("message", "Password Reset successfully");
+        return ResponseEntity.ok(response);
     }
 }
