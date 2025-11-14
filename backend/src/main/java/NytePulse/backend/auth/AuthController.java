@@ -135,7 +135,10 @@ public class AuthController {
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("Failed to process request: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
+            errorResponse.put("message", "Failed to process request: " + e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
