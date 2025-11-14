@@ -207,6 +207,6 @@ public class UserController {
     public ResponseEntity<?> getAccountNameByEmail(@RequestParam String email) {
         return userDetailsService.getAccountNameByEmail(email);
     }
-    
+
 
 }
