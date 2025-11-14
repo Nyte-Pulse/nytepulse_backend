@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.Map;
 
 
 @RestController
@@ -120,14 +122,18 @@ public class AuthController {
         return ResponseEntity.ok("Logged out successfully from this device");
     }
     @PostMapping("/request-password-reset")
-    public ResponseEntity<String> requestPasswordReset(@RequestParam String email) throws MessagingException   {
+    public ResponseEntity<?> requestPasswordReset(@RequestParam String email) throws MessagingException   {
         try {
             if (email == null || email.trim().isEmpty() || !email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
                 return ResponseEntity.badRequest().body("Invalid email address");
             }
             String otp = emailService.sendPasswordResetOtp(email);
-            return ResponseEntity.status(HttpStatus.OK)
-                    .body("Password reset OTP sent to " + email);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", HttpStatus.OK.value());
+            response.put("Password reset OTP sent to " , email);
+            return ResponseEntity.ok(response);
+
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("Failed to process request: " + e.getMessage());
         } catch (UnsupportedEncodingException e) {
@@ -136,10 +142,9 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
         try {
-            emailService.resetPassword(request);
-            return ResponseEntity.ok("Password reset successfully");
+            return emailService.resetPassword(request);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("Failed to reset password: " + e.getMessage());
         }
