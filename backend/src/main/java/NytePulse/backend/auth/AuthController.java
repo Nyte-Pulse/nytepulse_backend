@@ -126,8 +126,8 @@ public class AuthController {
                 return ResponseEntity.badRequest().body("Invalid email address");
             }
             String otp = emailService.sendPasswordResetOtp(email);
-            System.out.println("Password reset OTP sent to: " + email + ", OTP: " + otp); // For debugging
-            return ResponseEntity.ok("Password reset OTP sent to " + email);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body("Password reset OTP sent to " + email);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("Failed to process request: " + e.getMessage());
         } catch (UnsupportedEncodingException e) {

@@ -163,6 +163,6 @@ public class EmailService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        return ResponseEntity.ok("Password Reset successfully");
+        return ResponseEntity.status(HttpStatus.OK).body("Password Reset successfully");
     }
 }
