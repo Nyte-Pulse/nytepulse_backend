@@ -25,4 +25,6 @@ public interface EventService {
     ResponseEntity<?> disableReportedEventByAdmin(String eventId);
 
     ResponseEntity<?> removeSavedEventByUser(Long id);
+
+    ResponseEntity<?> uploadEventPoster(MultipartFile file);
 }
