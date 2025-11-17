@@ -24,6 +24,11 @@ public class EventController {
         return ResponseEntity.ok(eventService.saveEvent(eventDetailsDto));
     }
 
+    @PostMapping("/uploadEventPoster")
+    public ResponseEntity<?> uploadEventPoster(@RequestParam("file") MultipartFile file) {
+        return eventService.uploadEventPoster(file);
+    }
+
     @PostMapping("/search")
     public ResponseEntity<?> searchEvents(@RequestBody EventDetailsDto eventDetailsDto) {
         return eventService.searchEvents(eventDetailsDto);

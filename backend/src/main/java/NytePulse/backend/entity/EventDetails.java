@@ -77,6 +77,18 @@ public class EventDetails {
 
 
 
+    @Column(name = "event_poster_cdn_url")
+    private String eventPosterCdnUrl;
+
+
+    public String getEventPosterCdnUrl() {
+        return eventPosterCdnUrl;
+    }
+
+    public void setEventPosterCdnUrl(String eventPosterCdnUrl) {
+        this.eventPosterCdnUrl = eventPosterCdnUrl;
+    }
+
     public EventDetails() {
     }
 
