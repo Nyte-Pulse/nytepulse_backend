@@ -76,30 +76,6 @@ public class EventServiceImpl implements EventService {
             }
             eventDetails.setEventId(newEventId);
 
-//            if (file.isEmpty()) {
-//                return ResponseEntity.badRequest()
-//                        .body(createErrorResponse("File is empty"));
-//            }
-//
-//            // Validate file type
-//            String contentType = file.getContentType();
-//            if (contentType == null || !contentType.startsWith("image/")) {
-//                return ResponseEntity.badRequest()
-//                        .body(createErrorResponse("File must be an image"));
-//            }
-//
-//            // Validate file size (e.g., max 5MB)
-//            long maxSize = 5 * 1024 * 1024; // 5MB
-//            if (file.getSize() > maxSize) {
-//                return ResponseEntity.badRequest()
-//                        .body(createErrorResponse("File size exceeds 5MB limit"));
-//            }
-//
-//            logger.info("Uploading profile picture for user: {}", eventDetailsDto.getUserId());
-//
-//            BunnyNetUploadResult result = bunnyNetService.uploadEventPoster(file, eventDetailsDto.getUserId());
-
-
             eventDetails.setName(eventDetailsDto.getName());
             eventDetails.setClubId(eventDetailsDto.getUserId());
             eventDetails.setDescription(eventDetailsDto.getDescription());
@@ -110,8 +86,8 @@ public class EventServiceImpl implements EventService {
             eventDetails.setDressCode(eventDetailsDto.getDressCode());
             eventDetails.setTicketType(eventDetailsDto.getTicketType());
             eventDetails.setWebsiteUrl(eventDetailsDto.getWebsiteUrl());
-//            eventDetails.setPosterUrl(result.getCdnUrl());
-//            eventDetails.setEventPosterFileName(result.getFileName());
+            eventDetails.setPosterUrl(eventDetails.getEventPosterCdnUrl());
+            eventDetails.setEventPosterFileName(eventDetails.getEventPosterFileName());
             eventDetails.setStatus(eventDetailsDto.getStatus());
             eventDetails.setHighlightTags(eventDetailsDto.getHighlightTags());
             eventDetails.setAddress(eventDetailsDto.getVenueAddress());

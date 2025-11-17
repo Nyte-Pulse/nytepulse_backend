@@ -36,8 +36,23 @@ public class EventDetailsDto {
 
     private int isActive;
 
+    private String eventPosterCdnUrl;
+    private String eventPosterFileName;
     private  LocalDateTime createdAt;
 
+
+    public String getEventPosterCdnUrl() {
+        return eventPosterCdnUrl;
+    }
+    public void setEventPosterCdnUrl(String eventPosterCdnUrl) {
+        this.eventPosterCdnUrl = eventPosterCdnUrl;
+    }
+    public String getEventPosterFileName() {
+        return eventPosterFileName;
+    }
+    public void setEventPosterFileName(String eventPosterFileName) {
+        this.eventPosterFileName = eventPosterFileName;
+    }
 
     public String getName() {
         return name;
