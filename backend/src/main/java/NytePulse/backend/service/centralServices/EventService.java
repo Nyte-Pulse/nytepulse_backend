@@ -23,4 +23,6 @@ public interface EventService {
     ResponseEntity<?> getAllReportedEvents();
 
     ResponseEntity<?> disableReportedEventByAdmin(String eventId);
+
+    ResponseEntity<?> removeSavedEventByUser(Long id);
 }
