@@ -56,7 +56,7 @@ public class SecurityConfig {
                                         "/api/auth/email/reset-password","/api/otp/email/**","/api/auth/register").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/user").hasRole("USER")
                                 .requestMatchers(HttpMethod.GET, "/api/admin/**").hasRole("ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/api/club").hasRole("CLUB_OWNER")
+                                .requestMatchers(HttpMethod.GET, "/api/club").hasRole("BUSINESS")
                                 .anyRequest().authenticated()
                 );
 

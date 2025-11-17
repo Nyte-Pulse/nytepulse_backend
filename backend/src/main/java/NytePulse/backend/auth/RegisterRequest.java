@@ -8,7 +8,7 @@ public class RegisterRequest {
     private String accountType;
 
     private String name;
-    private String role;  // "USER", "ADMIN", "CLUB_OWNER" (for demo; in production, restrict admin creation)
+    private String role;  // "USER", "ADMIN", "BUSINESS" (for demo; in production, restrict admin creation)
 
     public String getUsername() {
         return username;

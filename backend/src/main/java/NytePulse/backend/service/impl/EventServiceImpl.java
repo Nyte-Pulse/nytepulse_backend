@@ -87,7 +87,8 @@ public class EventServiceImpl implements EventService {
             eventDetails.setTicketType(eventDetailsDto.getTicketType());
             eventDetails.setWebsiteUrl(eventDetailsDto.getWebsiteUrl());
             eventDetails.setPosterUrl(eventDetails.getEventPosterCdnUrl());
-            eventDetails.setEventPosterFileName(eventDetails.getEventPosterFileName());
+            eventDetails.setEventPosterFileName(eventDetailsDto.getEventPosterFileName());
+            eventDetails.setEventPosterCdnUrl(eventDetailsDto.getEventPosterCdnUrl());
             eventDetails.setStatus(eventDetailsDto.getStatus());
             eventDetails.setHighlightTags(eventDetailsDto.getHighlightTags());
             eventDetails.setAddress(eventDetailsDto.getVenueAddress());
@@ -135,13 +136,13 @@ public class EventServiceImpl implements EventService {
             response.put("endDateTime", savedEventDetails.getEndDateTime());
             response.put("ageRestriction", savedEventDetails.getAgeRestriction());
             response.put("dressCode", savedEventDetails.getDressCode());
+            response.put("eventPosterUrl", savedEventDetails.getEventPosterCdnUrl());
+            response.put("eventPosterFileName", savedEventDetails.getEventPosterFileName());
             response.put("ticketType", savedEventDetails.getTicketType());
             response.put("websiteUrl", savedEventDetails.getWebsiteUrl());
             response.put("posterUrl", savedEventDetails.getPosterUrl());
             response.put("status", savedEventDetails.getStatus());
             response.put("highlightTags", savedEventDetails.getHighlightTags());
-//            response.put("fileName", result.getFileName());
-//            response.put("cdnUrl", result.getCdnUrl());
             response.put("updated_at", LocalDateTime.now(SRI_LANKA_ZONE));
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
