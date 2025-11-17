@@ -28,6 +28,7 @@ import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -462,6 +463,35 @@ public class EventServiceImpl implements EventService {
             errorResponse.put("message", e.getMessage());
             errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> removeSavedEventByUser(Long id){
+        try {
+            Optional<SaveEvent> findExistingRecord = saveEventByUserRepository.findById(id);
+            if (findExistingRecord.isPresent()) {
+                saveEventByUserRepository.deleteById(id);
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Saved event removed successfully");
+                response.put("status",HttpStatus.OK.value());
+                response.put("id", id);
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Saved event not found");
+                errorResponse.put("id", id);
+                errorResponse.put("status",HttpStatus.NOT_FOUND.value());
+                errorResponse.put("message", "No saved event found for the provided id");
+                return ResponseEntity.ok(errorResponse);
+            }
+        }catch (Exception e) {
+            logger.error("No saved event found for the provided id: {}", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error deleting saved event found for the provided id");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.ok(errorResponse);
         }
     }
 
