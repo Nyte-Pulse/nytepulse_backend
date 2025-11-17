@@ -82,17 +82,29 @@ public class AuthController {
                     deviceInfo,
                     ipAddress
             );
+            if(refreshToken==null){
+                throw new RuntimeException("Could not create refresh token");
+            }
+            JwtResponse jwtResponse = new JwtResponse(jwt, refreshToken.getToken());
 
-            return ResponseEntity.ok(new JwtResponse(jwt, refreshToken.getToken()));
+            Map<String, Object> response = new HashMap<>();
+            response.put("jwtResponse", jwtResponse);
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
 
         } catch (BadCredentialsException ex) {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid email or password");
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Invalid email or password");
+            errorResponse.put("status",HttpStatus.UNAUTHORIZED.value());
+            return ResponseEntity.ok(errorResponse);
+
         } catch (AuthenticationException ex) {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Authentication failed: " + ex.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Authentication failed:"+ex.getMessage());
+            errorResponse.put("status",HttpStatus.UNAUTHORIZED.value());
+            return ResponseEntity.ok(errorResponse);
         }
     }
 
