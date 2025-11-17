@@ -19,7 +19,7 @@ public class EventController {
     @Autowired
     private EventService eventService;
 
-    @PostMapping("/save")
+    @PostMapping("/create")
     public ResponseEntity<?> saveEvent(@RequestBody EventDetailsDto eventDetailsDto){
         return ResponseEntity.ok(eventService.saveEvent(eventDetailsDto));
     }
