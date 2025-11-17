@@ -37,6 +37,7 @@ public class RefreshTokenService {
 
     @Transactional
     public RefreshToken createRefreshToken(Long userId, String deviceInfo, String ipAddress) {
+        try{
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -63,6 +64,10 @@ public class RefreshTokenService {
         refreshToken.setIpAddress(ipAddress);
 
         return refreshTokenRepository.save(refreshToken);
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Error creating refresh token: " + e.getMessage());
+        }
     }
 
 
