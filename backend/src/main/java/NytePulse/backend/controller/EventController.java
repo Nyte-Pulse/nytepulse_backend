@@ -54,4 +54,9 @@ public class EventController {
         return eventService.getAllReportedEvents();
     }
 
+    @DeleteMapping("/RemoveSaveEventByUser")
+    public ResponseEntity<?> removeSavedEventByUser(@RequestParam Long id) {
+        return eventService.removeSavedEventByUser(id);
+    }
+
 }
