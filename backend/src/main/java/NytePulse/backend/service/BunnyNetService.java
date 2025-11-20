@@ -225,7 +225,7 @@ public class BunnyNetService {
         log.info("DEBUG - Storage Zone Name: {}", bunnyNetConfig.getStorage().getZoneName());
         log.info("DEBUG - Storage Base URL: {}", bunnyNetConfig.getStorage().getBaseUrl());
         String fileName = generateFileName(file.getOriginalFilename());
-        String uploadPath = "/images/" + fileName;
+        String uploadPath = "/post_image/" + fileName;
 
         // Upload to BunnyNet Storage
         String uploadUrl = bunnyNetConfig.getStorage().getBaseUrl() +
@@ -347,7 +347,7 @@ public class BunnyNetService {
         try {
             String deleteUrl = bunnyNetConfig.getStorage().getBaseUrl() +
                     "/" + bunnyNetConfig.getStorage().getZoneName() +
-                    "/images/" + fileName;
+                    "/post_image/" + fileName;
 
             webClient.method(HttpMethod.DELETE)
                     .uri(deleteUrl)
