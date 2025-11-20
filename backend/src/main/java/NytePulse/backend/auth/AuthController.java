@@ -131,7 +131,10 @@ public class AuthController {
         // Delete only this specific refresh token (logs out only this device)
         refreshTokenService.deleteByToken(refreshToken);
 
-        return ResponseEntity.ok("Logged out successfully from this device");
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.OK.value());
+        response.put("Message " , "Logged out successfully from this device");
+        return ResponseEntity.ok(response);
     }
     @PostMapping("/request-password-reset")
     public ResponseEntity<?> requestPasswordReset(@RequestParam String email) throws MessagingException   {
