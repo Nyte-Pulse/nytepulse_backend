@@ -3,6 +3,9 @@ name: Deploy Spring Boot to Droplet
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "0 0 * * *"  # daily artifact cleanup at midnight
+  workflow_dispatch:
 
 env:
   APP_NAME: backend
@@ -26,6 +29,7 @@ jobs:
         run: |
           cd backend
           mvn clean package -DskipTests
+
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
@@ -46,6 +50,7 @@ jobs:
         run: |
           pwd
           ls -la
+
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
@@ -60,8 +65,33 @@ jobs:
           eval $(ssh-agent -s)
           echo "${{ secrets.SSH_PASSPHRASE }}" | ssh-add ~/.ssh/id_rsa
           scp -o StrictHostKeyChecking=no backend-0.0.1-SNAPSHOT.jar ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/opt/backend/
+
       - name: Restart service
         run: |
           eval $(ssh-agent -s)
           echo "${{ secrets.SSH_PASSPHRASE }}" | ssh-add ~/.ssh/id_rsa
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "sudo systemctl restart backend && sudo systemctl status backend"
+
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Delete old artifacts
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const listArtifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+            const artifacts = listArtifacts.data.artifacts || [];
+            for (const artifact of artifacts) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+              });
+              console.log(`Deleted artifact: ${artifact.name} (ID: ${artifact.id})`);
+            }
