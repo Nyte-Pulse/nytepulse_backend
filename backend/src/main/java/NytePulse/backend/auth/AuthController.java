@@ -133,7 +133,7 @@ public class AuthController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("status", HttpStatus.OK.value());
-        response.put("Message " , "Logged out successfully from device");
+        response.put("Message " , "Logged out successfully from this device");
         return ResponseEntity.ok(response);
     }
     @PostMapping("/request-password-reset")
