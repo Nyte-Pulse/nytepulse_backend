@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
 
+permissions:
+  actions: write        # Required to delete artifacts
+  contents: read        # Required to checkout code
+
 env:
   APP_NAME: backend
   JAR_PATH: backend/target/backend-0.0.1-SNAPSHOT.jar
@@ -16,11 +20,11 @@ jobs:
       - name: Delete old artifacts
         uses: c-hive/gha-remove-artifacts@v1
         with:
-          age: '1 day'
+          age: '7 days'
           skip-recent: 1
   build:
     needs: cleanup
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
