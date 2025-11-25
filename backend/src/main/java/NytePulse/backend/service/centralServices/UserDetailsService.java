@@ -2,6 +2,7 @@ package NytePulse.backend.service.centralServices;
 
 import NytePulse.backend.dto.UserDetailsDto;
 import NytePulse.backend.dto.UserDetailsUpdateRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 
 public interface UserDetailsService {
@@ -11,4 +12,6 @@ public interface UserDetailsService {
 
 
     ResponseEntity<?> getAccountNameByEmail(String email);
+
+    ResponseEntity<?> searchAccountByName(String name, Pageable pageable);
 }

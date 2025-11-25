@@ -7,6 +7,8 @@ import NytePulse.backend.service.centralServices.UserDetailsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -15,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -150,4 +154,41 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     .body("Error retrieving account name: " + e.getMessage());
         }
     }
+
+    @Override
+    public ResponseEntity<?> searchAccountByName(String name, Pageable pageable) {
+        try {
+            Page<UserDetails> userDetailsPage = userDetailsRepository
+                    .findByNameContainingIgnoreCase(name, pageable);
+
+            List<Map<String, Object>> searchResults = userDetailsPage.getContent()
+                    .stream()
+                    .map(user -> {
+                        Map<String, Object> userMap = new HashMap<>();
+                        userMap.put("userId", user.getUserId());
+                        userMap.put("accountName", user.getName());
+                        userMap.put("profilePictureUrl", user.getProfilePicture());
+                        userMap.put("username", user.getUsername());
+                        return userMap;
+                    })
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("results", searchResults);
+            response.put("currentPage", userDetailsPage.getNumber());
+            response.put("totalItems", userDetailsPage.getTotalElements());
+            response.put("totalPages", userDetailsPage.getTotalPages());
+            response.put("status",HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error searching accounts by name: {}", name, e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error searching accounts: " + e.getMessage());
+        }
+    }
+
+
 }
