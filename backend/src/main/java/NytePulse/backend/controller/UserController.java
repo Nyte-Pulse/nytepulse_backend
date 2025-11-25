@@ -214,10 +214,10 @@ public class UserController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        if (name == null || name.trim().length() < 2) {
+        if (name == null || name.trim().length() < 1) {
             return ResponseEntity
                     .badRequest()
-                    .body("Please enter at least 2 characters to search");
+                    .body("Please enter at least 1 characters to search");
         }
 
         Pageable pageable = PageRequest.of(page, size);
