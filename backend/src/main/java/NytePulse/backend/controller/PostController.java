@@ -3,6 +3,7 @@ package NytePulse.backend.controller;
 // PostController.java
 import NytePulse.backend.dto.PostShareInfoDTO;
 import NytePulse.backend.dto.ShareResponseDTO;
+import NytePulse.backend.entity.Media;
 import NytePulse.backend.entity.Post;
 import NytePulse.backend.service.centralServices.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +39,7 @@ public class PostController {
     }
 
 
-    @GetMapping("/{id}")
+    @GetMapping("/getPostById/{id}")
     public ResponseEntity<Post> getPostById(@PathVariable Long id) {
         try {
             Post post = postService.getPostById(id);
@@ -113,6 +114,13 @@ public class PostController {
             @RequestParam("userId") String userId) {
 
             return postService.deletePost(postId, userId);
+    }
+
+    @GetMapping("/getMediasByMediaType")
+    public ResponseEntity<?> getMediasByMediaType(
+            @RequestParam("userId") String userId,
+            @RequestParam("mediaType") Media.MediaType mediaType) {
+        return postService.getMediasByMediaType(userId, mediaType);
     }
 
 }

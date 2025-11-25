@@ -1,6 +1,7 @@
 package NytePulse.backend.service.centralServices;
 
 import NytePulse.backend.dto.PostShareInfoDTO;
+import NytePulse.backend.entity.Media;
 import NytePulse.backend.entity.Post;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,4 +29,6 @@ public interface PostService {
     ResponseEntity<?> removeMediaFromPost(Long postId, List<Long> mediaIds, String userId);
 
     ResponseEntity<?> deletePost(Long postId, String userId);
+
+    ResponseEntity<?> getMediasByMediaType(String userId, Media.MediaType mediaType);
 }

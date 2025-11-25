@@ -375,4 +375,34 @@ public class PostServiceImpl implements PostService {
     }
     }
 
+    @Override
+    public ResponseEntity<?> getMediasByMediaType(String userId, Media.MediaType mediaType) {
+        try {
+            User user = userRepository.findByUserId(userId);
+            if (user == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "User not found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+
+            List<Media> medias = mediaRepository.findByPostUserAndMediaType(user, mediaType);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", userId);
+            response.put("mediaType", mediaType);
+            response.put("medias", medias);
+            response.put("mediaCount", medias.size());
+            response.put("status",HttpStatus.OK.value());
+
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to retrieve medias by media type");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
 }
