@@ -1,6 +1,6 @@
 package NytePulse.backend.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.*;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -24,12 +24,15 @@ public class Media {
 
     @ManyToOne
     @JoinColumn(name = "post_id", nullable = false)
-    @JsonIgnore
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
+    @JsonProperty("postId")  // This names the field "postId" in JSON
     private Post post;
 
     public enum MediaType {
         IMAGE, VIDEO
     }
+
 
     public Long getId() {
         return id;

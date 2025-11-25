@@ -85,10 +85,13 @@ public class AuthController {
             if(refreshToken==null){
                 throw new RuntimeException("Could not create refresh token");
             }
+
+            long issuedAtMillis = System.currentTimeMillis();
             JwtResponse jwtResponse = new JwtResponse(jwt, refreshToken.getToken());
 
             Map<String, Object> response = new HashMap<>();
             response.put("jwtResponse", jwtResponse);
+            response.put("issuedAt", issuedAtMillis);
             response.put("status", HttpStatus.OK.value());
 
             return ResponseEntity.ok(response);

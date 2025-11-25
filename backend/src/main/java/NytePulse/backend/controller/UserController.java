@@ -208,5 +208,22 @@ public class UserController {
         return userDetailsService.getAccountNameByEmail(email);
     }
 
+    @GetMapping("/searchAccountByName/{name}")
+    public ResponseEntity<?> searchAccountByName(
+            @PathVariable String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        if (name == null || name.trim().length() < 2) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("Please enter at least 2 characters to search");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        return userDetailsService.searchAccountByName(name.trim(), pageable);
+    }
+
+
 
 }

@@ -1,6 +1,7 @@
 package NytePulse.backend.service.centralServices;
 
 import NytePulse.backend.auth.RegisterRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,4 +32,5 @@ public interface UserService {
     ResponseEntity<?> updateProfilePicture(MultipartFile file, String userId, String oldFileName);
 
     ResponseEntity<?> deleteProfilePicture(String fileName,String userId);
+
 }

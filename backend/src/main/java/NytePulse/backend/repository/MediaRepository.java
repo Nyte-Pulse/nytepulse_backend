@@ -1,6 +1,7 @@
 package NytePulse.backend.repository;
 
 import NytePulse.backend.entity.Media;
+import NytePulse.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,4 +22,7 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
 
     @Query("SELECT m FROM Media m WHERE m.id IN :mediaIds AND m.post.user.id = :userId")
     List<Media> findByIdsAndUserId(@Param("mediaIds") List<Long> mediaIds, @Param("userId") Long userId);
+
+    List<Media> findByPostUserAndMediaType(User user, Media.MediaType mediaType);
+
 }
