@@ -484,15 +484,27 @@ public class UserServiceImpl implements UserService {
 
             BunnyNetUploadResult result = bunnyNetService.updateProfilePicture(file, userId, oldFileName);
 
-            UserDetails userDetailsOpt = userDetailsRepository.findByUserId(userId);
+            if(userId.startsWith("BS")){
+                ClubDetails clubDetailsOpt = clubDetailsRepository.findByUserId(userId);
 
-            if (userDetailsOpt == null) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .body("UserDetails not found for userId: " + userId);
+                if (clubDetailsOpt == null) {
+                    return ResponseEntity
+                            .status(HttpStatus.NOT_FOUND)
+                            .body("Business Details not found for userId: " + userId);
+                }
+                clubDetailsOpt.setProfilePicture(result.getCdnUrl());
+                clubDetailsRepository.save(clubDetailsOpt);
+            }else{
+                UserDetails userDetailsOpt = userDetailsRepository.findByUserId(userId);
+
+                if (userDetailsOpt == null) {
+                    return ResponseEntity
+                            .status(HttpStatus.NOT_FOUND)
+                            .body("UserDetails not found for userId: " + userId);
+                }
+                userDetailsOpt.setProfilePicture(result.getCdnUrl());
+                userDetailsRepository.save(userDetailsOpt);
             }
-            userDetailsOpt.setProfilePicture(result.getCdnUrl());
-            userDetailsRepository.save(userDetailsOpt);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -506,8 +518,10 @@ public class UserServiceImpl implements UserService {
 
         } catch (IOException e) {
             logger.error("Error updating profile picture: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Failed to update profile picture: " + e.getMessage()));
+            Map<String, Object> erroresponse = new HashMap<>();
+            erroresponse.put("message", "Failed to update profile picture: "+ e.getMessage());
+            erroresponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.ok(erroresponse);
         }
 
     }

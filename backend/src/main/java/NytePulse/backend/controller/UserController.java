@@ -155,48 +155,26 @@ public class UserController {
         return userService.updateProfilePicture(file, userId, oldFileName);
     }
 
-    /**
-     * Get profile picture URL
-     */
-//    @GetMapping("/url/{fileName}")
-//    public ResponseEntity<?> getProfilePictureUrl(@PathVariable String fileName) {
-//        try {
-//            String cdnUrl = bunnyNetService.getProfilePictureUrl(fileName);
-//
-//            Map<String, String> response = new HashMap<>();
-//            response.put("success", "true");
-//            response.put("fileName", fileName);
-//            response.put("cdnUrl", cdnUrl);
-//
-//            return ResponseEntity.ok(response);
-//
-//        } catch (Exception e) {
-//            log.error("Error getting profile picture URL: {}", e.getMessage());
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body(createErrorResponse("Failed to get profile picture URL"));
-//        }
-//    }
+    @GetMapping("/getProfilePicture/{fileName}")
+    public ResponseEntity<?> getProfilePictureUrl(@PathVariable String fileName) {
+        try {
+            String cdnUrl = bunnyNetService.getProfilePictureUrl(fileName);
 
-    /**
-     * Download profile picture directly
-     */
-//    @GetMapping("/download/{fileName}")
-//    public ResponseEntity<byte[]> downloadProfilePicture(@PathVariable String fileName) {
-//        try {
-//            byte[] imageBytes = bunnyNetService.downloadProfilePicture(fileName);
-//
-//            HttpHeaders headers = new HttpHeaders();
-//            headers.setContentType(MediaType.IMAGE_JPEG);
-//            headers.setContentLength(imageBytes.length);
-//            headers.setCacheControl("public, max-age=31536000"); // Cache for 1 year
-//
-//            return new ResponseEntity<>(imageBytes, headers, HttpStatus.OK);
-//
-//        } catch (IOException e) {
-//            log.error("Error downloading profile picture: {}", e.getMessage());
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-//        }
-//    }
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", HttpStatus.OK.value());
+            response.put("fileName", fileName);
+            response.put("cdnUrl", cdnUrl);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error getting profile picture URL: {}", e.getMessage());
+            Map<String, Object> erroresponse = new HashMap<>();
+            erroresponse.put("message", "Failed to get profile picture URL "+ e.getMessage());
+            erroresponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.ok(erroresponse);
+        }
+    }
 
     @DeleteMapping("/profilePicture/delete")
     public ResponseEntity<?> deleteProfilePicture(@RequestParam String fileName,@RequestParam  String userId) {
