@@ -208,7 +208,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             response.put("totalItems", totalItems);
 //            response.put("totalPages", totalPages);
             response.put("userCount", userDetailsPage.getTotalElements());
-            response.put("clubCount", clubDetailsPage.getTotalElements());
+            response.put("businessCount", clubDetailsPage.getTotalElements());
             response.put("status", HttpStatus.OK.value());
 
             return ResponseEntity.ok(response);
