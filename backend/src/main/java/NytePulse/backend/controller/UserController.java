@@ -160,8 +160,8 @@ public class UserController {
         try {
             String cdnUrl = bunnyNetService.getProfilePictureUrl(fileName);
 
-            Map<String, String> response = new HashMap<>();
-            response.put("success", "true");
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", HttpStatus.OK.value());
             response.put("fileName", fileName);
             response.put("cdnUrl", cdnUrl);
 
@@ -175,7 +175,7 @@ public class UserController {
             return ResponseEntity.ok(erroresponse);
         }
     }
-    
+
     @DeleteMapping("/profilePicture/delete")
     public ResponseEntity<?> deleteProfilePicture(@RequestParam String fileName,@RequestParam  String userId) {
         return userService.deleteProfilePicture(fileName,userId);
