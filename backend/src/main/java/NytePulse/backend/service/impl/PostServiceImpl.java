@@ -6,9 +6,11 @@ import NytePulse.backend.dto.PostShareInfoDTO;
 import NytePulse.backend.dto.ShareResponseDTO;
 import NytePulse.backend.entity.Media;
 import NytePulse.backend.entity.Post;
+import NytePulse.backend.entity.Story;
 import NytePulse.backend.entity.User;
 import NytePulse.backend.repository.MediaRepository;
 import NytePulse.backend.repository.PostRepository;
+import NytePulse.backend.repository.StoryRepository;
 import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.PostService;
@@ -19,6 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -41,6 +44,9 @@ public class PostServiceImpl implements PostService {
     private MediaRepository mediaRepository;
     @Autowired
     private BunnyNetService bunnyNetService;
+
+    @Autowired
+    private StoryRepository storyRepository;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -404,5 +410,150 @@ public class PostServiceImpl implements PostService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+    @Override
+    public ResponseEntity<?> createStory(String content, String userId, MultipartFile[] files) {
+        try {
+            if (content == null || content.trim().isEmpty()) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Content is required");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+
+            User user = userRepository.findByUserId(userId);
+
+            Story story = new Story();          // Use Story entity instead of Post
+            story.setContent(content);
+            story.setUser(user);
+            Story savedStory = storyRepository.save(story);
+
+            List<Media> mediaList = new ArrayList<>();
+
+            if (files != null) {
+                for (MultipartFile file : files) {
+                    if (!file.isEmpty()) {
+                        Media media = processAndUploadStoryFile(file, savedStory);
+                        mediaList.add(mediaRepository.save(media));
+                    }
+                }
+            }
+
+            savedStory.setMedia(mediaList);
+            return ResponseEntity.ok(savedStory);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to create Story");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+
+    private Media processAndUploadStoryFile(MultipartFile file, Story story) throws IOException {
+        String contentType = file.getContentType();
+        BunnyNetUploadResult result;
+
+        if (contentType != null && contentType.startsWith("image/")) {
+            // Pass folder name "stories" for image upload
+            result = bunnyNetService.uploadImageToFolder(file, "stories");
+        } else if (contentType != null && contentType.startsWith("video/")) {
+            String title = "Story Video for story " + story.getId();
+            // Pass folder name "stories" for video upload
+            result = bunnyNetService.uploadVideoToFolder(file, title, "stories");
+        } else {
+            throw new IllegalArgumentException("Unsupported file type: " + contentType);
+        }
+
+        Media media = new Media();
+        media.setFileName(result.getFileName());
+        media.setFileType(contentType);
+        media.setBunnyUrl(result.getCdnUrl());
+        media.setBunnyVideoId(result.getBunnyVideoId());
+        media.setFileSize(result.getFileSize());
+        media.setMediaType(result.getMediaType());
+        media.setStory(story);  // Assuming Media has story relation
+
+        return media;
+    }
+
+    @Override
+    public ResponseEntity<?> getStoriesByUserId(String userId) {
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            List<Story> stories = storyRepository
+                    .findByUserUserIdAndExpiresAtAfterOrderByCreatedAtDesc(userId, now);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", userId);
+            response.put("totalStories", stories.size());
+            response.put("stories", stories);
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error fetching stories for user: {}", userId, e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to fetch stories");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @Transactional
+    @Override
+    public ResponseEntity<?> deleteStory(Long storyId, String userId) {
+        try {
+            Story story = storyRepository.findById(storyId)
+                    .orElseThrow(() -> new RuntimeException("Story not found"));
+
+            // Verify the user owns this story
+            if (!story.getUser().getUserId().equals(userId)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Unauthorized");
+                errorResponse.put("message", "You can only delete your own stories");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+            }
+
+            // Delete media files from BunnyNet
+            if (story.getMedia() != null) {
+                for (Media media : story.getMedia()) {
+                    deleteMediaFromBunnyNet(media);
+                }
+            }
+
+            // Delete story from database
+            storyRepository.delete(story);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Story deleted successfully");
+            response.put("storyId", storyId);
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error deleting story ID {}: {}", storyId, e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to delete story");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+
+    private void deleteMediaFromBunnyNet(Media media) {
+        try {
+            if (media.getMediaType() == Media.MediaType.IMAGE) {
+                bunnyNetService.deleteImageFromFolder(media.getFileName(), "stories");
+            } else if (media.getMediaType() == Media.MediaType.VIDEO) {
+                bunnyNetService.deleteVideo(media.getBunnyVideoId());
+            }
+            log.info("Deleted media file: {}", media.getFileName());
+        } catch (Exception e) {
+            log.error("Failed to delete media file {}: {}", media.getFileName(), e.getMessage());
+        }
+    }
+
 
 }

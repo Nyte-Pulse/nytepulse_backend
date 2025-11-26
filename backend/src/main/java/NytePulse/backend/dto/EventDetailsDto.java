@@ -8,8 +8,10 @@ public class EventDetailsDto {
     private String name;
     private String userId;
     private String description;
+
+    private String dateFilter;
     private String category;
-    private Date startDateTime;
+    private Date startDateTime;// "any", "today", "tomorrow", "this_week", "this_weekend"
     private Date endDateTime;
     private String ageRestriction;
     private String dressCode;
@@ -40,6 +42,14 @@ public class EventDetailsDto {
     private String eventPosterFileName;
     private  LocalDateTime createdAt;
 
+
+    public String getDateFilter() {
+        return dateFilter;
+    }
+
+    public void setDateFilter(String dateFilter) {
+        this.dateFilter = dateFilter;
+    }
 
     public String getEventPosterCdnUrl() {
         return eventPosterCdnUrl;
