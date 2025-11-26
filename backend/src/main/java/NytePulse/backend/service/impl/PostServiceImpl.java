@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -110,6 +111,7 @@ public class PostServiceImpl implements PostService {
         media.setBunnyVideoId(result.getBunnyVideoId());
         media.setFileSize(result.getFileSize());
         media.setMediaType(result.getMediaType());
+        media.setCreatedAt(ZonedDateTime.now());
         media.setPost(post);
 
         return media;
