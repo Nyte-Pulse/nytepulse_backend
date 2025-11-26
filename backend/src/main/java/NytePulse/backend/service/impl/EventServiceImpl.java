@@ -25,10 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -158,19 +155,73 @@ public class EventServiceImpl implements EventService {
 
     public ResponseEntity<?> searchEvents(EventDetailsDto eventDetailsDto) {
         try {
-            logger.info("Searching events with criteria: name={}, location={}, startDate={}, endDate={}, category={}, ticketType={}",
-                    eventDetailsDto.getName(), eventDetailsDto.getLocationName(), eventDetailsDto.getStartDateTime(),
-                    eventDetailsDto.getEndDateTime(), eventDetailsDto.getCategory(), eventDetailsDto.getTicketType());
+            logger.info("Searching events with criteria: name={}, location={}, dateFilter={}, category={}, ticketType={}",
+                    eventDetailsDto.getName(), eventDetailsDto.getLocationName(), eventDetailsDto.getDateFilter(),
+                    eventDetailsDto.getCategory(), eventDetailsDto.getTicketType());
 
-            // Normalize empty strings to null for proper query handling
+            // Normalize empty strings to null
             String name = StringUtils.hasText(eventDetailsDto.getName()) ? eventDetailsDto.getName().trim() : null;
             String location = StringUtils.hasText(eventDetailsDto.getLocationName()) ? eventDetailsDto.getLocationName().trim() : null;
             String category = StringUtils.hasText(eventDetailsDto.getCategory()) ? eventDetailsDto.getCategory().trim() : null;
             String ticketType = StringUtils.hasText(eventDetailsDto.getTicketType()) ? eventDetailsDto.getTicketType().trim() : null;
 
-             List<EventDetails> events = eventDetailsRepository.searchEvents(
-                 name, location, eventDetailsDto.getStartDateTime(), eventDetailsDto.getEndDateTime(), category, ticketType
-             );
+            // Calculate date range based on filter
+            LocalDateTime startDate = null;
+            LocalDateTime endDate = null;
+            String dateFilter = eventDetailsDto.getDateFilter();
+
+            if (StringUtils.hasText(dateFilter)) {
+                LocalDateTime now = LocalDateTime.now(SRI_LANKA_ZONE);
+
+                switch (dateFilter.toLowerCase()) {
+                    case "today":
+                        startDate = now.toLocalDate().atStartOfDay();
+                        endDate = now.toLocalDate().atTime(23, 59, 59);
+                        break;
+
+                    case "tomorrow":
+                        startDate = now.plusDays(1).toLocalDate().atStartOfDay();
+                        endDate = now.plusDays(1).toLocalDate().atTime(23, 59, 59);
+                        break;
+
+                    case "this_week":
+                        // Get Monday of current week
+                        startDate = now.toLocalDate()
+                                .with(java.time.DayOfWeek.MONDAY)
+                                .atStartOfDay();
+                        // Get Sunday of current week
+                        endDate = now.toLocalDate()
+                                .with(java.time.DayOfWeek.SUNDAY)
+                                .atTime(23, 59, 59);
+                        break;
+
+                    case "this_weekend":
+                        // Get Saturday of current week
+                        startDate = now.toLocalDate()
+                                .with(java.time.DayOfWeek.SATURDAY)
+                                .atStartOfDay();
+                        // Get Sunday of current week
+                        endDate = now.toLocalDate()
+                                .with(java.time.DayOfWeek.SUNDAY)
+                                .atTime(23, 59, 59);
+                        break;
+
+                    case "any":
+                    default:
+                        // No date filtering
+                        break;
+                }
+            }
+
+            // Convert LocalDateTime to Date for repository method
+            Date startDateTime = startDate != null ?
+                    Date.from(startDate.atZone(ZoneId.systemDefault()).toInstant()) : null;
+            Date endDateTime = endDate != null ?
+                    Date.from(endDate.atZone(ZoneId.systemDefault()).toInstant()) : null;
+
+            List<EventDetails> events = eventDetailsRepository.searchEvents(
+                    name, location, startDateTime, endDateTime, category, ticketType
+            );
 
             logger.info("Found {} events matching search criteria", events.size());
 
@@ -179,6 +230,10 @@ public class EventServiceImpl implements EventService {
             response.put("totalCount", events.size());
             response.put("events", events);
             response.put("searchCriteria", eventDetailsDto);
+            response.put("appliedDateRange", Map.of(
+                    "startDate", startDate != null ? startDate : "N/A",
+                    "endDate", endDate != null ? endDate : "N/A"
+            ));
             response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
 
             return ResponseEntity.ok(response);
@@ -192,6 +247,7 @@ public class EventServiceImpl implements EventService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
 
     public ResponseEntity<?> getEventById(String eventId){
         try {
