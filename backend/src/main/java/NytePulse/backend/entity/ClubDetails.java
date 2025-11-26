@@ -55,6 +55,13 @@ public class ClubDetails {
     private Float ratingAvg;
 
 
+
+    @Column(name = "profile_picture")
+    private String ProfilePicture;
+
+    @Column(name = "profile_picture_file_name")
+    private String ProfilePictureFileName;
+
     // Constructors
     public ClubDetails() {
     }
@@ -69,6 +76,21 @@ public class ClubDetails {
         this.dateTimeCreated = LocalDateTime.now(ZoneId.of("Asia/Colombo"));
     }
 
+    public String getProfilePicture() {
+        return ProfilePicture;
+    }
+
+    public void setProfilePicture(String profilePicture) {
+        ProfilePicture = profilePicture;
+    }
+
+    public String getProfilePictureFileName() {
+        return ProfilePictureFileName;
+    }
+
+    public void setProfilePictureFileName(String profilePictureFileName) {
+        ProfilePictureFileName = profilePictureFileName;
+    }
 
     public Long getId() {
         return id;

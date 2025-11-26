@@ -417,17 +417,31 @@ public class UserServiceImpl implements UserService {
             // Upload to BunnyNet
             BunnyNetUploadResult result = bunnyNetService.uploadProfilePicture(file, userId);
 
+            if(userId.startsWith("BS")){
+                ClubDetails clubDetailsOpt = clubDetailsRepository.findByUserId(userId);
 
-            UserDetails userDetailsOpt = userDetailsRepository.findByUserId(userId);
+                if (clubDetailsOpt == null) {
+                    return ResponseEntity
+                            .status(HttpStatus.NOT_FOUND)
+                            .body("Business Details not found for userId: " + userId);
+                }
+                clubDetailsOpt.setProfilePicture(result.getCdnUrl());
+                clubDetailsOpt.setProfilePictureFileName(result.getFileName());
+                clubDetailsRepository.save(clubDetailsOpt);
+            }else {
+                UserDetails userDetailsOpt = userDetailsRepository.findByUserId(userId);
 
-            if (userDetailsOpt == null) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .body("UserDetails not found for userId: " + userId);
+                if (userDetailsOpt == null) {
+                    return ResponseEntity
+                            .status(HttpStatus.NOT_FOUND)
+                            .body("UserDetails not found for userId: " + userId);
+                }
+                userDetailsOpt.setProfilePicture(result.getCdnUrl());
+                userDetailsOpt.setProfilePictureFileName(result.getFileName());
+                userDetailsRepository.save(userDetailsOpt);
             }
-            userDetailsOpt.setProfilePicture(result.getCdnUrl());
-            userDetailsOpt.setProfilePictureFileName(result.getFileName());
-            userDetailsRepository.save(userDetailsOpt);
+
+
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -442,9 +456,11 @@ public class UserServiceImpl implements UserService {
 
         } catch (Exception e) {
             logger.error("Error while uploading profile picture: {}", e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("An error occurred while trying to upload the profile picture.");
+            Map<String, Object> erroresponse = new HashMap<>();
+            erroresponse.put("message", "An error occurred while trying to upload the profile picture.");
+            erroresponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+
+            return ResponseEntity.ok(erroresponse);
         }
 
     }
