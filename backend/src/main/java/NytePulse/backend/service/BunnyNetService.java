@@ -24,6 +24,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -44,6 +46,7 @@ public class BunnyNetService {
         this.webClient = WebClient.builder().build();
         this.objectMapper = new ObjectMapper();
     }
+
     public BunnyNetUploadResult uploadEventPoster(MultipartFile file, String userId) throws IOException {
         log.info("Uploading event poster for user: {}", userId);
 
@@ -216,9 +219,9 @@ public class BunnyNetService {
 
     }
 
-        /**
-         * Upload image to BunnyNet Storage
-         */
+    /**
+     * Upload image to BunnyNet Storage
+     */
     public BunnyNetUploadResult uploadImage(MultipartFile file) throws IOException {
         // DEBUG: Print the configuration values
         log.info("DEBUG - Storage Access Key: {}", bunnyNetConfig.getStorage().getAccessKey());
@@ -395,4 +398,171 @@ public class BunnyNetService {
         }
         return false;
     }
+
+    public BunnyNetUploadResult uploadImageToFolder(MultipartFile file, String folderName) throws IOException {
+        log.info("DEBUG - Storage Access Key: {}", bunnyNetConfig.getStorage().getAccessKey());
+        log.info("DEBUG - Storage Zone Name: {}", bunnyNetConfig.getStorage().getZoneName());
+        log.info("DEBUG - Storage Base URL: {}", bunnyNetConfig.getStorage().getBaseUrl());
+
+        String fileName = generateFileName(file.getOriginalFilename());
+        String uploadPath = "/" + folderName + "/" + fileName;
+
+        String uploadUrl = bunnyNetConfig.getStorage().getBaseUrl() +
+                "/" + bunnyNetConfig.getStorage().getZoneName() + uploadPath;
+
+        log.info("DEBUG - Upload URL: {}", uploadUrl);
+
+        try {
+            webClient.put()
+                    .uri(uploadUrl)
+                    .header("AccessKey", bunnyNetConfig.getStorage().getAccessKey())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(BodyInserters.fromResource(file.getResource()))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            String cdnUrl = bunnyNetConfig.getStorage().getCdnUrl() + uploadPath;
+
+            return BunnyNetUploadResult.builder()
+                    .fileName(fileName)
+                    .cdnUrl(cdnUrl)
+                    .fileSize(file.getSize())
+                    .mediaType(Media.MediaType.IMAGE)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Failed to upload image to BunnyNet: {}", e.getMessage());
+            throw new IOException("Failed to upload image", e);
+        }
+    }
+
+    public BunnyNetUploadResult uploadVideoToFolder(MultipartFile file, String title, String folderName) throws IOException {
+        try {
+            // Create video metadata with folder info
+            String createVideoUrl = bunnyNetConfig.getStream().getBaseUrl() +
+                    "/library/" + bunnyNetConfig.getStream().getLibraryId() + "/videos";
+
+            String generatedFileName = generateFileName(file.getOriginalFilename());
+            Map<String, Object> videoMetadata = new HashMap<>();
+            videoMetadata.put("title", title);
+            videoMetadata.put("folder", folderName);
+            videoMetadata.put("fileName", generatedFileName);
+
+            // Create video resource and get videoId
+            String response = webClient.post()
+                    .uri(createVideoUrl)
+                    .header("AccessKey", bunnyNetConfig.getStream().getApiKey())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .bodyValue(videoMetadata)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            String videoId = parseVideoIdFromResponse(response);
+
+            if (videoId == null) {
+                throw new IOException("Failed to get video ID from BunnyNet");
+            }
+
+            // Upload video binary file (same as your existing function)
+            String uploadUrl = bunnyNetConfig.getStream().getBaseUrl() +
+                    "/library/" + bunnyNetConfig.getStream().getLibraryId() +
+                    "/videos/" + videoId;
+
+            webClient.put()
+                    .uri(uploadUrl)
+                    .header("AccessKey", bunnyNetConfig.getStream().getApiKey())
+                    .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(BodyInserters.fromResource(file.getResource()))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            // Construct CDN URL for BunnyNet Stream playback
+            String cdnUrl = "https://iframe.mediadelivery.net/embed/" +
+                    bunnyNetConfig.getStream().getLibraryId() + "/" + videoId;
+
+            // Return result
+            return BunnyNetUploadResult.builder()
+                    .fileName(generatedFileName)
+                    .cdnUrl(cdnUrl)
+                    .bunnyVideoId(videoId)
+                    .fileSize(file.getSize())
+                    .mediaType(Media.MediaType.VIDEO)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Failed to upload video to folder: {}", e.getMessage());
+            throw new IOException("Failed to upload video", e);
+        }
+    }
+
+
+
+    private String parseVideoIdFromResponse(String response) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(response);
+
+            // Extract the video ID (adjust field name based on actual API response)
+            String videoId = jsonNode.get("guid").asText();
+
+            log.info("Parsed video ID: {}", videoId);
+            return videoId;
+
+        } catch (Exception e) {
+            log.error("Failed to parse video ID from response: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    public void deleteImageFromFolder(String fileName, String folderName) throws IOException {
+        String deletePath = "/" + folderName + "/" + fileName;
+        String deleteUrl = bunnyNetConfig.getStorage().getBaseUrl() +
+                "/" + bunnyNetConfig.getStorage().getZoneName() + deletePath;
+
+        try {
+            webClient.delete()
+                    .uri(deleteUrl)
+                    .header("AccessKey", bunnyNetConfig.getStorage().getAccessKey())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info("Deleted image from BunnyNet: {}", fileName);
+        } catch (Exception e) {
+            log.error("Failed to delete image from BunnyNet: {}", e.getMessage());
+            throw new IOException("Failed to delete image", e);
+        }
+    }
+
+    public void deleteVideo(String videoId) throws IOException {
+        if (videoId == null) return;
+
+        String deleteUrl = bunnyNetConfig.getStream().getBaseUrl() +
+                "/library/" + bunnyNetConfig.getStream().getLibraryId() +
+                "/videos/" + videoId;
+
+        try {
+            webClient.delete()
+                    .uri(deleteUrl)
+                    .header("AccessKey", bunnyNetConfig.getStream().getApiKey())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info("Deleted video from BunnyNet: {}", videoId);
+        } catch (Exception e) {
+            log.error("Failed to delete video from BunnyNet: {}", e.getMessage());
+            throw new IOException("Failed to delete video", e);
+        }
+    }
+
+
+
+
+
 }

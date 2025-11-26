@@ -23,16 +23,28 @@ public class Media {
     private MediaType mediaType;
 
     @ManyToOne
-    @JoinColumn(name = "post_id", nullable = false)
+    @JoinColumn(name = "post_id", nullable = true)
     @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
     @JsonIdentityReference(alwaysAsId = true)
     @JsonProperty("postId")  // This names the field "postId" in JSON
     private Post post;
 
+    @ManyToOne
+    @JoinColumn(name = "story_id")
+    @JsonBackReference
+    private Story story;
+
     public enum MediaType {
         IMAGE, VIDEO
     }
 
+    public Story getStory() {
+        return story;
+    }
+
+    public void setStory(Story story) {
+        this.story = story;
+    }
 
     public Long getId() {
         return id;

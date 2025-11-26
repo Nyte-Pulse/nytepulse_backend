@@ -31,4 +31,10 @@ public interface PostService {
     ResponseEntity<?> deletePost(Long postId, String userId);
 
     ResponseEntity<?> getMediasByMediaType(String userId, Media.MediaType mediaType);
+
+    ResponseEntity<?> createStory(String content, String userId, MultipartFile[] files);
+
+    ResponseEntity<?> getStoriesByUserId(String userId);
+
+    ResponseEntity<?> deleteStory(Long storyId, String userId);
 }

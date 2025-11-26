@@ -123,4 +123,25 @@ public class PostController {
         return postService.getMediasByMediaType(userId, mediaType);
     }
 
+    @PostMapping("/createStory")
+    public ResponseEntity<?> createStory(
+            @RequestParam("content") String content,
+            @RequestParam("userId") String userId,
+            @RequestParam(value = "files", required = false) MultipartFile[] files) {
+        return postService.createStory(content, userId, files);
+    }
+
+    @GetMapping("/getStories/{userId}")
+    public ResponseEntity<?> getStoriesByUserId(@PathVariable String userId) {
+        return postService.getStoriesByUserId(userId);
+    }
+
+    @DeleteMapping("/deleteStory/{storyId}")
+    public ResponseEntity<?> deleteStory(
+            @PathVariable Long storyId,
+            @RequestParam("userId") String userId) {
+        return postService.deleteStory(storyId, userId);
+    }
+
+
 }
