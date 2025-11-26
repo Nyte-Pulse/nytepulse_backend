@@ -1,7 +1,9 @@
 package NytePulse.backend.service.impl;
 
 import NytePulse.backend.dto.UserDetailsDto;
+import NytePulse.backend.entity.ClubDetails;
 import NytePulse.backend.entity.UserDetails;
+import NytePulse.backend.repository.ClubDetailsRepository;
 import NytePulse.backend.repository.UserDetailsRepository;
 import NytePulse.backend.service.centralServices.UserDetailsService;
 import org.slf4j.Logger;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +31,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Autowired
     private UserDetailsRepository userDetailsRepository;
+
+    @Autowired
+    private ClubDetailsRepository clubDetailsRepository;;
 
     private static final Logger logger = LoggerFactory.getLogger(UserDetailsServiceImpl.class);
     private static final ZoneId SRI_LANKA_ZONE = ZoneId.of("Asia/Colombo");
@@ -161,7 +167,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             Page<UserDetails> userDetailsPage = userDetailsRepository
                     .findByNameContainingIgnoreCase(name, pageable);
 
-            List<Map<String, Object>> searchResults = userDetailsPage.getContent()
+            Page<ClubDetails> clubDetailsPage = clubDetailsRepository
+                    .findByNameContainingIgnoreCase(name, pageable);
+
+            List<Map<String, Object>> userResults  = userDetailsPage.getContent()
                     .stream()
                     .map(user -> {
                         Map<String, Object> userMap = new HashMap<>();
@@ -173,12 +182,34 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     })
                     .collect(Collectors.toList());
 
+            List<Map<String, Object>> clubResults = clubDetailsPage.getContent()
+                    .stream()
+                    .map(club -> {
+                        Map<String, Object> clubMap = new HashMap<>();
+                        clubMap.put("userId", club.getUserId());
+                        clubMap.put("accountName", club.getName());
+                        clubMap.put("username", club.getUsername());
+                        clubMap.put("profilePictureUrl", club.getProfilePictureId());
+                        return clubMap;
+                    })
+                    .collect(Collectors.toList());
+
+            List<Map<String, Object>> combinedResults = new ArrayList<>();
+            combinedResults.addAll(userResults);
+            combinedResults.addAll(clubResults);
+
+            // Calculate total items and pages
+            long totalItems = userDetailsPage.getTotalElements() + clubDetailsPage.getTotalElements();
+            int totalPages = Math.max(userDetailsPage.getTotalPages(), clubDetailsPage.getTotalPages());
+
             Map<String, Object> response = new HashMap<>();
-            response.put("results", searchResults);
-            response.put("currentPage", userDetailsPage.getNumber());
-            response.put("totalItems", userDetailsPage.getTotalElements());
-            response.put("totalPages", userDetailsPage.getTotalPages());
-            response.put("status",HttpStatus.OK.value());
+            response.put("results", combinedResults);
+            response.put("currentPage", pageable.getPageNumber());
+            response.put("totalItems", totalItems);
+//            response.put("totalPages", totalPages);
+            response.put("userCount", userDetailsPage.getTotalElements());
+            response.put("businessCount", clubDetailsPage.getTotalElements());
+            response.put("status", HttpStatus.OK.value());
 
             return ResponseEntity.ok(response);
 

@@ -1,6 +1,8 @@
 package NytePulse.backend.repository;
 
 import NytePulse.backend.entity.ClubDetails;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,5 +15,8 @@ public interface ClubDetailsRepository extends JpaRepository<ClubDetails, Long> 
 
     ClubDetails findByUsername(String username);
 
-//    Optional<ClubDetails> findById(Long  id);
+
+    Page<ClubDetails> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+
 }
