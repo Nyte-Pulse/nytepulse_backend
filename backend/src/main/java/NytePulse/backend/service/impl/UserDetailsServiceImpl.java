@@ -82,6 +82,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             if (userDetailsDto.getProfilePictureId() != null) {
                 userDetails.setProfilePictureId(userDetailsDto.getProfilePictureId());
             }
+            if (userDetailsDto.getName() != null) {
+                userDetails.setName(userDetailsDto.getName());
+            }
 
             userDetails.setIsPrivate(userDetailsDto.getIsPrivate());
 
