@@ -37,4 +37,5 @@ public interface PostService {
     ResponseEntity<?> getStoriesByUserId(String userId);
 
     ResponseEntity<?> deleteStory(Long storyId, String userId);
+
 }

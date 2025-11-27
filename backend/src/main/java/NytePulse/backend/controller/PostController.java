@@ -143,5 +143,4 @@ public class PostController {
         return postService.deleteStory(storyId, userId);
     }
 
-
 }

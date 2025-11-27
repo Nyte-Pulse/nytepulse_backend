@@ -53,37 +53,37 @@ public class PostServiceImpl implements PostService {
     private String baseUrl;
 
     @Override
-    public ResponseEntity<?> createPost(String content, String userId, MultipartFile[] files){
+    public ResponseEntity<?> createPost(String content, String userId, MultipartFile[] files) {
         try {
-        if (content == null || content.trim().isEmpty()) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Content is required");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        }
+            if (content == null || content.trim().isEmpty()) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Content is required");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
 
-        User user = userRepository.findByUserId(userId);
+            User user = userRepository.findByUserId(userId);
 
-        // Create and save the post
-        Post post = new Post();
-        post.setContent(content);
-        post.setUser(user);
-        Post savedPost = postRepository.save(post);
+            // Create and save the post
+            Post post = new Post();
+            post.setContent(content);
+            post.setUser(user);
+            Post savedPost = postRepository.save(post);
 
-        // Process and upload files to BunnyNet
-        List<Media> mediaList = new ArrayList<>();
+            // Process and upload files to BunnyNet
+            List<Media> mediaList = new ArrayList<>();
 
-        if (files != null) {
-            for (MultipartFile file : files) {
-                if (!file.isEmpty()) {
-                    Media media = processAndUploadFile(file, savedPost);
-                    mediaList.add(mediaRepository.save(media));
+            if (files != null) {
+                for (MultipartFile file : files) {
+                    if (!file.isEmpty()) {
+                        Media media = processAndUploadFile(file, savedPost);
+                        mediaList.add(mediaRepository.save(media));
+                    }
                 }
             }
-        }
 
-        savedPost.setMedia(mediaList);
-       return ResponseEntity.ok(savedPost);}
-        catch (Exception e) {
+            savedPost.setMedia(mediaList);
+            return ResponseEntity.ok(savedPost);
+        } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to create Post");
             errorResponse.put("message", e.getMessage());
@@ -156,56 +156,56 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public ResponseEntity<?> generateShareLink(Long postId) {
-        try{
-        Post post = getPostById(postId);
-        // Generate share URL
-        String shareUrl = baseUrl + "/api/posts/share/" + postId;
+        try {
+            Post post = getPostById(postId);
+            // Generate share URL
+            String shareUrl = baseUrl + "/api/posts/share/" + postId;
 
-        // Create share text
-        String shareText = createShareText(post);
+            // Create share text
+            String shareText = createShareText(post);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("shareUrl", shareUrl);
-        response.put("shareText", shareText);
-        response.put("postId", postId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    } catch (Exception e) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Failed to generate share link");
-        errorResponse.put("message", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
+            Map<String, Object> response = new HashMap<>();
+            response.put("shareUrl", shareUrl);
+            response.put("shareText", shareText);
+            response.put("postId", postId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to generate share link");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     @Override
     public ResponseEntity<?> getPostShareInfo(Long postId) {
-        try{
-        Post post = getPostById(postId);
+        try {
+            Post post = getPostById(postId);
 
-        PostShareInfoDTO shareInfo = new PostShareInfoDTO();
-        shareInfo.setId(post.getId());
-        shareInfo.setContent(post.getContent());
-        shareInfo.setAuthorUsername(post.getUser().getUsername());
-        shareInfo.setAuthorUserId(post.getUser().getUserId());
-        shareInfo.setCreatedAt(post.getCreatedAt());
-        shareInfo.setShareCount(post.getShareCount());
-        shareInfo.setShareUrl(baseUrl + "/api/posts/share/" + postId);
+            PostShareInfoDTO shareInfo = new PostShareInfoDTO();
+            shareInfo.setId(post.getId());
+            shareInfo.setContent(post.getContent());
+            shareInfo.setAuthorUsername(post.getUser().getUsername());
+            shareInfo.setAuthorUserId(post.getUser().getUserId());
+            shareInfo.setCreatedAt(post.getCreatedAt());
+            shareInfo.setShareCount(post.getShareCount());
+            shareInfo.setShareUrl(baseUrl + "/api/posts/share/" + postId);
 
-        // Get first media URL if available
-        if (post.getMedia() != null && !post.getMedia().isEmpty()) {
-            Media firstMedia = post.getMedia().get(0);
-            shareInfo.setFirstMediaUrl(firstMedia.getBunnyUrl());
-            shareInfo.setMediaType(firstMedia.getMediaType().toString());
+            // Get first media URL if available
+            if (post.getMedia() != null && !post.getMedia().isEmpty()) {
+                Media firstMedia = post.getMedia().get(0);
+                shareInfo.setFirstMediaUrl(firstMedia.getBunnyUrl());
+                shareInfo.setMediaType(firstMedia.getMediaType().toString());
+            }
+
+            return ResponseEntity.ok(shareInfo);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get Post Share Info");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
-
-        return ResponseEntity.ok(shareInfo);
-
-    } catch (Exception e) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Failed to get Post Share Info");
-        errorResponse.put("message", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
     }
 
     @Override
@@ -229,79 +229,79 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public ResponseEntity<?> updatePost(Long postId, String content, String userId,
-                           MultipartFile[] newFiles, List<Long> removeMediaIds) {
+                                        MultipartFile[] newFiles, List<Long> removeMediaIds) {
 
         try {
-        Post post = getPostById(postId);
+            Post post = getPostById(postId);
 
-        // Update content if provided
-        if (content != null && !content.trim().isEmpty()) {
-            post.setContent(content);
-        }
+            // Update content if provided
+            if (content != null && !content.trim().isEmpty()) {
+                post.setContent(content);
+            }
 
-        // Remove specified media
-        if (removeMediaIds != null && !removeMediaIds.isEmpty()) {
-            removeMediaFromPost(postId, removeMediaIds, userId);
-        }
+            // Remove specified media
+            if (removeMediaIds != null && !removeMediaIds.isEmpty()) {
+                removeMediaFromPost(postId, removeMediaIds, userId);
+            }
 
-        // Add new media files
-        if (newFiles != null && newFiles.length > 0) {
-            List<Media> newMediaList = new ArrayList<>();
-            for (MultipartFile file : newFiles) {
-                if (!file.isEmpty()) {
-                    Media media = processAndUploadFile(file, post);
-                    newMediaList.add(mediaRepository.save(media));
+            // Add new media files
+            if (newFiles != null && newFiles.length > 0) {
+                List<Media> newMediaList = new ArrayList<>();
+                for (MultipartFile file : newFiles) {
+                    if (!file.isEmpty()) {
+                        Media media = processAndUploadFile(file, post);
+                        newMediaList.add(mediaRepository.save(media));
+                    }
                 }
+
+                // Add new media to existing media list
+                if (post.getMedia() == null) {
+                    post.setMedia(new ArrayList<>());
+                }
+                post.getMedia().addAll(newMediaList);
             }
 
-            // Add new media to existing media list
-            if (post.getMedia() == null) {
-                post.setMedia(new ArrayList<>());
-            }
-            post.getMedia().addAll(newMediaList);
+            // Set updated timestamp
+            post.setUpdatedAt(LocalDateTime.now());
+
+            Post updatedPost = postRepository.save(post);
+            return ResponseEntity.ok(updatedPost);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to update Post");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
-
-        // Set updated timestamp
-        post.setUpdatedAt(LocalDateTime.now());
-
-        Post updatedPost = postRepository.save(post);
-        return ResponseEntity.ok(updatedPost);
-    } catch (Exception e) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Failed to update Post");
-        errorResponse.put("message", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
 
     }
 
     @Override
     public ResponseEntity<?> updatePostContent(Long postId, String content, String userId) {
 
-        try{
-        Post post = getPostById(postId);
-        post.setContent(content);
-        post.setUpdatedAt(LocalDateTime.now());
+        try {
+            Post post = getPostById(postId);
+            post.setContent(content);
+            post.setUpdatedAt(LocalDateTime.now());
 
-        Post updatedPost = postRepository.save(post);
-        return ResponseEntity.ok(updatedPost);
-    } catch (Exception e) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Failed to update Post Content");
-        errorResponse.put("message", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
+            Post updatedPost = postRepository.save(post);
+            return ResponseEntity.ok(updatedPost);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to update Post Content");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     @Override
     public ResponseEntity<?> removeMediaFromPost(Long postId, List<Long> mediaIds, String userId) {
 
-        try{
-        List<Media> mediaToRemove = mediaRepository.findByIdsAndPostId(mediaIds, postId);
+        try {
+            List<Media> mediaToRemove = mediaRepository.findByIdsAndPostId(mediaIds, postId);
 
-        if (mediaToRemove.size() != mediaIds.size()) {
-            throw new RuntimeException("Some media files not found or don't belong to this post");
-        }
+            if (mediaToRemove.size() != mediaIds.size()) {
+                throw new RuntimeException("Some media files not found or don't belong to this post");
+            }
 
             List<String> successfulDeletions = new ArrayList<>();
             List<String> failedDeletions = new ArrayList<>();
@@ -323,64 +323,64 @@ public class PostServiceImpl implements PostService {
                 }
             }
 
-        mediaRepository.deleteAll(mediaToRemove);
+            mediaRepository.deleteAll(mediaToRemove);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Media removal process completed",
-                "successfulDeletions", successfulDeletions,
-                "failedDeletions", failedDeletions
-        ));
-    } catch (Exception e) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Failed to remove Media From Post");
-        errorResponse.put("message", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
+            return ResponseEntity.ok(Map.of(
+                    "message", "Media removal process completed",
+                    "successfulDeletions", successfulDeletions,
+                    "failedDeletions", failedDeletions
+            ));
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to remove Media From Post");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
 
     }
 
 
     @Override
     public ResponseEntity<?> deletePost(Long postId, String userId) {
-        try{
-        Post post = getPostById(postId);
-        if (!post.getUser().getUserId().equals(userId)) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Unauthorized");
-            errorResponse.put("message", "You can only delete your own posts");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
-        }
+        try {
+            Post post = getPostById(postId);
+            if (!post.getUser().getUserId().equals(userId)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Unauthorized");
+                errorResponse.put("message", "You can only delete your own posts");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+            }
 
-        // Delete associated media from BunnyNet
-        List<Media> mediaList = post.getMedia();
-        if (mediaList != null && !mediaList.isEmpty()) {
-            for (Media media : mediaList) {
-                boolean deletedFromBunny = bunnyNetService.deleteMedia(
-                        media.getFileName(),
-                        media.getBunnyVideoId(),
-                        media.getMediaType()
-                );
+            // Delete associated media from BunnyNet
+            List<Media> mediaList = post.getMedia();
+            if (mediaList != null && !mediaList.isEmpty()) {
+                for (Media media : mediaList) {
+                    boolean deletedFromBunny = bunnyNetService.deleteMedia(
+                            media.getFileName(),
+                            media.getBunnyVideoId(),
+                            media.getMediaType()
+                    );
 
-                if (deletedFromBunny) {
-                    log.info("Successfully deleted media from BunnyNet: {}", media.getFileName());
-                } else {
-                    log.warn("Failed to delete media from BunnyNet: {}", media.getFileName());
+                    if (deletedFromBunny) {
+                        log.info("Successfully deleted media from BunnyNet: {}", media.getFileName());
+                    } else {
+                        log.warn("Failed to delete media from BunnyNet: {}", media.getFileName());
+                    }
                 }
             }
+
+            postRepository.delete(post);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Post deleted successfully");
+            response.put("postId", postId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to delete Post");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
-
-        postRepository.delete(post);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Post deleted successfully");
-        response.put("postId", postId);
-        return ResponseEntity.ok(response);
-    } catch (Exception e) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Failed to delete Post");
-        errorResponse.put("message", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
     }
 
     @Override
@@ -400,7 +400,7 @@ public class PostServiceImpl implements PostService {
             response.put("mediaType", mediaType);
             response.put("medias", medias);
             response.put("mediaCount", medias.size());
-            response.put("status",HttpStatus.OK.value());
+            response.put("status", HttpStatus.OK.value());
 
 
             return ResponseEntity.ok(response);
@@ -556,6 +556,4 @@ public class PostServiceImpl implements PostService {
             log.error("Failed to delete media file {}: {}", media.getFileName(), e.getMessage());
         }
     }
-
-
 }
