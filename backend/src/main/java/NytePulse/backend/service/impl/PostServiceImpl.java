@@ -25,11 +25,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -48,6 +50,9 @@ public class PostServiceImpl implements PostService {
 
     @Autowired
     private StoryRepository storyRepository;
+
+    @Autowired
+    private CloseFriendServiceImpl closeFriendServiceImpl;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -414,7 +419,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public ResponseEntity<?> createStory(String content, String userId, MultipartFile[] files) {
+    public ResponseEntity<?> createStory(String content, String userId, MultipartFile[] files,Boolean isCloseFriendsOnly) {
         try {
             if (content == null || content.trim().isEmpty()) {
                 Map<String, Object> errorResponse = new HashMap<>();
@@ -427,6 +432,7 @@ public class PostServiceImpl implements PostService {
             Story story = new Story();          // Use Story entity instead of Post
             story.setContent(content);
             story.setUser(user);
+            story.setIsCloseFriendsOnly(isCloseFriendsOnly != null ? isCloseFriendsOnly : false);
             Story savedStory = storyRepository.save(story);
 
             List<Media> mediaList = new ArrayList<>();
@@ -476,6 +482,33 @@ public class PostServiceImpl implements PostService {
         media.setStory(story);  // Assuming Media has story relation
 
         return media;
+    }
+
+    public ResponseEntity<?> getStoriesForUser(String viewerUserId, String targetUserId) {
+        try {
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Colombo"));
+            List<Story> allStories = storyRepository
+                    .findByUserUserIdAndExpiresAtAfterOrderByCreatedAtDesc(targetUserId, now);
+
+            // Filter stories based on close friends setting
+            List<Story> visibleStories = allStories.stream()
+                    .filter(story -> {
+                        if (!story.getIsCloseFriendsOnly()) {
+                            return true; // Public story
+                        }
+                        // Close friends only story - check if viewer is in close friends
+                        return closeFriendServiceImpl.isCloseFriend(targetUserId, viewerUserId);
+                    })
+                    .collect(Collectors.toList());
+
+            // Convert to DTO...
+            return ResponseEntity.ok(visibleStories);
+
+        } catch (Exception e) {
+            log.error("Error fetching stories: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to fetch stories");
+        }
     }
 
     @Override
