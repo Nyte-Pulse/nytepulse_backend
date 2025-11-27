@@ -102,6 +102,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             response.put("birthday", updatedUserDetails.getBirthday());
             response.put("profile_picture_id", updatedUserDetails.getProfilePictureId());
             response.put("updated_at", LocalDateTime.now(SRI_LANKA_ZONE));
+            response.put("status", HttpStatus.OK.value());
 
             return ResponseEntity.ok(response);
 
