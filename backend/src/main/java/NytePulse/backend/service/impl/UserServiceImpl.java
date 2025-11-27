@@ -150,7 +150,7 @@ public class UserServiceImpl implements UserService {
                     savedUser.getUserId(),
                     request.getEmail(),
                     request.getUsername(),
-                    request.getName() != null ? request.getName() : request.getUsername(),
+                    request.getName() != null ? request.getName() : request.getName(),
                     request.getAccountType()
             );
 
@@ -356,9 +356,13 @@ public class UserServiceImpl implements UserService {
             if (userId.startsWith("US")) {
                 UserDetails userDetails = userDetailsRepository.findByUsername(username);
                 response.put("name", userDetails.getName());
+                response.put("profileImage", userDetails.getProfilePicture());
+                response.put("profileImageFileName", userDetails.getProfilePictureFileName());
                 response.put("bio", userDetails.getBio());
             } else {
                 ClubDetails clubDetails = clubDetailsRepository.findByUsername(username);
+                response.put("profileImage", clubDetails.getProfilePicture());
+                response.put("profileImageFileName", clubDetails.getProfilePictureFileName());
                 response.put("name", clubDetails.getName());
                 response.put("bio", clubDetails.getBio());
             }
