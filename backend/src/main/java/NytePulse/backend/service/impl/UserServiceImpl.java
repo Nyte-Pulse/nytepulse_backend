@@ -353,7 +353,7 @@ public class UserServiceImpl implements UserService {
             response.put("postsCount", String.valueOf(posts.size()));
             response.put("accountType", user.getAccountType());
 
-            if (userId.startsWith("US")) {
+            if (userId.startsWith("PS")) {
                 UserDetails userDetails = userDetailsRepository.findByUsername(username);
                 response.put("name", userDetails.getName());
                 response.put("profileImage", userDetails.getProfilePicture());
@@ -371,9 +371,10 @@ public class UserServiceImpl implements UserService {
 
         } catch (Exception e) {
             logger.error("Error while fetching user by username: {}", e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("An error occurred while trying to fetch the user.");
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "An error occurred while trying to fetch the user");
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.ok(response);
         }
     }
 
