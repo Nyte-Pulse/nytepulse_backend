@@ -536,7 +536,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public ResponseEntity<?>uploadEventPoster(MultipartFile file){
+    public ResponseEntity<?>uploadEventPoster(MultipartFile file,String eventId){
         try {
             if (file.isEmpty()) {
                 return ResponseEntity.badRequest()
@@ -560,6 +560,12 @@ public class EventServiceImpl implements EventService {
             logger.info("Uploading event poster");
 
             BunnyNetUploadResult result = bunnyNetService.uploadEventPoster(file, "event_posters");
+            EventDetails eventDetails = eventDetailsRepository.findByEventId(eventId);
+
+            eventDetails.setEventPosterCdnUrl(result.getCdnUrl());
+            eventDetails.setEventPosterFileName(result.getFileName());
+
+            eventDetailsRepository.save(eventDetails);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Event poster uploaded successfully");
@@ -573,6 +579,56 @@ public class EventServiceImpl implements EventService {
             logger.error("Error uploading event poster", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error uploading event poster");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status",HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+    @Override
+    public ResponseEntity<?> updateEventPoster(MultipartFile file, String eventId,String oldFileName){
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("File is empty"));
+            }
+
+            // Validate file type
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("File must be an image"));
+            }
+
+            // Validate file size (e.g., max 5MB)
+            long maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.getSize() > maxSize) {
+                return ResponseEntity.badRequest()
+                        .body(createErrorResponse("File size exceeds 5MB limit"));
+            }
+
+            logger.info("Updating event poster for eventId: {}", eventId);
+
+            BunnyNetUploadResult result = bunnyNetService.updateEventPoster(file, "event_posters", oldFileName);
+
+            EventDetails eventDetails = eventDetailsRepository.findByEventId(eventId);
+
+            eventDetails.setEventPosterCdnUrl(result.getCdnUrl());
+            eventDetails.setEventPosterFileName(result.getFileName());
+
+            eventDetailsRepository.save(eventDetails);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Event poster updated successfully");
+            response.put("fileName", result.getFileName());
+            response.put("cdnUrl", result.getCdnUrl());
+            response.put("status",HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error updating event poster for eventId: {}", eventId, e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error updating event poster");
             errorResponse.put("message", e.getMessage());
             errorResponse.put("status",HttpStatus.INTERNAL_SERVER_ERROR.value());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
