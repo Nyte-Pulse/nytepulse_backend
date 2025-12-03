@@ -25,4 +25,5 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
 
     List<Media> findByPostUserAndMediaType(User user, Media.MediaType mediaType);
 
+    List<Media> findByPostUser(User user);
 }

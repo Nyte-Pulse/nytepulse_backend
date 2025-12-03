@@ -25,8 +25,13 @@ public class EventController {
     }
 
     @PostMapping("/uploadEventPoster")
-    public ResponseEntity<?> uploadEventPoster(@RequestParam("file") MultipartFile file) {
-        return eventService.uploadEventPoster(file);
+    public ResponseEntity<?> uploadEventPoster(@RequestParam("file") MultipartFile file, @RequestParam("eventId") String eventId) {
+        return eventService.uploadEventPoster(file,eventId);
+    }
+    @PostMapping("/updateEventPoster")
+    public ResponseEntity<?> updateEventPoster(@RequestParam("file") MultipartFile file, @RequestParam("eventId") String eventId, @RequestParam("oldPosterUrl")String oldPosterUrl) {
+        return eventService.updateEventPoster(file, eventId,oldPosterUrl);
+
     }
 
     @PostMapping("/search")

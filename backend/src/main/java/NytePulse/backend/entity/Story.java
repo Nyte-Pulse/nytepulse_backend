@@ -33,6 +33,9 @@ public class Story {
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
+    @Column(name = "is_close_friends_only")
+    private Boolean isCloseFriendsOnly = false;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -85,6 +88,14 @@ public class Story {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Boolean getIsCloseFriendsOnly() {
+        return isCloseFriendsOnly;
+    }
+
+    public void setIsCloseFriendsOnly(Boolean closeFriendsOnly) {
+        isCloseFriendsOnly = closeFriendsOnly;
     }
 
 

@@ -58,4 +58,14 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
 
     // Find relationship using internal Long IDs
     Optional<UserRelationship> findByFollowerIdAndFollowingId(Long followerId, Long followingId);
+
+    boolean existsByFollower_UserIdAndFollowing_UserId(String followerUserId, String followingUserId);
+
+    // Alternative: Use @Query if the above doesn't work
+    @Query("SELECT CASE WHEN COUNT(ur) > 0 THEN true ELSE false END " +
+            "FROM UserRelationship ur " +
+            "WHERE ur.follower.userId = :followerUserId " +
+            "AND ur.following.userId = :followingUserId")
+    boolean checkRelationshipExists(@Param("followerUserId") String followerUserId,
+                                    @Param("followingUserId") String followingUserId);
 }
