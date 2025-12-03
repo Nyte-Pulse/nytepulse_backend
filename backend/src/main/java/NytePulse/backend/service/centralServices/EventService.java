@@ -26,5 +26,7 @@ public interface EventService {
 
     ResponseEntity<?> removeSavedEventByUser(Long id);
 
-    ResponseEntity<?> uploadEventPoster(MultipartFile file);
+    ResponseEntity<?> uploadEventPoster(MultipartFile file,String eventId);
+
+    ResponseEntity<?> updateEventPoster(MultipartFile file, String eventId, String oldPosterUrl);
 }

@@ -562,7 +562,19 @@ public class BunnyNetService {
     }
 
 
+    public BunnyNetUploadResult updateEventPoster(MultipartFile file, String event_posters, String oldFileName) {
+        try {
+            // Delete old event poster if exists
+            if (oldFileName != null && !oldFileName.isEmpty()) {
+                deleteImageFromFolder(oldFileName, EVENT_POSTER_FOLDER);
+            }
 
+            // Upload new event poster
+            return uploadEventPoster(file, event_posters);
 
-
+        } catch (IOException e) {
+            log.error("Failed to update event poster: {}", e.getMessage());
+            return null;
+        }
+    }
 }

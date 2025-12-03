@@ -127,8 +127,8 @@ public class PostController {
     public ResponseEntity<?> createStory(
             @RequestParam("content") String content,
             @RequestParam("userId") String userId,
-            @RequestParam(value = "files", required = false) MultipartFile[] files) {
-        return postService.createStory(content, userId, files);
+            @RequestParam(value = "files", required = false) MultipartFile[] files,Boolean isCloseFriendsOnly) {
+        return postService.createStory(content, userId, files,isCloseFriendsOnly);
     }
 
     @GetMapping("/getStories/{userId}")
@@ -142,6 +142,5 @@ public class PostController {
             @RequestParam("userId") String userId) {
         return postService.deleteStory(storyId, userId);
     }
-
 
 }
