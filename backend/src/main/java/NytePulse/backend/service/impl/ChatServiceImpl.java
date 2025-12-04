@@ -41,6 +41,9 @@ public class ChatServiceImpl implements ChatService {
     @Autowired
     private MessageStatusRepository messageStatusRepository;
 
+    @Autowired
+    private ChatMessageRepository chatMessageRepository;
+
     private static final Logger logger = LoggerFactory.getLogger(ClubServiceImpl.class);
 
     @Override
@@ -76,10 +79,16 @@ public class ChatServiceImpl implements ChatService {
             participant2.setUser(user2);
             participantRepository.save(participant2);
 
-            return ResponseEntity.ok(mapToConversationDTO(conversation, userId1));
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", HttpStatus.OK.value());
+            response.put("message", "Successfully created user conversations");
+            response.put("conversation", mapToConversationDTO(conversation, userId1));
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to create Or Get Private Conversation");
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
@@ -130,14 +139,20 @@ public class ChatServiceImpl implements ChatService {
         try {
             List<Conversation> conversations = conversationRepository.findByUserId(userId);
 
+
             List<ConversationDTO> conversationDTOs = new ArrayList<>();
             for (Conversation conversation : conversations) {
                 conversationDTOs.add(mapToConversationDTO(conversation, userId));
             }
-            return ResponseEntity.ok(conversationDTOs);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", HttpStatus.OK.value());
+            response.put("message", "Successfully fetched user conversations");
+            response.put("conversations", conversationDTOs);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to get User Conversations");
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
@@ -200,11 +215,13 @@ public class ChatServiceImpl implements ChatService {
         response.put("messages", messageDTOs);
         response.put("currentPage", messages.getNumber());
         response.put("totalItems", messages.getTotalElements());
+        response.put("status", HttpStatus.OK.value());
         response.put("totalPages", messages.getTotalPages());
         return ResponseEntity.ok(response);
     } catch (Exception e) {
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("error", "Failed to get Conversation Messages");
+        errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         errorResponse.put("message", e.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
@@ -255,8 +272,12 @@ public class ChatServiceImpl implements ChatService {
 
     // Helper methods
     private ConversationDTO mapToConversationDTO(Conversation conversation, Long currentUserId) {
+
+        Long messageCount=chatMessageRepository.countByConversationId(conversation.getId());
+
         ConversationDTO dto = new ConversationDTO();
         dto.setId(conversation.getId());
+        dto.setMessageCount(messageCount);
         dto.setType(conversation.getType().name());
         dto.setUpdatedAt(conversation.getUpdatedAt());
 
