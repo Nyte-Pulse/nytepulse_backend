@@ -616,7 +616,7 @@ public class EventServiceImpl implements EventService {
             eventDetails.setEventPosterFileName(result.getFileName());
 
             eventDetailsRepository.save(eventDetails);
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Event poster updated successfully");
             response.put("fileName", result.getFileName());
