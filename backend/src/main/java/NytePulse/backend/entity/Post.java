@@ -19,6 +19,9 @@ public class Post {
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    String tagFriendId;
+    String mentionFriendId;
+    String location;
     private LocalDateTime createdAt = LocalDateTime.now();
 
 
@@ -94,5 +97,29 @@ public class Post {
     }
     public void setShareCount(Long shareCount) {
         this.shareCount = shareCount;
+    }
+
+    public String getTagFriendId() {
+        return tagFriendId;
+    }
+
+    public void setTagFriendId(String tagFriendId) {
+        this.tagFriendId = tagFriendId;
+    }
+
+    public String getMentionFriendId() {
+        return mentionFriendId;
+    }
+
+    public void setMentionFriendId(String mentionFriendId) {
+        this.mentionFriendId = mentionFriendId;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 }
