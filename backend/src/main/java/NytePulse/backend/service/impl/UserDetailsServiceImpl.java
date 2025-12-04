@@ -269,7 +269,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                         "status", 400
                 ));
             }
-            
+
             List<String> followerUserIds = userRelationshipRepository
                     .findFollowerUserIdsByFollowingId(userId);
 
