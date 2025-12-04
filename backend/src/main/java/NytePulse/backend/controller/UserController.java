@@ -202,6 +202,27 @@ public class UserController {
         return userDetailsService.searchAccountByName(name.trim(), pageable);
     }
 
+    @GetMapping("/searchFollowerAccountByName/{name}")
+    public ResponseEntity<?> searchFollowerAccountByName(
+            @RequestParam Long userId,
+            @PathVariable String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        if (name == null || name.trim().length() < 1) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("Please enter at least 1 characters to search");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        return userDetailsService.searchFollowerAccountByName(userId, name.trim(), pageable);
+    }
+
+    @GetMapping("/getAllBusinessAccount")
+    public  ResponseEntity<?> getAllBusinessAccount(){
+        return userDetailsService.getAllBusinessAccount();
+    }
 
 
 }
