@@ -15,7 +15,17 @@ public class ConversationDTO {
     private List<UserBasicDTO> participants;
     private ChatMessageDTO lastMessage;
     private Integer unreadCount;
+
+    private Long messageCount;
     private LocalDateTime updatedAt;
+
+    public Long getMessageCount() {
+        return messageCount;
+    }
+
+    public void setMessageCount(Long messageCount) {
+        this.messageCount = messageCount;
+    }
 
     public Long getId() {
         return id;

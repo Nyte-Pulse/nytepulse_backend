@@ -1,5 +1,6 @@
 package NytePulse.backend.repository;
 
+import NytePulse.backend.entity.Conversation;
 import NytePulse.backend.entity.ConversationParticipant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,4 +18,5 @@ public interface ConversationParticipantRepository extends JpaRepository<Convers
 
     @Query("SELECT COUNT(cp) FROM ConversationParticipant cp WHERE cp.conversation.id = :conversationId")
     Long countByConversationId(@Param("conversationId") Long conversationId);
+
 }
