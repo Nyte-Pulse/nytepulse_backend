@@ -2,9 +2,12 @@ package NytePulse.backend.service.impl;
 
 import NytePulse.backend.dto.UserDetailsDto;
 import NytePulse.backend.entity.ClubDetails;
+import NytePulse.backend.entity.Story;
 import NytePulse.backend.entity.UserDetails;
+import NytePulse.backend.entity.UserRelationship;
 import NytePulse.backend.repository.ClubDetailsRepository;
 import NytePulse.backend.repository.UserDetailsRepository;
+import NytePulse.backend.repository.UserRelationshipRepository;
 import NytePulse.backend.service.centralServices.UserDetailsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +37,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Autowired
     private ClubDetailsRepository clubDetailsRepository;;
+
+    @Autowired
+    private UserRelationshipRepository userRelationshipRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(UserDetailsServiceImpl.class);
     private static final ZoneId SRI_LANKA_ZONE = ZoneId.of("Asia/Colombo");
@@ -225,6 +231,101 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     .body("Error searching accounts: " + e.getMessage());
         }
     }
+
+    @Override
+    public ResponseEntity<?> getAllBusinessAccount(){
+        try{
+            List<UserDetails> userDetails=userDetailsRepository.findByAccountType("BUSINESS");
+            if(userDetails.size()==0){
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "No Data");
+                response.put("status", HttpStatus.NOT_FOUND.value());
+                return ResponseEntity.ok(response);
+            }
+            Map<String, Object> response = new HashMap<>();
+            response.put("userDetails", userDetails);
+            response.put("message", "Data fetched successfully");
+            response.put("status", HttpStatus.OK.value());
+            return ResponseEntity.ok(response);
+
+        }catch (Exception e) {
+            logger.error("Error get all BusinessAccount: {}", e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error searching accounts: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> searchFollowerAccountByName(Long userId, String searchTerm, Pageable pageable) {
+        try {
+            // Trim search term
+            String trimmedSearch = searchTerm != null ? searchTerm.trim() : "";
+
+            if (trimmedSearch.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Search term cannot be empty",
+                        "status", 400
+                ));
+            }
+            
+            List<String> followerUserIds = userRelationshipRepository
+                    .findFollowerUserIdsByFollowingId(userId);
+
+            // Check if user has any followers
+            if (followerUserIds.isEmpty()) {
+                return ResponseEntity.ok(Map.of(
+                        "results", List.of(),
+                        "currentPage", pageable.getPageNumber(),
+                        "totalItems", 0,
+                        "totalPages", 0,
+                        "message", "No followers found",
+                        "status", 200
+                ));
+            }
+
+            Page<UserDetails> userDetailsPage = userDetailsRepository
+                    .searchByNameInUserIds(followerUserIds, trimmedSearch, pageable);
+
+            List<Map<String, Object>> userResults = userDetailsPage.getContent()
+                    .stream()
+                    .map(userDetails -> {
+                        Map<String, Object> userMap = new HashMap<>();
+                        userMap.put("userId", userDetails.getUserId());
+                        userMap.put("accountName", userDetails.getName());
+                        userMap.put("username", userDetails.getUsername());
+                        userMap.put("profilePictureUrl", userDetails.getProfilePicture());
+                        userMap.put("bio", userDetails.getBio());
+                        userMap.put("isPrivate", userDetails.getIsPrivate());
+                        return userMap;
+                    })
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("results", userResults);
+            response.put("currentPage", userDetailsPage.getNumber());
+            response.put("totalItems", userDetailsPage.getTotalElements());
+            response.put("totalPages", userDetailsPage.getTotalPages());
+            response.put("hasNext", userDetailsPage.hasNext());
+            response.put("hasPrevious", userDetailsPage.hasPrevious());
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error searching follower accounts: {}", e.getMessage(), e);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "error", "Failed to search follower accounts",
+                    "message", e.getMessage(),
+                    "status", 500
+            ));
+        }
+    }
+
+
+
 
 
 }

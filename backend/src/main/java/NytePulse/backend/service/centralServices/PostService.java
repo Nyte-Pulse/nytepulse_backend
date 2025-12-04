@@ -4,6 +4,7 @@ import NytePulse.backend.dto.PostShareInfoDTO;
 import NytePulse.backend.entity.Media;
 import NytePulse.backend.entity.Post;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -11,7 +12,7 @@ import java.util.List;
 
 
 public interface PostService {
-    ResponseEntity<?> createPost(String content, String userId, MultipartFile[] files);
+    ResponseEntity<?> createPost(String content, String userId,String tagFriendId , String mentionFriendId,String location,MultipartFile[] files);
 
     ResponseEntity<?> getPostsByUser(String userId);
 
@@ -38,4 +39,9 @@ public interface PostService {
 
     ResponseEntity<?> deleteStory(Long storyId, String userId);
 
+    ResponseEntity<?> viewStoryOnlyForFollowersOrCloseFriends(Long storyId, String viewerId);
+
+    ResponseEntity<?> showStoryOnlyForFollowers(Long storyId, String viewerId);
+
+    ResponseEntity<?> getPostForFeed(int page,int size);
 }

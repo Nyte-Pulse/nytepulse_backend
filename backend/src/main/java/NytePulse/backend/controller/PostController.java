@@ -28,8 +28,11 @@ public class PostController {
     public ResponseEntity<?> createPost(
             @RequestParam("content") String content,
             @RequestParam("userId") String userId,
+            @RequestParam("tagFriendId") String tagFriendId,
+            @RequestParam("mentionFriendId") String mentionFriendId,
+            @RequestParam("location") String location,
             @RequestParam(value = "files", required = false) MultipartFile[] files) {
-       return postService.createPost(content, userId, files);
+       return postService.createPost(content, userId,tagFriendId,mentionFriendId,location, files);
     }
 
 
@@ -142,5 +145,27 @@ public class PostController {
             @RequestParam("userId") String userId) {
         return postService.deleteStory(storyId, userId);
     }
+
+    @GetMapping("/viewStoryOnlyForFollowersOrCloseFriends/{storyId}")
+    public ResponseEntity<?> viewStoryOnlyForFollowersOrCloseFriends(
+            @PathVariable Long storyId,
+            @RequestParam("viewerId") String viewerId) {
+        return postService.viewStoryOnlyForFollowersOrCloseFriends(storyId, viewerId);
+    }
+
+    @GetMapping("/showStoryOnlyForFollowers/{storyId}")
+    public ResponseEntity<?> showStoryOnlyForFollowers(
+            @PathVariable Long storyId,
+            @RequestParam("viewerId") String viewerId) {
+        return postService.showStoryOnlyForFollowers(storyId, viewerId);
+    }
+
+    @GetMapping("/feed")
+    public ResponseEntity<?> getPostForFeed(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return postService.getPostForFeed(page, size);
+    }
+
 
 }

@@ -14,4 +14,8 @@ public interface UserDetailsService {
     ResponseEntity<?> getAccountNameByEmail(String email);
 
     ResponseEntity<?> searchAccountByName(String name, Pageable pageable);
+
+    ResponseEntity<?> getAllBusinessAccount();
+
+    ResponseEntity<?> searchFollowerAccountByName(Long userId, String trim, Pageable pageable);
 }

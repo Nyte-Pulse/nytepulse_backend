@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -59,7 +60,7 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
     // Find relationship using internal Long IDs
     Optional<UserRelationship> findByFollowerIdAndFollowingId(Long followerId, Long followingId);
 
-    boolean existsByFollower_UserIdAndFollowing_UserId(String followerUserId, String followingUserId);
+//    boolean existsByFollower_UserIdAndFollowing_UserId(String followerUserId, String followingUserId);
 
     // Alternative: Use @Query if the above doesn't work
     @Query("SELECT CASE WHEN COUNT(ur) > 0 THEN true ELSE false END " +
@@ -68,4 +69,16 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
             "AND ur.following.userId = :followingUserId")
     boolean checkRelationshipExists(@Param("followerUserId") String followerUserId,
                                     @Param("followingUserId") String followingUserId);
+
+
+    boolean existsByFollower_UserIdAndFollowing_UserId(
+            String followerId,
+            String followingId
+    );
+
+    // Get all follower IDs for a user
+    @Query("SELECT ur.follower.userId FROM UserRelationship ur " +
+            "WHERE ur.following.id = :userId " +
+            "AND ur.relationshipType = 'FOLLOWING'")
+    List<String> findFollowerUserIdsByFollowingId(@Param("userId") Long userId);
 }

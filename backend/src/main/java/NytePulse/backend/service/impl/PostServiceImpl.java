@@ -4,24 +4,23 @@ import NytePulse.backend.dto.BunnyNetUploadResult;
 
 import NytePulse.backend.dto.PostShareInfoDTO;
 import NytePulse.backend.dto.ShareResponseDTO;
-import NytePulse.backend.entity.Media;
-import NytePulse.backend.entity.Post;
-import NytePulse.backend.entity.Story;
-import NytePulse.backend.entity.User;
-import NytePulse.backend.repository.MediaRepository;
-import NytePulse.backend.repository.PostRepository;
-import NytePulse.backend.repository.StoryRepository;
-import NytePulse.backend.repository.UserRepository;
+import NytePulse.backend.entity.*;
+import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.PostService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -49,6 +48,9 @@ public class PostServiceImpl implements PostService {
     private BunnyNetService bunnyNetService;
 
     @Autowired
+    private UserRelationshipRepository userRelationshipRepository;
+
+    @Autowired
     private StoryRepository storyRepository;
 
     @Autowired
@@ -58,7 +60,7 @@ public class PostServiceImpl implements PostService {
     private String baseUrl;
 
     @Override
-    public ResponseEntity<?> createPost(String content, String userId, MultipartFile[] files) {
+    public ResponseEntity<?> createPost(String content, String userId,String tagFriendId,String mentionFriendId,String location, MultipartFile[] files) {
         try {
             if (content == null || content.trim().isEmpty()) {
                 Map<String, Object> errorResponse = new HashMap<>();
@@ -72,6 +74,9 @@ public class PostServiceImpl implements PostService {
             Post post = new Post();
             post.setContent(content);
             post.setUser(user);
+            post.setLocation(location);
+            post.setTagFriendId(tagFriendId);
+            post.setMentionFriendId(mentionFriendId);
             Post savedPost = postRepository.save(post);
 
             // Process and upload files to BunnyNet
@@ -576,6 +581,68 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+    @Override
+    public ResponseEntity<?> viewStoryOnlyForFollowersOrCloseFriends(Long storyId, String viewerUserId) {
+        try {
+            Story story = storyRepository.findById(storyId)
+                    .orElseThrow(() -> new RuntimeException("Story not found"));
+
+            // Check if the story is close friends only
+            if (story.getIsCloseFriendsOnly()) {
+                // Verify if viewer is a close friend
+                boolean isCloseFriend = closeFriendServiceImpl.isCloseFriend(
+                        story.getUser().getUserId(), viewerUserId);
+                if (!isCloseFriend) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("error", "Access Denied");
+                    errorResponse.put("message", "This story is only for close friends");
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+                }
+            }
+
+            return ResponseEntity.ok(story);
+
+        } catch (Exception e) {
+            log.error("Error viewing story ID {}: {}", storyId, e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to view story");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> showStoryOnlyForFollowers(Long storyId, String viewerUserId){
+        try {
+            Story story = storyRepository.findById(storyId)
+                    .orElseThrow(() -> new RuntimeException("Story not found"));
+
+            boolean isFollower = checkIfFollower(story.getUser().getUserId(), viewerUserId);
+
+            if (!isFollower) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Access Denied");
+                errorResponse.put("message", "This story is only for followers");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+            }
+
+            return ResponseEntity.ok(story);
+
+        } catch (Exception e) {
+            log.error("Error viewing story ID {}: {}", storyId, e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to view story");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    private boolean checkIfFollower(String userId, String viewerUserId) {
+
+        return userRelationshipRepository
+                .existsByFollower_UserIdAndFollowing_UserId(viewerUserId, userId);
+
+    }
 
     private void deleteMediaFromBunnyNet(Media media) {
         try {
@@ -589,4 +656,36 @@ public class PostServiceImpl implements PostService {
             log.error("Failed to delete media file {}: {}", media.getFileName(), e.getMessage());
         }
     }
+
+    @Override
+    public ResponseEntity<?> getPostForFeed(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            // Create Pageable object
+            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+            // Fetch paginated posts
+            Page<Post> postPage = postRepository.findAll(pageable);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("posts", postPage.getContent());
+            response.put("currentPage", postPage.getNumber());
+            response.put("totalPages", postPage.getTotalPages());
+            response.put("totalPosts", postPage.getTotalElements());
+            response.put("hasNext", postPage.hasNext());
+            response.put("hasPrevious", postPage.hasPrevious());
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error fetching feed posts: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "error", "Failed to fetch feed posts",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
 }
