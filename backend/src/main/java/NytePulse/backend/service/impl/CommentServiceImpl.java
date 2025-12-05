@@ -3,19 +3,22 @@ package NytePulse.backend.service.impl;
 import NytePulse.backend.dto.CommentRequestDTO;
 import NytePulse.backend.dto.CommentResponseDTO;
 import NytePulse.backend.dto.UserBasicDTO;
-import NytePulse.backend.entity.Comment;
-import NytePulse.backend.entity.Post;
-import NytePulse.backend.entity.User;
-import NytePulse.backend.entity.UserDetails;
+import NytePulse.backend.entity.*;
+import NytePulse.backend.enums.CommentVisibility;
+import NytePulse.backend.exception.PermissionDeniedException;
+import NytePulse.backend.exception.ResourceNotFoundException;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.centralServices.CommentService;
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +27,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CommentServiceImpl implements CommentService {
 
     @Autowired
@@ -41,32 +45,125 @@ public class CommentServiceImpl implements CommentService {
     @Autowired
     private CommentLikeRepository commentLikeRepository;
 
+    @Autowired
+    private UserSettingsRepository userSettingsRepository;
+
+    @Autowired
+    private UserRelationshipRepository userRelationshipRepository;
+
+    @Autowired
+    private StoryRepository storyRepository;
+
     @Override
     @Transactional
     public ResponseEntity<?> addComment(Long postId, Long userId, CommentRequestDTO commentRequestDTO) {
         try {
             Post post = postRepository.findById(postId)
-                    .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
 
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+            User commenter = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-            Comment comment = new Comment();
-            comment.setContent(commentRequestDTO.getContent());
-            comment.setPost(post);
-            comment.setUser(user);
+            UserSettings postOwnerSettings = userSettingsRepository
+                    .findByUserId(post.getUser().getId())
+                    .orElse(null);
+
+
+            if (!canCommentOnPost(postOwnerSettings, post.getUser().getUserId(), commenter.getId())) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "You don't have permission to comment on this post");
+                errorResponse.put("message", "Post owner has restricted comments");
+                errorResponse.put("status", HttpStatus.FORBIDDEN.value());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+            }
+
+            validateCommentContent(commentRequestDTO.getContent());
+
+            Comment comment = Comment.builder()
+                    .content(commentRequestDTO.getContent())
+                    .post(post)
+                    .user(commenter)
+                    .createdAt(LocalDateTime.now())
+                    .build();
 
             Comment savedComment = commentRepository.save(comment);
             CommentResponseDTO responseDTO = mapToCommentResponseDTO(savedComment, userId);
 
             return ResponseEntity.ok(responseDTO);
+
+        } catch (ResourceNotFoundException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Resource not found");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        } catch (PermissionDeniedException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Permission denied");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+        } catch (ValidationException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Invalid comment");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
         } catch (Exception e) {
+            log.error("Unexpected error adding comment to post {} by user {}: {}",
+                    postId, userId, e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to add comment to post");
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+    private boolean canCommentOnPost(UserSettings postOwnerSettings, String postOwnerUserId, Long commenterUserId) {
+        if (postOwnerSettings == null) {
+            // Default to followers-only if no settings
+            return userRelationshipRepository.existsByFollower_IdAndFollowing_UserId(
+                    commenterUserId, postOwnerUserId);
+        }
+
+        CommentVisibility commentVisibility = postOwnerSettings.getCommentVisibility();
+
+        System.out.println("Post owner comment visibility: " + commentVisibility);
+
+        switch (commentVisibility) {
+            case EVERYONE:
+                return true;
+            case FOLLOWERS:
+                return userRelationshipRepository.existsByFollower_IdAndFollowing_UserId(
+                        commenterUserId, postOwnerUserId);
+            case MENTIONED_ONLY:
+                // Check if commenter is mentioned in post content
+                return isMentionedInPost(postOwnerUserId, commenterUserId);
+            case DISABLED:
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    private boolean isMentionedInPost(String postOwnerUserId, Long commenterUserId) {
+        // Implementation depends on your mention format
+        // Example: Check if @username exists in post content
+        return false; // Placeholder
+    }
+
+    private void validateCommentContent(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            throw new ValidationException("Comment content cannot be empty");
+        }
+
+        if (content.length() > 1000) {
+            throw new ValidationException("Comment too long (max 1000 characters)");
+        }
+
+        // Add profanity filter, spam check, etc.
+//        if (containsProfanity(content)) {
+//            throw new ValidationException("Content violates community guidelines");
+//        }
+    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -314,5 +411,49 @@ public class CommentServiceImpl implements CommentService {
         }
 
         return dto;
+    }
+
+    @Override
+    public ResponseEntity<?> addCommentToStory(Long storyId,Long userId, CommentRequestDTO commentRequestDTO){
+
+        try {
+            Story story = storyRepository.findStoryById(storyId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Story not found with id: " + storyId));
+
+            User commenter = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+            validateCommentContent(commentRequestDTO.getContent());
+
+            Comment comment = Comment.builder()
+                    .content(commentRequestDTO.getContent())
+                    .story(story)
+                    .user(commenter)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            Comment savedComment = commentRepository.save(comment);
+            CommentResponseDTO responseDTO = mapToCommentResponseDTO(savedComment, userId);
+
+            return ResponseEntity.ok(responseDTO);
+
+        } catch (ResourceNotFoundException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Resource not found");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        } catch (ValidationException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Invalid comment");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            log.error("Unexpected error adding comment to story {} by user {}: {}",
+                    storyId, userId, e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to add comment to story");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 }
