@@ -315,6 +315,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     .stream()
                     .map(userDetails -> {
                         Map<String, Object> userMap = new HashMap<>();
+                        Optional<User> userOptional = userRepository.findByUsername(userDetails.getUsername());
+
+                        if (userOptional.isPresent()) {
+                            userMap.put("id", userOptional.get().getId());
+                        } else {
+                            userMap.put("id", null);
+                        }
                         userMap.put("userId", userDetails.getUserId());
                         userMap.put("accountName", userDetails.getName());
                         userMap.put("username", userDetails.getUsername());
