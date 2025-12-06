@@ -38,6 +38,10 @@ public class UserSettings {
     private CommentVisibility commentVisibility = CommentVisibility.FOLLOWERS;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "story_comment_visibility")
+    private StoryCommentVisibility storyCommentVisibility = StoryCommentVisibility.FOLLOWERS;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "mention_visibility")
     private MentionVisibility mentionVisibility = MentionVisibility.FOLLOWERS;
 

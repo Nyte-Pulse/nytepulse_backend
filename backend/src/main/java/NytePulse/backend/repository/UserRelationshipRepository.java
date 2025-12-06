@@ -83,4 +83,7 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
     List<String> findFollowerUserIdsByFollowingId(@Param("userId") Long userId);
 
     boolean existsByFollower_IdAndFollowing_UserId(Long commenterUserId, String postOwnerUserId);
+
+    boolean existsByFollower_IdAndFollowing_Id(Long followerId, Long followingId);
+
 }

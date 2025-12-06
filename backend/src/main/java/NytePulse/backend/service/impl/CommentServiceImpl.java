@@ -5,6 +5,7 @@ import NytePulse.backend.dto.CommentResponseDTO;
 import NytePulse.backend.dto.UserBasicDTO;
 import NytePulse.backend.entity.*;
 import NytePulse.backend.enums.CommentVisibility;
+import NytePulse.backend.enums.StoryCommentVisibility;
 import NytePulse.backend.exception.PermissionDeniedException;
 import NytePulse.backend.exception.ResourceNotFoundException;
 import NytePulse.backend.repository.*;
@@ -82,6 +83,7 @@ public class CommentServiceImpl implements CommentService {
             Comment comment = Comment.builder()
                     .content(commentRequestDTO.getContent())
                     .post(post)
+                    .story(null)
                     .user(commenter)
                     .createdAt(LocalDateTime.now())
                     .build();
@@ -414,8 +416,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public ResponseEntity<?> addCommentToStory(Long storyId,Long userId, CommentRequestDTO commentRequestDTO){
-
+    public ResponseEntity<?> addCommentToStory(Long storyId, Long userId, CommentRequestDTO commentRequestDTO) {
         try {
             Story story = storyRepository.findStoryById(storyId)
                     .orElseThrow(() -> new ResourceNotFoundException("Story not found with id: " + storyId));
@@ -423,13 +424,27 @@ public class CommentServiceImpl implements CommentService {
             User commenter = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
+            UserSettings storyOwnerSettings = userSettingsRepository
+                    .findByUserId(story.getUser().getId())
+                    .orElse(null);
+
+            if (!canCommentOnStory(storyOwnerSettings, story.getUser().getId(), userId)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Permission denied");
+                errorResponse.put("message", "You don't have permission to comment on this story");
+                errorResponse.put("status", HttpStatus.FORBIDDEN.value());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+            }
+
             validateCommentContent(commentRequestDTO.getContent());
 
             Comment comment = Comment.builder()
                     .content(commentRequestDTO.getContent())
                     .story(story)
+                    .post(null)
                     .user(commenter)
                     .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
                     .build();
 
             Comment savedComment = commentRepository.save(comment);
@@ -442,6 +457,11 @@ public class CommentServiceImpl implements CommentService {
             errorResponse.put("error", "Resource not found");
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        } catch (PermissionDeniedException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Permission denied");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
         } catch (ValidationException e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Invalid comment");
@@ -456,4 +476,41 @@ public class CommentServiceImpl implements CommentService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+    private boolean canCommentOnStory(UserSettings storyOwnerSettings, Long storyOwnerId, Long commenterId) {
+
+        if (storyOwnerId.equals(commenterId)) {
+            return true;
+        }
+
+        if (storyOwnerSettings == null) {
+            return isFollowing(commenterId, storyOwnerId);
+        }
+
+        StoryCommentVisibility storyCommentVisibility = storyOwnerSettings.getStoryCommentVisibility();
+
+        switch (storyCommentVisibility) {
+            case EVERYONE:
+                return true;
+
+            case FOLLOWERS:
+                return isFollowing(commenterId, storyOwnerId);
+
+            case MENTIONED_ONLY:
+                // For stories, treat as FOLLOWERS or implement mention logic
+                return isFollowing(commenterId, storyOwnerId);
+
+            case DISABLED:
+                return false;
+
+            default:
+                return false;
+        }
+    }
+
+    private boolean isFollowing(Long followerId, Long followingId) {
+        return userRelationshipRepository.existsByFollower_IdAndFollowing_Id(followerId, followingId);
+    }
+
+
 }

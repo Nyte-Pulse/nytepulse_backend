@@ -14,6 +14,7 @@ public class UpdateSettingsRequest {
     private PostVisibility postVisibility;
     private StoryVisibility storyVisibility;
     private CommentVisibility commentVisibility;
+    private StoryCommentVisibility storyCommentVisibility;
     private MentionVisibility mentionVisibility;
     private TagVisibility tagVisibility;
     private Boolean allowDirectMessages;

@@ -1,13 +1,11 @@
 package NytePulse.backend.service.impl;
 
 import NytePulse.backend.dto.UserDetailsDto;
-import NytePulse.backend.entity.ClubDetails;
-import NytePulse.backend.entity.Story;
-import NytePulse.backend.entity.UserDetails;
-import NytePulse.backend.entity.UserRelationship;
+import NytePulse.backend.entity.*;
 import NytePulse.backend.repository.ClubDetailsRepository;
 import NytePulse.backend.repository.UserDetailsRepository;
 import NytePulse.backend.repository.UserRelationshipRepository;
+import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.centralServices.UserDetailsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -37,6 +32,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Autowired
     private ClubDetailsRepository clubDetailsRepository;;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private UserRelationshipRepository userRelationshipRepository;
@@ -181,14 +179,25 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             Page<ClubDetails> clubDetailsPage = clubDetailsRepository
                     .findByNameContainingIgnoreCase(name, pageable);
 
-            List<Map<String, Object>> userResults  = userDetailsPage.getContent()
+            List<Map<String, Object>> userResults = userDetailsPage.getContent()
                     .stream()
                     .map(user -> {
                         Map<String, Object> userMap = new HashMap<>();
+
+                        Optional<User> userOptional = userRepository.findByUsername(user.getUsername());
+
+                        if (userOptional.isPresent()) {
+                            userMap.put("id", userOptional.get().getId());
+                        } else {
+                            userMap.put("id", null);
+                            logger.warn("User not found for username: {}", user.getUsername());
+                        }
+
                         userMap.put("userId", user.getUserId());
                         userMap.put("accountName", user.getName());
                         userMap.put("profilePictureUrl", user.getProfilePicture());
                         userMap.put("username", user.getUsername());
+
                         return userMap;
                     })
                     .collect(Collectors.toList());
@@ -197,6 +206,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     .stream()
                     .map(club -> {
                         Map<String, Object> clubMap = new HashMap<>();
+                        Optional<User> userOptional = userRepository.findByUsername(club.getUsername());
+
+                        if (userOptional.isPresent()) {
+                            clubMap.put("id", userOptional.get().getId());
+                        } else {
+                            clubMap.put("id", null);
+                            logger.warn("User not found for username: {}", club.getUsername());
+                        }
                         clubMap.put("userId", club.getUserId());
                         clubMap.put("accountName", club.getName());
                         clubMap.put("username", club.getUsername());
@@ -209,7 +226,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             combinedResults.addAll(userResults);
             combinedResults.addAll(clubResults);
 
-            // Calculate total items and pages
             long totalItems = userDetailsPage.getTotalElements() + clubDetailsPage.getTotalElements();
             int totalPages = Math.max(userDetailsPage.getTotalPages(), clubDetailsPage.getTotalPages());
 
@@ -217,7 +233,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             response.put("results", combinedResults);
             response.put("currentPage", pageable.getPageNumber());
             response.put("totalItems", totalItems);
-//            response.put("totalPages", totalPages);
+            response.put("totalPages", totalPages);
             response.put("userCount", userDetailsPage.getTotalElements());
             response.put("businessCount", clubDetailsPage.getTotalElements());
             response.put("status", HttpStatus.OK.value());
@@ -226,11 +242,18 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         } catch (Exception e) {
             logger.error("Error searching accounts by name: {}", name, e);
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to search accounts");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error searching accounts: " + e.getMessage());
+                    .body(errorResponse);
         }
     }
+
 
     @Override
     public ResponseEntity<?> getAllBusinessAccount(){

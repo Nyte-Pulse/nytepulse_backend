@@ -10,8 +10,13 @@ import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.repository.UserSettingsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -52,7 +57,8 @@ public class UserSettingsService {
     }
 
     @Transactional
-    public UserSettingsDTO updateSettings(Long userId, UpdateSettingsRequest request) {
+    public ResponseEntity<?> updateSettings(Long userId, UpdateSettingsRequest request) {
+        try{
         UserSettings settings = settingsRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Settings not found"));
 
@@ -66,10 +72,25 @@ public class UserSettingsService {
         if (request.getCommentVisibility() != null) {
             settings.setCommentVisibility(request.getCommentVisibility());
         }
-        // ... update other fields
+        if (request.getStoryCommentVisibility() != null) {
+            settings.setStoryCommentVisibility(request.getStoryCommentVisibility());
+        }
 
         UserSettings updated = settingsRepository.save(settings);
-        return convertToDTO(updated);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message","Successfully updated settings");
+            response.put("status",HttpStatus.OK.value());
+            response.put("result",convertToDTO(updated));
+
+        return ResponseEntity.ok(response);
+        }catch (Exception e){
+            log.error("Unexpected error update setting",
+                    e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to update setting");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     private UserSettingsDTO convertToDTO(UserSettings settings) {
@@ -78,6 +99,7 @@ public class UserSettingsService {
                 .postVisibility(settings.getPostVisibility())
                 .storyVisibility(settings.getStoryVisibility())
                 .commentVisibility(settings.getCommentVisibility())
+                .storyCommentVisibility(settings.getStoryCommentVisibility())
                 .mentionVisibility(settings.getMentionVisibility())
                 .tagVisibility(settings.getTagVisibility())
                 .allowDirectMessages(settings.getAllowDirectMessages())

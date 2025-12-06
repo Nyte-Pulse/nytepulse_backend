@@ -40,7 +40,6 @@ public class UserSettingsController {
     public ResponseEntity<?> updateSettings(
             @PathVariable Long userId,
             @RequestBody UpdateSettingsRequest request) {
-        UserSettingsDTO updated = settingsService.updateSettings(userId, request);
-        return ResponseEntity.ok(Map.of("settings", updated));
+        return ResponseEntity.ok(settingsService.updateSettings(userId, request));
     }
 }
