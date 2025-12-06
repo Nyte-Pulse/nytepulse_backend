@@ -8,16 +8,21 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping("/api/post/{postId}/comments")
+@RequestMapping("/api/comments")
 public class CommentController {
 
     @Autowired
     private CommentService commentService;
 
-    @PostMapping
+    @PostMapping("/post/{postId}")
     public ResponseEntity<?> addComment(@PathVariable Long postId, @RequestHeader("User-Id") Long userId, @RequestBody CommentRequestDTO commentRequestDTO) {
 
         return commentService.addComment(postId, userId, commentRequestDTO);
+    }
+
+    @PostMapping("/story/{storyId}")
+    public ResponseEntity<?> addCommentToStory(@PathVariable Long storyId, @RequestHeader("User-Id") Long userId, @RequestBody CommentRequestDTO commentRequestDTO){
+        return commentService.addCommentToStory(storyId,userId,commentRequestDTO);
     }
 
     @GetMapping
