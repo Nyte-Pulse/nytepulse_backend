@@ -17,10 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -334,6 +331,7 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private ChatMessageDTO mapToChatMessageDTO(ChatMessage message) {
+   Optional<MessageStatus> messageStatus= messageStatusRepository.findByMessageId(message.getId());
         ChatMessageDTO dto = new ChatMessageDTO();
         dto.setId(message.getId());
         dto.setConversationId(message.getConversationId());
@@ -345,7 +343,7 @@ public class ChatServiceImpl implements ChatService {
         dto.setFileUrl(message.getFileUrl());
         dto.setTimestamp(message.getCreatedAt());
         dto.setIsEdited(message.getEditedAt() != null);
-        dto.setStatus("SENT");
+        dto.setStatus(messageStatus.get().getStatus().toString());
 
         return dto;
     }
