@@ -69,4 +69,9 @@ public class EventController {
         return eventService.removeSavedEventByUser(id);
     }
 
+    @GetMapping("/getAllEvents")
+    public ResponseEntity<?> getAllEvents() {
+        return eventService.getAllEvents();
+    }
+
 }

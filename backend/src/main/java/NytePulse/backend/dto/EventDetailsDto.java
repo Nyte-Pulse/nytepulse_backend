@@ -10,6 +10,8 @@ public class EventDetailsDto {
     private String description;
 
     private String dateFilter;
+
+    private Long organizerId;
     private String category;
     private Date startDateTime;// "any", "today", "tomorrow", "this_week", "this_weekend"
     private Date endDateTime;
@@ -32,6 +34,8 @@ public class EventDetailsDto {
 
     private String organizerContact;
 
+    private int isApprovedByOrganizer;
+
     private String organizerEmail;
 
     private String locationName;
@@ -42,6 +46,12 @@ public class EventDetailsDto {
     private String eventPosterFileName;
     private  LocalDateTime createdAt;
 
+    public Long getOrganizerId() {
+        return organizerId;
+    }
+    public void setOrganizerId(Long organizerId) {
+        this.organizerId = organizerId;
+    }
 
     public String getDateFilter() {
         return dateFilter;
@@ -260,5 +270,11 @@ public class EventDetailsDto {
     }
     public void setIsActive(int isActive) {
         this.isActive = isActive;
+    }
+    public int getIsApprovedByOrganizer() {
+        return isApprovedByOrganizer;
+    }
+    public void setIsApprovedByOrganizer(int isApprovedByOrganizer) {
+        this.isApprovedByOrganizer = isApprovedByOrganizer;
     }
 }
