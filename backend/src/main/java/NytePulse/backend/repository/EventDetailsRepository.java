@@ -34,4 +34,6 @@ public interface EventDetailsRepository extends JpaRepository<EventDetails,Long>
     EventDetails findByEventId(String eventId);
 
     List<EventDetails> findByEventIdIn(List<String> eventIds);
+
+    List<EventDetails> findByIsApprovedByOrganizer(int i);
 }

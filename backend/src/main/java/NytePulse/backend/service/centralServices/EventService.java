@@ -31,4 +31,8 @@ public interface EventService {
     ResponseEntity<?> updateEventPoster(MultipartFile file, String eventId, String oldPosterUrl);
 
     ResponseEntity<?> getAllEvents();
+
+    ResponseEntity<?> getNotApprovedEvents();
+
+    ResponseEntity<?> approveOrDeclineByOrganizer(Long eventId,boolean isApproved);
 }
