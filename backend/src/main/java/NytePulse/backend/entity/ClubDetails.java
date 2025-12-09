@@ -1,5 +1,6 @@
 package NytePulse.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -8,6 +9,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "club_details")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class ClubDetails {
 
     @Id

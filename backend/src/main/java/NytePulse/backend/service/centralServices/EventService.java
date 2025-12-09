@@ -29,4 +29,6 @@ public interface EventService {
     ResponseEntity<?> uploadEventPoster(MultipartFile file,String eventId);
 
     ResponseEntity<?> updateEventPoster(MultipartFile file, String eventId, String oldPosterUrl);
+
+    ResponseEntity<?> getAllEvents();
 }
