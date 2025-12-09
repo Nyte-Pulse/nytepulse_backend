@@ -4,14 +4,8 @@ import NytePulse.backend.dto.BunnyNetUploadResult;
 import NytePulse.backend.dto.EventDetailsDto;
 import NytePulse.backend.dto.SaveEventDto;
 import NytePulse.backend.dto.ReportEventDto;
-import NytePulse.backend.entity.CountEvent;
-import NytePulse.backend.entity.EventDetails;
-import NytePulse.backend.entity.SaveEvent;
-import NytePulse.backend.entity.ReportEvent;
-import NytePulse.backend.repository.EventCountRepository;
-import NytePulse.backend.repository.EventDetailsRepository;
-import NytePulse.backend.repository.ReportEventRepository;
-import NytePulse.backend.repository.SaveEventByUserRepository;
+import NytePulse.backend.entity.*;
+import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.EventService;
 import org.slf4j.Logger;
@@ -44,6 +38,9 @@ public class EventServiceImpl implements EventService {
     private ReportEventRepository reportEventRepository;
 
     @Autowired
+    private ClubDetailsRepository clubDetailsRepository;
+
+    @Autowired
     private BunnyNetService bunnyNetService;
 
     private static final Logger logger = LoggerFactory.getLogger(ClubServiceImpl.class);
@@ -73,6 +70,9 @@ public class EventServiceImpl implements EventService {
             }
             eventDetails.setEventId(newEventId);
 
+            ClubDetails organizer = clubDetailsRepository.getReferenceById(eventDetailsDto.getOrganizerId());
+            eventDetails.setOrganizer(organizer);
+
             eventDetails.setName(eventDetailsDto.getName());
             eventDetails.setClubId(eventDetailsDto.getUserId());
             eventDetails.setDescription(eventDetailsDto.getDescription());
@@ -93,9 +93,8 @@ public class EventServiceImpl implements EventService {
             eventDetails.setLatitude(eventDetailsDto.getVenueLatitude());
             eventDetails.setName(eventDetailsDto.getVenueName());
             eventDetails.setCity(eventDetailsDto.getVenueCity());
-            eventDetails.setOrganizerContact(eventDetailsDto.getOrganizerContact());
-            eventDetails.setOrganizerEmail(eventDetailsDto.getOrganizerEmail());
-            eventDetails.setOrganizerName(eventDetailsDto.getOrganizerName());
+            eventDetails.setOrganizer(organizer);
+            eventDetails.setIsApprovedByOrganizer(eventDetailsDto.getIsApprovedByOrganizer());
             eventDetails.setLocationName(eventDetailsDto.getLocationName());
             eventDetails.setCreatedAt(LocalDateTime.now(SRI_LANKA_ZONE));
             eventDetails.setIsActive(1);
@@ -134,6 +133,7 @@ public class EventServiceImpl implements EventService {
             response.put("ageRestriction", savedEventDetails.getAgeRestriction());
             response.put("dressCode", savedEventDetails.getDressCode());
             response.put("eventPosterUrl", savedEventDetails.getEventPosterCdnUrl());
+            response.put("organizer", savedEventDetails.getOrganizer());
             response.put("eventPosterFileName", savedEventDetails.getEventPosterFileName());
             response.put("ticketType", savedEventDetails.getTicketType());
             response.put("websiteUrl", savedEventDetails.getWebsiteUrl());
@@ -631,6 +631,31 @@ public class EventServiceImpl implements EventService {
             errorResponse.put("error", "Error updating event poster");
             errorResponse.put("message", e.getMessage());
             errorResponse.put("status",HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getAllEvents(){
+        try {
+            List<EventDetails> allEvents = eventDetailsRepository.findAll();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "All events retrieved successfully");
+            response.put("totalCount", allEvents.size());
+            response.put("events", allEvents);
+            response.put("status", HttpStatus.OK.value());
+            response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error retrieving all events", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error retrieving all events");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }

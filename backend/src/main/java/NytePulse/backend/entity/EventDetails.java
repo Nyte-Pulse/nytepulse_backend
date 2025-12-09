@@ -56,15 +56,12 @@ public class EventDetails {
     @Column(name = "is_active")
     private int isActive;
 
-    @Column(name = "organizer_name")
-    private String organizerName;
+    @Column(name = "is_approved_by_organizer")
+    private int isApprovedByOrganizer;
 
-
-    @Column(name = "organizer_contact")
-    private String organizerContact;
-
-    @Column(name = "organizer_email")
-    private String organizerEmail;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "organizer_id", referencedColumnName = "id")
+    private ClubDetails organizer;
 
     @Column(name = "location_name")
     private String locationName;
@@ -74,8 +71,6 @@ public class EventDetails {
 
     @Column(name = "created_at", updatable = false)
     private  LocalDateTime createdAt;
-
-
 
     @Column(name = "event_poster_cdn_url")
     private String eventPosterCdnUrl;
@@ -244,30 +239,6 @@ public class EventDetails {
         this.latitude = latitude;
     }
 
-    public String getOrganizerName() {
-        return organizerName;
-    }
-
-    public void setOrganizerName(String organizerName) {
-        this.organizerName = organizerName;
-    }
-
-    public String getOrganizerContact() {
-        return organizerContact;
-    }
-
-    public void setOrganizerContact(String organizerContact) {
-        this.organizerContact = organizerContact;
-    }
-
-    public String getOrganizerEmail() {
-        return organizerEmail;
-    }
-
-    public void setOrganizerEmail(String organizerEmail) {
-        this.organizerEmail = organizerEmail;
-    }
-
     public String getLocationName() {
         return locationName;
     }
@@ -297,5 +268,21 @@ public class EventDetails {
     }
     public void setEventPosterFileName(String eventPosterFileName) {
         this.eventPosterFileName = eventPosterFileName;
+    }
+
+    public ClubDetails getOrganizer() {
+        return organizer;
+    }
+
+    public void setOrganizer(ClubDetails organizer) {
+        this.organizer = organizer;
+    }
+
+    public int getIsApprovedByOrganizer() {
+        return isApprovedByOrganizer;
+    }
+
+    public void setIsApprovedByOrganizer(int isApprovedByOrganizer) {
+        this.isApprovedByOrganizer = isApprovedByOrganizer;
     }
 }
