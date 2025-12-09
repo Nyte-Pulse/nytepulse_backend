@@ -8,6 +8,7 @@ import NytePulse.backend.entity.*;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.EventService;
+import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -249,7 +250,7 @@ public class EventServiceImpl implements EventService {
     }
 
 
-    public ResponseEntity<?> getEventById(String eventId){
+    public ResponseEntity<?> getEventById(String eventId) {
         try {
             if (!StringUtils.hasText(eventId)) {
                 Map<String, Object> errorResponse = new HashMap<>();
@@ -288,7 +289,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public ResponseEntity<?> saveEventByUser(SaveEventDto saveEventDto) {
 
-        try{
+        try {
             if (saveEventDto == null) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Invalid request");
@@ -311,7 +312,7 @@ public class EventServiceImpl implements EventService {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
             }
 
-            SaveEvent savedSaveEvent =new SaveEvent();
+            SaveEvent savedSaveEvent = new SaveEvent();
             savedSaveEvent.setUserId(saveEventDto.getUserId());
             savedSaveEvent.setEventId(saveEventDto.getEventId());
             savedSaveEvent.setCreatedAt(LocalDateTime.now(SRI_LANKA_ZONE));
@@ -324,8 +325,7 @@ public class EventServiceImpl implements EventService {
             response.put("userId", savedSaveEvent.getUserId());
             response.put("createdAt", savedSaveEvent.getCreatedAt());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             logger.error("Error saving event by user", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error saving event by user");
@@ -398,7 +398,7 @@ public class EventServiceImpl implements EventService {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
             }
 
-            ReportEvent eventSave=new ReportEvent();
+            ReportEvent eventSave = new ReportEvent();
             eventSave.setEventId(reportEventDto.getEventId());
             eventSave.setReason(reportEventDto.getReason());
             eventSave.setReporterId(reportEventDto.getReporterId());
@@ -471,7 +471,7 @@ public class EventServiceImpl implements EventService {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
 
-            if(eventDetails.getIsActive()==0){
+            if (eventDetails.getIsActive() == 0) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Event already disabled");
                 errorResponse.put("eventId", eventId);
@@ -500,25 +500,25 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public ResponseEntity<?> removeSavedEventByUser(Long id){
+    public ResponseEntity<?> removeSavedEventByUser(Long id) {
         try {
             Optional<SaveEvent> findExistingRecord = saveEventByUserRepository.findById(id);
             if (findExistingRecord.isPresent()) {
                 saveEventByUserRepository.deleteById(id);
                 Map<String, Object> response = new HashMap<>();
                 response.put("message", "Saved event removed successfully");
-                response.put("status",HttpStatus.OK.value());
+                response.put("status", HttpStatus.OK.value());
                 response.put("id", id);
                 return ResponseEntity.ok(response);
             } else {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Saved event not found");
                 errorResponse.put("id", id);
-                errorResponse.put("status",HttpStatus.NOT_FOUND.value());
+                errorResponse.put("status", HttpStatus.NOT_FOUND.value());
                 errorResponse.put("message", "No saved event found for the provided id");
                 return ResponseEntity.ok(errorResponse);
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             logger.error("No saved event found for the provided id: {}", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error deleting saved event found for the provided id");
@@ -536,7 +536,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public ResponseEntity<?>uploadEventPoster(MultipartFile file,String eventId){
+    public ResponseEntity<?> uploadEventPoster(MultipartFile file, String eventId) {
         try {
             if (file.isEmpty()) {
                 return ResponseEntity.badRequest()
@@ -571,7 +571,7 @@ public class EventServiceImpl implements EventService {
             response.put("message", "Event poster uploaded successfully");
             response.put("fileName", result.getFileName());
             response.put("cdnUrl", result.getCdnUrl());
-            response.put("status",HttpStatus.OK.value());
+            response.put("status", HttpStatus.OK.value());
 
             return ResponseEntity.ok(response);
 
@@ -580,12 +580,13 @@ public class EventServiceImpl implements EventService {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error uploading event poster");
             errorResponse.put("message", e.getMessage());
-            errorResponse.put("status",HttpStatus.INTERNAL_SERVER_ERROR.value());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
     @Override
-    public ResponseEntity<?> updateEventPoster(MultipartFile file, String eventId,String oldFileName){
+    public ResponseEntity<?> updateEventPoster(MultipartFile file, String eventId, String oldFileName) {
         try {
             if (file.isEmpty()) {
                 return ResponseEntity.badRequest()
@@ -621,7 +622,7 @@ public class EventServiceImpl implements EventService {
             response.put("message", "Event poster updated successfully");
             response.put("fileName", result.getFileName());
             response.put("cdnUrl", result.getCdnUrl());
-            response.put("status",HttpStatus.OK.value());
+            response.put("status", HttpStatus.OK.value());
 
             return ResponseEntity.ok(response);
 
@@ -630,13 +631,13 @@ public class EventServiceImpl implements EventService {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error updating event poster");
             errorResponse.put("message", e.getMessage());
-            errorResponse.put("status",HttpStatus.INTERNAL_SERVER_ERROR.value());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @Override
-    public ResponseEntity<?> getAllEvents(){
+    public ResponseEntity<?> getAllEvents() {
         try {
             List<EventDetails> allEvents = eventDetailsRepository.findAll();
 
@@ -653,6 +654,71 @@ public class EventServiceImpl implements EventService {
             logger.error("Error retrieving all events", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error retrieving all events");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getNotApprovedEvents() {
+        try {
+            List<EventDetails> notApprovedEvents = eventDetailsRepository.findByIsApprovedByOrganizer(0);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Not approved events retrieved successfully");
+            response.put("totalCount", notApprovedEvents.size());
+            response.put("events", notApprovedEvents);
+            response.put("status", HttpStatus.OK.value());
+            response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error retrieving not approved events", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error retrieving not approved events");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> approveOrDeclineByOrganizer(Long eventId, boolean isApproved) {
+        try {
+            EventDetails eventDetails = eventDetailsRepository.findById(eventId)
+                    .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + eventId));
+
+            eventDetails.setIsApprovedByOrganizer(isApproved ? 1 : -1);
+
+            eventDetailsRepository.save(eventDetails);
+
+            String action = isApproved ? "approved" : "declined";
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Event " + action + " successfully");
+            response.put("eventId", eventDetails.getEventId());
+            response.put("status", HttpStatus.OK.value());
+            response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+
+            return ResponseEntity.ok(response);
+
+        } catch (EntityNotFoundException e) {
+            logger.error("Event not found with id: {}", eventId);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Event not found");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.NOT_FOUND.value());
+            errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+
+        } catch (Exception e) {
+            logger.error("Error approving event with id: {}", eventId, e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error processing event");
             errorResponse.put("message", e.getMessage());
             errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));

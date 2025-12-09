@@ -76,7 +76,6 @@ public class PostController {
             @RequestParam(value = "newFiles", required = false) MultipartFile[] newFiles,
             @RequestParam(value = "removeMediaIds", required = false) String removeMediaIds) {
 
-            // Parse removeMediaIds from comma-separated string
             List<Long> mediaIdsToRemove = null;
             if (removeMediaIds != null && !removeMediaIds.trim().isEmpty()) {
                 mediaIdsToRemove = Arrays.stream(removeMediaIds.split(","))

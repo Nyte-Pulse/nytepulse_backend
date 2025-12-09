@@ -2,10 +2,10 @@ package NytePulse.backend.service.impl;
 
 import NytePulse.backend.dto.UserDetailsDto;
 import NytePulse.backend.entity.*;
-import NytePulse.backend.repository.ClubDetailsRepository;
-import NytePulse.backend.repository.UserDetailsRepository;
-import NytePulse.backend.repository.UserRelationshipRepository;
-import NytePulse.backend.repository.UserRepository;
+import NytePulse.backend.enums.CommentVisibility;
+import NytePulse.backend.enums.MentionVisibility;
+import NytePulse.backend.enums.TagVisibility;
+import NytePulse.backend.repository.*;
 import NytePulse.backend.service.centralServices.UserDetailsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +35,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private UserSettingsRepository userSettingsRepository;
 
     @Autowired
     private UserRelationshipRepository userRelationshipRepository;
@@ -283,7 +286,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public ResponseEntity<?> searchFollowerAccountByName(Long userId, String searchTerm, Pageable pageable) {
         try {
-            // Trim search term
             String trimmedSearch = searchTerm != null ? searchTerm.trim() : "";
 
             if (trimmedSearch.isEmpty()) {
@@ -296,7 +298,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             List<String> followerUserIds = userRelationshipRepository
                     .findFollowerUserIdsByFollowingId(userId);
 
-            // Check if user has any followers
             if (followerUserIds.isEmpty()) {
                 return ResponseEntity.ok(Map.of(
                         "results", List.of(),
@@ -353,6 +354,267 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             ));
         }
     }
+
+
+    @Override
+    public ResponseEntity<?> getMentionedAllowUserList(Long currentUserId) {
+        try {
+
+            List<UserSettings> userSettingsList = userSettingsRepository.findByAllowMentionsTrue();
+
+            if (userSettingsList.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "No users allow mentions");
+                response.put("users", new ArrayList<>());
+                response.put("totalUsers", 0);
+                response.put("status", 404);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            List<String> allowedUserIds = userSettingsList.stream()
+                    .filter(settings -> {
+                        String targetUserId = settings.getUser().getUserId();
+                        return canMentionUser(settings, targetUserId, currentUserId);
+                    })
+                    .map(settings -> settings.getUser().getUserId())
+                    .collect(Collectors.toList());
+
+            if (allowedUserIds.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "No users available for mention");
+                response.put("users", new ArrayList<>());
+                response.put("totalUsers", 0);
+                response.put("status", 200);
+                return ResponseEntity.ok(response);
+            }
+
+
+            List<UserDetails> userDetailsList = userDetailsRepository.findByUserIdIn(allowedUserIds);
+
+            List<Map<String, Object>> userResults = userDetailsList.stream()
+                    .map(userDetails -> {
+                        Map<String, Object> userMap = new HashMap<>();
+                        userMap.put("userId", userDetails.getUserId());
+                        userMap.put("username", userDetails.getUsername());
+                        userMap.put("name", userDetails.getName());
+                        userMap.put("profilePicture", userDetails.getProfilePicture() != null ? userDetails.getProfilePicture() : "");
+                        userMap.put("bio", userDetails.getBio() != null ? userDetails.getBio() : "");
+                        userMap.put("isPrivate", userDetails.getIsPrivate());
+                        return userMap;
+                    })
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("users", userResults);
+            response.put("totalUsers", userResults.size());
+            response.put("message", "Data fetched successfully");
+            response.put("status", 200);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error getting mention-allowed users: {}", e.getMessage(), e);
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to fetch users");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", 500);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+
+    private boolean canTagUser(UserSettings targetUserSettings, String targetUserId, Long currentUserId) {
+        try {
+            User currentUser = userRepository.findById(currentUserId).orElse(null);
+            if (currentUser == null) {
+                return false;
+            }
+
+            String currentUserIdString = currentUser.getUserId();
+
+            if (targetUserId.equals(currentUserIdString)) {
+                return true;
+            }
+
+            if (targetUserSettings == null) {
+                return isFollowing(currentUserId, targetUserId);
+            }
+
+
+            if (!targetUserSettings.getAllowTags()) {
+                logger.debug("User {} has tags disabled", targetUserId);
+                return false;
+            }
+
+            TagVisibility tagVisibility = targetUserSettings.getTagVisibility();
+
+            if (tagVisibility == null) {
+                tagVisibility = TagVisibility.FOLLOWERS;
+            }
+
+            logger.debug("User {} tag visibility: {}", targetUserId, tagVisibility);
+
+            switch (tagVisibility) {
+                case EVERYONE:
+                    return true;
+
+                case FOLLOWERS:
+                    boolean isFollower = isFollowing(currentUserId, targetUserId);
+                    logger.debug("User {} is follower of {}: {}", currentUserId, targetUserId, isFollower);
+                    return isFollower;
+
+                case DISABLED:
+                    logger.debug("Tags disabled for user {}", targetUserId);
+                    return false;
+
+                default:
+                    return false;
+            }
+
+        } catch (Exception e) {
+            logger.error("Error checking tag permission for user {}: {}", targetUserId, e.getMessage());
+            return false;
+        }
+    }
+
+
+    @Override
+    public ResponseEntity<?> getTaggedAllowUserList(Long currentUserId) {
+        try {
+            List<UserSettings> userSettingsList = userSettingsRepository.findByAllowTagsTrue();
+
+            if (userSettingsList.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "No users allow tags");
+                response.put("users", new ArrayList<>());
+                response.put("totalUsers", 0);
+                response.put("status", 404);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            List<String> allowedUserIds = userSettingsList.stream()
+                    .filter(settings -> {
+                        String targetUserId = settings.getUser().getUserId();
+                        return canTagUser(settings, targetUserId, currentUserId);
+                    })
+                    .map(settings -> settings.getUser().getUserId())
+                    .collect(Collectors.toList());
+
+            if (allowedUserIds.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "No users available for tagging");
+                response.put("users", new ArrayList<>());
+                response.put("totalUsers", 0);
+                response.put("status", 200);
+                return ResponseEntity.ok(response);
+            }
+
+            List<UserDetails> userDetailsList = userDetailsRepository.findByUserIdIn(allowedUserIds);
+
+            List<Map<String, Object>> userResults = userDetailsList.stream()
+                    .map(userDetails -> {
+                        Map<String, Object> userMap = new HashMap<>();
+                        userMap.put("userId", userDetails.getUserId());
+                        userMap.put("username", userDetails.getUsername());
+                        userMap.put("name", userDetails.getName());
+                        userMap.put("profilePicture", userDetails.getProfilePicture() != null ? userDetails.getProfilePicture() : "");
+                        userMap.put("bio", userDetails.getBio() != null ? userDetails.getBio() : "");
+                        userMap.put("isPrivate", userDetails.getIsPrivate());
+                        return userMap;
+                    })
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("users", userResults);
+            response.put("totalUsers", userResults.size());
+            response.put("message", "Data fetched successfully");
+            response.put("status", 200);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error getting tag-allowed users: {}", e.getMessage(), e);
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to fetch users");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", 500);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+
+
+
+    private boolean canMentionUser(UserSettings targetUserSettings, String targetUserId, Long currentUserId) {
+        try {
+            User currentUser = userRepository.findById(currentUserId).orElse(null);
+            if (currentUser == null) {
+                return false;
+            }
+
+            String currentUserIdString = currentUser.getUserId();
+
+            if (targetUserId.equals(currentUserIdString)) {
+                return true;
+            }
+
+            if (targetUserSettings == null) {
+                // Default: followers only
+                return isFollowing(currentUserId, targetUserId);
+            }
+
+            if (!targetUserSettings.getAllowMentions()) {
+                logger.debug("User {} has mentions disabled", targetUserId);
+                return false;
+            }
+
+            MentionVisibility mentionVisibility = targetUserSettings.getMentionVisibility();
+
+            if (mentionVisibility == null) {
+                mentionVisibility = MentionVisibility.FOLLOWERS;
+            }
+
+            logger.debug("User {} mention visibility: {}", targetUserId, mentionVisibility);
+
+            switch (mentionVisibility) {
+                case EVERYONE:
+                    return true;
+
+                case FOLLOWERS:
+                    boolean isFollower = isFollowing(currentUserId, targetUserId);
+                    logger.debug("User {} is follower of {}: {}", currentUserId, targetUserId, isFollower);
+                    return isFollower;
+
+                case DISABLED:
+                    logger.debug("Mentions disabled for user {}", targetUserId);
+                    return false;
+
+                default:
+                    return false;
+            }
+
+        } catch (Exception e) {
+            logger.error("Error checking mention permission for user {}: {}", targetUserId, e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean isFollowing(Long followerId, String followingUserId) {
+        try {
+            return userRelationshipRepository.existsByFollower_IdAndFollowing_UserId(
+                    followerId,
+                    followingUserId
+            );
+        } catch (Exception e) {
+            logger.error("Error checking follow relationship: {}", e.getMessage());
+            return false;
+        }
+    }
+
 
 
 

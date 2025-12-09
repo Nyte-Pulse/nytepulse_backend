@@ -1,6 +1,7 @@
 package NytePulse.backend.repository;
 
 import NytePulse.backend.entity.UserDetails;
+import NytePulse.backend.entity.UserSettings;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,4 +34,9 @@ public interface UserDetailsRepository extends JpaRepository<UserDetails, Long> 
             @Param("searchTerm") String searchTerm,
             Pageable pageable
     );
+
+
+    List<UserDetails> findByUserIdIn(List<String> userIds);
+
+
 }
