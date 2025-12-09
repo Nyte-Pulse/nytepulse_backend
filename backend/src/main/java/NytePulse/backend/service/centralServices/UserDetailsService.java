@@ -18,4 +18,8 @@ public interface UserDetailsService {
     ResponseEntity<?> getAllBusinessAccount();
 
     ResponseEntity<?> searchFollowerAccountByName(Long userId, String trim, Pageable pageable);
+
+    ResponseEntity<?> getMentionedAllowUserList(Long currentUserId);
+
+    ResponseEntity<?> getTaggedAllowUserList(Long currentUserId);
 }

@@ -86,4 +86,8 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
 
     boolean existsByFollower_IdAndFollowing_Id(Long followerId, Long followingId);
 
+
+
+
+
 }

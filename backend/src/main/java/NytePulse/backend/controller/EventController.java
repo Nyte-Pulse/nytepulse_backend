@@ -74,4 +74,14 @@ public class EventController {
         return eventService.getAllEvents();
     }
 
+    @GetMapping("/getNotApprovedEvents")
+    public ResponseEntity<?> getNotApprovedEvents() {
+        return eventService.getNotApprovedEvents();
+    }
+
+    @PostMapping("/approveOrDeclineByOrganizer/{eventId}")
+    public ResponseEntity<?> approveOrDeclineByOrganizer(@PathVariable Long eventId,@RequestParam boolean isApproved) {
+        return eventService.approveOrDeclineByOrganizer(eventId,isApproved);
+    }
+
 }

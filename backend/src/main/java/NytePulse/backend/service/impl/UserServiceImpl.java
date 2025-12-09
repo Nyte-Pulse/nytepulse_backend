@@ -5,6 +5,7 @@ import NytePulse.backend.dto.BunnyNetUploadResult;
 import NytePulse.backend.entity.*;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
+import NytePulse.backend.service.UserSettingsService;
 import NytePulse.backend.service.centralServices.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserSettingsService userSettingsService;
 
     @Autowired
     private PostRepository postRepository;
@@ -164,6 +168,7 @@ public class UserServiceImpl implements UserService {
             response.put("updated_at", LocalDateTime.now(SRI_LANKA_ZONE));
             logger.info("ClubDetails saved successfully: {}", savedClubDetails);
         }
+        userSettingsService.createDefaultSettings(savedUser.getId());
         Map<String, Object> response = new HashMap<>();
         response.put("status", HttpStatus.OK.value());
         response.put("message", "Account created successfully!");

@@ -38,6 +38,7 @@ public class UserSettingsService {
                 .commentVisibility(CommentVisibility.FOLLOWERS)
                 .mentionVisibility(MentionVisibility.FOLLOWERS)
                 .tagVisibility(TagVisibility.FOLLOWERS)
+                .storyCommentVisibility(StoryCommentVisibility.FOLLOWERS)
                 .allowDirectMessages(true)
                 .allowMentions(true)
                 .allowTags(true)
@@ -75,6 +76,19 @@ public class UserSettingsService {
         if (request.getStoryCommentVisibility() != null) {
             settings.setStoryCommentVisibility(request.getStoryCommentVisibility());
         }
+            if (request.getAllowMentions() != null) {
+                settings.setAllowMentions(request.getAllowMentions());
+            }
+            if (request.getAllowTags()!= null) {
+                settings.setAllowTags(request.getAllowTags());
+            }
+            if (request.getMentionVisibility()!= null) {
+                settings.setMentionVisibility(request.getMentionVisibility());
+            }
+
+            if (request.getTagVisibility()!= null) {
+                settings.setTagVisibility(request.getTagVisibility());
+            }
 
         UserSettings updated = settingsRepository.save(settings);
             Map<String, Object> response = new HashMap<>();

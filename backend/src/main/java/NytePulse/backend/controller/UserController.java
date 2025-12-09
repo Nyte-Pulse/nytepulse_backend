@@ -224,5 +224,15 @@ public class UserController {
         return userDetailsService.getAllBusinessAccount();
     }
 
+    @GetMapping("/getMentionedAllowUserList/{currentUserId}")
+    public ResponseEntity<?> getMentionedAllowUserList(@PathVariable Long currentUserId) {
+        return userDetailsService.getMentionedAllowUserList(currentUserId);
+    }
+
+    @GetMapping("/getTaggedAllowUserList/{currentUserId}")
+    public ResponseEntity<?> getTaggedAllowUserList(@PathVariable Long currentUserId) {
+        return userDetailsService.getTaggedAllowUserList(currentUserId);
+    }
+
 
 }
