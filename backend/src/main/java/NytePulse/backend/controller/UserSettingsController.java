@@ -1,5 +1,6 @@
 package NytePulse.backend.controller;
 
+import NytePulse.backend.dto.NotificationSettingsDTO;
 import NytePulse.backend.dto.UpdateSettingsRequest;
 import NytePulse.backend.dto.UserSettingsDTO;
 import NytePulse.backend.service.UserSettingsService;
@@ -42,4 +43,5 @@ public class UserSettingsController {
             @RequestBody UpdateSettingsRequest request) {
         return ResponseEntity.ok(settingsService.updateSettings(userId, request));
     }
+
 }

@@ -3,10 +3,12 @@ package NytePulse.backend.service;
 import NytePulse.backend.dto.NotificationDTO;
 import NytePulse.backend.entity.Notification;
 import NytePulse.backend.entity.User;
+import NytePulse.backend.entity.UserSettings;
 import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.exception.ResourceNotFoundException;
 import NytePulse.backend.repository.NotificationRepository;
 import NytePulse.backend.repository.UserRepository;
+import NytePulse.backend.repository.UserSettingsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -23,7 +25,9 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
-    private final WebSocketService webSocketService; // ✅ Inject WebSocket service
+    private final WebSocketService webSocketService;
+
+    private final UserSettingsRepository userSettingsRepository;
 
     /**
      * Create and save a new notification with WebSocket push
@@ -38,6 +42,7 @@ public class NotificationService {
             String referenceType
     ) {
         try {
+            System.out.println("Creating notification: type=" + type + ", recipientId=" + recipientId + ", actorId=" + actorId);
             User recipient = userRepository.findById(recipientId)
                     .orElseThrow(() -> new ResourceNotFoundException("Recipient not found: " + recipientId));
 
@@ -53,7 +58,11 @@ public class NotificationService {
                 return null;
             }
 
-            // Check for duplicates
+            if (!shouldNotify(recipientId, type)) {
+                log.info("User {} has disabled notifications for type: {}", recipientId, type);
+                return null;
+            }
+
             Optional<Notification> existingNotification = notificationRepository
                     .findByRecipient_IdAndActor_IdAndTypeAndReferenceIdAndReferenceType(
                             recipientId, actorId, type, referenceId, referenceType
@@ -64,7 +73,6 @@ public class NotificationService {
                 return existingNotification.get();
             }
 
-            // Create notification
             Notification notification = Notification.builder()
                     .recipient(recipient)
                     .actor(actor)
@@ -78,11 +86,9 @@ public class NotificationService {
             Notification saved = notificationRepository.save(notification);
             log.info("Notification created: type={}, recipient={}, actor={}", type, recipientId, actorId);
 
-            // ✅ Send real-time notification via WebSocket
             NotificationDTO notificationDTO = convertToDTO(saved);
             webSocketService.sendNotificationToUser(recipientId, notificationDTO);
 
-            // ✅ Send updated unread count
             Long unreadCount = getUnreadCount(recipientId);
             webSocketService.sendUnreadCountUpdate(recipientId, unreadCount);
 
@@ -91,6 +97,60 @@ public class NotificationService {
         } catch (Exception e) {
             log.error("Error creating notification: {}", e.getMessage(), e);
             return null;
+        }
+    }
+
+    private boolean shouldNotify(Long userId, NotificationType type) {
+        try {
+            Optional<UserSettings> settingsOpt = userSettingsRepository.findByUserId(userId);
+
+            if (settingsOpt.isEmpty()) {
+                log.debug("No settings found for user {}, allowing notification", userId);
+                return true;
+            }
+
+            UserSettings settings = settingsOpt.get();
+
+            switch (type) {
+                case NEW_FOLLOWER:
+                    return settings.getNotifyNewFollower() != null ? settings.getNotifyNewFollower() : true;
+
+                case LIKE_POST:
+                    return settings.getNotifyLikePost() != null ? settings.getNotifyLikePost() : true;
+
+                case LIKE_COMMENT:
+                    return settings.getNotifyLikeComment() != null ? settings.getNotifyLikeComment() : true;
+
+                case COMMENT_POST:
+                    return settings.getNotifyCommentPost() != null ? settings.getNotifyCommentPost() : true;
+
+                case COMMENT_STORY:
+                    return settings.getNotifyCommentStory() != null ? settings.getNotifyCommentStory() : true;
+
+                case MENTION_POST:
+                case MENTION_COMMENT:
+                    return settings.getNotifyMention() != null ? settings.getNotifyMention() : true;
+
+                case TAG_POST:
+                    return settings.getNotifyTag() != null ? settings.getNotifyTag() : true;
+
+                case SHARE_POST:
+                    return settings.getNotifyShare() != null ? settings.getNotifyShare() : true;
+
+                case FOLLOW_REQUEST:
+                    return settings.getNotifyFollowRequest() != null ? settings.getNotifyFollowRequest() : true;
+
+                case FOLLOW_REQUEST_ACCEPTED:
+                    return settings.getNotifyFollowRequestAccepted() != null ? settings.getNotifyFollowRequestAccepted() : true;
+
+                default:
+                    // For unknown types, default to true
+                    return true;
+            }
+
+        } catch (Exception e) {
+            log.error("Error checking notification settings for user {}: {}", userId, e.getMessage());
+            return true;
         }
     }
 

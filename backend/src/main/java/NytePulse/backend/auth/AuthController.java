@@ -59,6 +59,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         try {
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -71,6 +72,12 @@ public class AuthController {
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
+            if ("PERSONAL".equals(request.getAccountType())) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Business Account type is required");
+                response.put("status", HttpStatus.BAD_REQUEST.value());
+                return ResponseEntity.ok(response);
+            }
             String jwt = tokenProvider.generateToken(authentication,user.getId());
 
             // Get device info from request headers

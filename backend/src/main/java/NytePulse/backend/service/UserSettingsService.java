@@ -1,5 +1,6 @@
 package NytePulse.backend.service;
 
+import NytePulse.backend.dto.NotificationSettingsDTO;
 import NytePulse.backend.dto.UpdateSettingsRequest;
 import NytePulse.backend.dto.UserSettingsDTO;
 import NytePulse.backend.entity.User;
@@ -43,6 +44,16 @@ public class UserSettingsService {
                 .allowMentions(true)
                 .allowTags(true)
                 .allowStoriesMentions(true)
+                .notifyNewFollower(true)
+                .notifyLikePost(true)
+                .notifyLikeComment(true)
+                .notifyCommentPost(true)
+                .notifyCommentStory(true)
+                .notifyMention(true)
+                .notifyTag(true)
+                .notifyShare(true)
+                .notifyFollowRequest(true)
+                .notifyFollowRequestAccepted(true)
                 .build();
 
         UserSettings saved = settingsRepository.save(settings);
@@ -59,53 +70,111 @@ public class UserSettingsService {
 
     @Transactional
     public ResponseEntity<?> updateSettings(Long userId, UpdateSettingsRequest request) {
-        try{
-        UserSettings settings = settingsRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Settings not found"));
+        try {
+            UserSettings settings = settingsRepository.findByUserId(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Settings not found"));
 
-        // Update settings
-        if (request.getPostVisibility() != null) {
-            settings.setPostVisibility(request.getPostVisibility());
-        }
-        if (request.getStoryVisibility() != null) {
-            settings.setStoryVisibility(request.getStoryVisibility());
-        }
-        if (request.getCommentVisibility() != null) {
-            settings.setCommentVisibility(request.getCommentVisibility());
-        }
-        if (request.getStoryCommentVisibility() != null) {
-            settings.setStoryCommentVisibility(request.getStoryCommentVisibility());
-        }
-            if (request.getAllowMentions() != null) {
-                settings.setAllowMentions(request.getAllowMentions());
+            if (request.getPostVisibility() != null) {
+                settings.setPostVisibility(request.getPostVisibility());
             }
-            if (request.getAllowTags()!= null) {
-                settings.setAllowTags(request.getAllowTags());
+            if (request.getStoryVisibility() != null) {
+                settings.setStoryVisibility(request.getStoryVisibility());
             }
-            if (request.getMentionVisibility()!= null) {
+            if (request.getCommentVisibility() != null) {
+                settings.setCommentVisibility(request.getCommentVisibility());
+            }
+            if (request.getStoryCommentVisibility() != null) {
+                settings.setStoryCommentVisibility(request.getStoryCommentVisibility());
+            }
+            if (request.getMentionVisibility() != null) {
                 settings.setMentionVisibility(request.getMentionVisibility());
             }
-
-            if (request.getTagVisibility()!= null) {
+            if (request.getTagVisibility() != null) {
                 settings.setTagVisibility(request.getTagVisibility());
             }
 
-        UserSettings updated = settingsRepository.save(settings);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message","Successfully updated settings");
-            response.put("status",HttpStatus.OK.value());
-            response.put("result",convertToDTO(updated));
+            if (request.getAllowMentions() != null) {
+                settings.setAllowMentions(request.getAllowMentions());
+            }
+            if (request.getAllowTags() != null) {
+                settings.setAllowTags(request.getAllowTags());
+            }
+            if (request.getAllowDirectMessages() != null) {
+                settings.setAllowDirectMessages(request.getAllowDirectMessages());
+            }
+            if (request.getAllowStoriesMentions() != null) {
+                settings.setAllowStoriesMentions(request.getAllowStoriesMentions());
+            }
 
-        return ResponseEntity.ok(response);
-        }catch (Exception e){
-            log.error("Unexpected error update setting",
-                    e.getMessage(), e);
+            if (request.getNotifyNewFollower() != null) {
+                settings.setNotifyNewFollower(request.getNotifyNewFollower());
+                log.debug("Updated notifyNewFollower to: {}", request.getNotifyNewFollower());
+            }
+            if (request.getNotifyLikePost() != null) {
+                settings.setNotifyLikePost(request.getNotifyLikePost());
+                log.debug("Updated notifyLikePost to: {}", request.getNotifyLikePost());
+            }
+            if (request.getNotifyLikeComment() != null) {
+                settings.setNotifyLikeComment(request.getNotifyLikeComment());
+                log.debug("Updated notifyLikeComment to: {}", request.getNotifyLikeComment());
+            }
+            if (request.getNotifyCommentPost() != null) {
+                settings.setNotifyCommentPost(request.getNotifyCommentPost());
+                log.debug("Updated notifyCommentPost to: {}", request.getNotifyCommentPost());
+            }
+            if (request.getNotifyCommentStory() != null) {
+                settings.setNotifyCommentStory(request.getNotifyCommentStory());
+                log.debug("Updated notifyCommentStory to: {}", request.getNotifyCommentStory());
+            }
+            if (request.getNotifyMention() != null) {
+                settings.setNotifyMention(request.getNotifyMention());
+                log.debug("Updated notifyMention to: {}", request.getNotifyMention());
+            }
+            if (request.getNotifyTag() != null) {
+                settings.setNotifyTag(request.getNotifyTag());
+                log.debug("Updated notifyTag to: {}", request.getNotifyTag());
+            }
+            if (request.getNotifyShare() != null) {
+                settings.setNotifyShare(request.getNotifyShare());
+                log.debug("Updated notifyShare to: {}", request.getNotifyShare());
+            }
+            if (request.getNotifyFollowRequest() != null) {
+                settings.setNotifyFollowRequest(request.getNotifyFollowRequest());
+                log.debug("Updated notifyFollowRequest to: {}", request.getNotifyFollowRequest());
+            }
+            if (request.getNotifyFollowRequestAccepted() != null) {
+                settings.setNotifyFollowRequestAccepted(request.getNotifyFollowRequestAccepted());
+                log.debug("Updated notifyFollowRequestAccepted to: {}", request.getNotifyFollowRequestAccepted());
+            }
+
+            UserSettings updated = settingsRepository.save(settings);
+            log.info("Settings updated successfully for user ID: {}", userId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Successfully updated settings");
+            response.put("status", HttpStatus.OK.value());
+            response.put("result", convertToDTO(updated));
+
+            return ResponseEntity.ok(response);
+
+        } catch (ResourceNotFoundException e) {
+            log.error("Settings not found for user {}: {}", userId, e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Failed to update setting");
+            errorResponse.put("error", "Settings not found");
             errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.NOT_FOUND.value());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+
+        } catch (Exception e) {
+            log.error("Unexpected error updating settings for user {}: {}", userId, e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to update settings");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
 
     private UserSettingsDTO convertToDTO(UserSettings settings) {
         return UserSettingsDTO.builder()
@@ -113,14 +182,24 @@ public class UserSettingsService {
                 .postVisibility(settings.getPostVisibility())
                 .storyVisibility(settings.getStoryVisibility())
                 .commentVisibility(settings.getCommentVisibility())
-                .storyCommentVisibility(settings.getStoryCommentVisibility())
                 .mentionVisibility(settings.getMentionVisibility())
                 .tagVisibility(settings.getTagVisibility())
                 .allowDirectMessages(settings.getAllowDirectMessages())
                 .allowMentions(settings.getAllowMentions())
                 .allowTags(settings.getAllowTags())
                 .allowStoriesMentions(settings.getAllowStoriesMentions())
+                .notifyNewFollower(settings.getNotifyNewFollower())
+                .notifyLikePost(settings.getNotifyLikePost())
+                .notifyLikeComment(settings.getNotifyLikeComment())
+                .notifyCommentPost(settings.getNotifyCommentPost())
+                .notifyCommentStory(settings.getNotifyCommentStory())
+                .notifyMention(settings.getNotifyMention())
+                .notifyTag(settings.getNotifyTag())
+                .notifyShare(settings.getNotifyShare())
+                .notifyFollowRequest(settings.getNotifyFollowRequest())
+                .notifyFollowRequestAccepted(settings.getNotifyFollowRequestAccepted())
                 .build();
     }
+
 }
 
