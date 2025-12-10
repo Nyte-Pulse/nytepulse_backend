@@ -61,6 +61,38 @@ public class UserSettings {
     @Column(name = "allow_stories_mentions")
     private Boolean allowStoriesMentions = true;
 
+    @Column(name = "notify_new_follower")
+    private Boolean notifyNewFollower = true;
+
+    @Column(name = "notify_like_post")
+    private Boolean notifyLikePost = true;
+
+    @Column(name = "notify_like_comment")
+    private Boolean notifyLikeComment = true;
+
+    @Column(name = "notify_comment_post")
+    private Boolean notifyCommentPost = true;
+
+    @Column(name = "notify_comment_story")
+    private Boolean notifyCommentStory = true;
+
+    @Column(name = "notify_mention")
+    private Boolean notifyMention = true;
+
+    @Column(name = "notify_tag")
+    private Boolean notifyTag = true;
+
+    @Column(name = "notify_share")
+    private Boolean notifyShare = true;
+
+    @Column(name = "notify_follow_request")
+    private Boolean notifyFollowRequest = true;
+
+    @Column(name = "notify_follow_request_accepted")
+    private Boolean notifyFollowRequestAccepted = true;
+
+    @Column(name = "notify_new_message")
+    private Boolean notifyNewMessage = true;
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 

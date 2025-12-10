@@ -190,7 +190,6 @@ public class UserServiceImpl implements UserService {
                 throw new IllegalArgumentException("User cannot follow themselves");
             }
 
-            // Check if already following
             if (relationshipRepository.isFollowing(followerUserId, followingUserId)) {
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)

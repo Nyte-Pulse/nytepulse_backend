@@ -2,7 +2,9 @@ package NytePulse.backend.service.impl;
 
 import NytePulse.backend.dto.*;
 import NytePulse.backend.entity.*;
+import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.repository.*;
+import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -34,6 +36,9 @@ public class ChatServiceImpl implements ChatService {
     private UserRepository userRepository;
     @Autowired
     private UserDetailsRepository userDetailsRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Autowired
     private MessageStatusRepository messageStatusRepository;
@@ -174,7 +179,6 @@ public class ChatServiceImpl implements ChatService {
 
         message = messageRepository.save(message);
 
-        // Update conversation timestamp
         conversation.setUpdatedAt(LocalDateTime.now());
         conversationRepository.save(conversation);
 
@@ -182,7 +186,8 @@ public class ChatServiceImpl implements ChatService {
                 .findByConversationId(conversationId);
 
         for (ConversationParticipant participant : participants) {
-            // Don't create status for sender (only for recipients)
+
+            Long recipientId = participant.getUser().getId();
             if (!participant.getUser().getId().equals(senderId)) {
                 MessageStatus status = new MessageStatus();
                 status.setMessageId(message.getId());
@@ -191,6 +196,22 @@ public class ChatServiceImpl implements ChatService {
                 messageStatusRepository.save(status);
 
                 System.out.println("✓ Created message status for user: " + participant.getUser().getId());
+
+                String notificationMessage = sender.getUsername() + " sent you a message";
+                if (content != null && !content.isEmpty()) {
+                    // Truncate long messages
+                    String preview = content.length() > 50 ? content.substring(0, 50) + "..." : content;
+                    notificationMessage = sender.getUsername() + ": " + preview;
+                }
+
+                notificationService.createNotification(
+                        recipientId,              // ✅ Recipient (the other person)
+                        senderId,                 // ✅ Actor (the sender)
+                        NotificationType.NEW_MESSAGE,
+                        notificationMessage,
+                        message.getId(),          // ✅ Reference to message
+                        "MESSAGE"                 // ✅ Reference type
+                );
             }
         }
 

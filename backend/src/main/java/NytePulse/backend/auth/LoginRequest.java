@@ -5,6 +5,8 @@ public class LoginRequest {
     private String password;
     private String email;
 
+    private String accountType;
+
     public String getUsername() {
         return username;
     }
@@ -27,5 +29,12 @@ public class LoginRequest {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getAccountType() {
+        return accountType;
+    }
+    public void setAccountType(String accountType) {
+        this.accountType = accountType;
     }
 }
