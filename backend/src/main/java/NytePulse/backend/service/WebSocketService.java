@@ -14,30 +14,28 @@ public class WebSocketService {
 
     private final SimpMessagingTemplate messagingTemplate;
 
-    /**
-     * Send notification to a specific user
-     */
     public void sendNotificationToUser(Long userId, NotificationDTO notification) {
         try {
-            String destination = "/queue/notifications";
             log.info("Sending notification to user {}: {}", userId, notification.getType());
 
-            // Send to specific user
             messagingTemplate.convertAndSendToUser(
                     userId.toString(),
-                    destination,
+                    "/queue/notifications",
                     notification
             );
 
-            log.info("Notification sent successfully to user {}", userId);
+            messagingTemplate.convertAndSend(
+                    "/topic/notifications/" + userId,
+                    notification
+            );
+
+            log.info("Notification sent successfully");
         } catch (Exception e) {
-            log.error("Error sending WebSocket notification to user {}: {}", userId, e.getMessage(), e);
+            log.error("Error sending notification: {}", e.getMessage(), e);
         }
     }
 
-    /**
-     * Broadcast notification to all connected users
-     */
+
     public void broadcastNotification(NotificationDTO notification) {
         try {
             log.info("Broadcasting notification: {}", notification.getType());
@@ -48,9 +46,7 @@ public class WebSocketService {
         }
     }
 
-    /**
-     * Send unread count update to user
-     */
+
     public void sendUnreadCountUpdate(Long userId, Long unreadCount) {
         try {
             messagingTemplate.convertAndSendToUser(

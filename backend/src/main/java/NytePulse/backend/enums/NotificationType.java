@@ -12,5 +12,7 @@ public enum NotificationType {
     SHARE_POST,             // Someone shared your post
     STORY_VIEW,             // Someone viewed your story
     FOLLOW_REQUEST,         // Someone requested to follow you (private account)
-    FOLLOW_REQUEST_ACCEPTED // Your follow request was accepted
+    FOLLOW_REQUEST_ACCEPTED, // Your follow request was accepted
+
+    NEW_MESSAGE
 }
