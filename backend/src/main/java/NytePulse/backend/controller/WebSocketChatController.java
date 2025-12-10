@@ -53,7 +53,6 @@ public class WebSocketChatController {
             String messageType = payload.getOrDefault("messageType", "TEXT");
             String fileUrl = payload.get("fileUrl");
 
-            // Save message to database
             ChatMessageDTO savedMessage = chatService.sendMessage(
                     conversationId,
                     senderId,
@@ -104,7 +103,6 @@ public class WebSocketChatController {
             Long userId = Long.parseLong(principal.getName());
             Boolean isTyping = payload.get("isTyping");
 
-            // Using all-args constructor instead of setters
             TypingIndicatorDTO indicator = new TypingIndicatorDTO();
             indicator.setConversationId(conversationId);
             indicator.setUserId(userId);

@@ -3,8 +3,10 @@ package NytePulse.backend.service.impl;
 import NytePulse.backend.auth.RegisterRequest;
 import NytePulse.backend.dto.BunnyNetUploadResult;
 import NytePulse.backend.entity.*;
+import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
+import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.UserSettingsService;
 import NytePulse.backend.service.centralServices.UserService;
 import org.slf4j.Logger;
@@ -45,6 +47,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserSettingsService userSettingsService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Autowired
     private PostRepository postRepository;
@@ -171,6 +176,7 @@ public class UserServiceImpl implements UserService {
         userSettingsService.createDefaultSettings(savedUser.getId());
         Map<String, Object> response = new HashMap<>();
         response.put("status", HttpStatus.OK.value());
+        response.put("name", request.getName() != null ? request.getName() : request.getUsername());
         response.put("message", "Account created successfully!");
         response.put("user", savedUser);
 
@@ -199,14 +205,26 @@ public class UserServiceImpl implements UserService {
             UserRelationship relationship = new UserRelationship(follower, following);
             relationshipRepository.save(relationship);
 
-            Map<String, String> response = new HashMap<>();
+            String message = follower.getUsername() + " started following you";
+            notificationService.createNotification(
+                    following.getId(),           // Recipient (the person being followed)
+                    follower.getId(),            // Actor (the person who followed)
+                    NotificationType.NEW_FOLLOWER,
+                    message,
+                    follower.getId(),            // Reference to follower
+                    "USER"                       // Reference type
+            );
+
+            Map<String, Object> response = new HashMap<>();
             response.put("message", "Successfully followed user: " + followingUserId);
+            response.put("status", HttpStatus.OK.value());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error while following user: {}", e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("An error occurred while trying to follow the user.");
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Error while following user: " + followingUserId);
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.ok(errorResponse);
         }
 
     }
