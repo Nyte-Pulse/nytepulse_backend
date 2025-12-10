@@ -99,7 +99,6 @@ public class AuthController {
             Map<String, Object> response = new HashMap<>();
             response.put("jwtResponse", jwtResponse);
             response.put("issuedAt", issuedAtMillis);
-            response.put("userId", user.getAccountType());
             response.put("status", HttpStatus.OK.value());
 
             return ResponseEntity.ok(response);
