@@ -72,12 +72,15 @@ public class AuthController {
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            if ("PERSONAL".equals(request.getAccountType())) {
+            if ("BUSINESS".equals(request.getAccountType())
+                    && "PERSONAL".equals(user.getAccountType())) {
+
                 Map<String, Object> response = new HashMap<>();
                 response.put("message", "Business Account type is required");
                 response.put("status", HttpStatus.BAD_REQUEST.value());
-                return ResponseEntity.ok(response);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
+
             String jwt = tokenProvider.generateToken(authentication,user.getId());
 
             // Get device info from request headers
