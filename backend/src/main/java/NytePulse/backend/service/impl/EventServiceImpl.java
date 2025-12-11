@@ -348,16 +348,48 @@ public class EventServiceImpl implements EventService {
 
             List<SaveEvent> savedEvents = saveEventByUserRepository.findByUserId(userId);
 
+            if (savedEvents.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "No saved events found");
+                response.put("totalCount", 0);
+                response.put("savedEvents", Collections.emptyList());
+                response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+                return ResponseEntity.ok(response);
+            }
+            
             List<String> eventIds = savedEvents.stream()
                     .map(SaveEvent::getEventId)
                     .collect(Collectors.toList());
 
+
             List<EventDetails> eventDetailsList = eventDetailsRepository.findByEventIdIn(eventIds);
+
+
+            Map<String, SaveEvent> saveEventMap = savedEvents.stream()
+                    .collect(Collectors.toMap(SaveEvent::getEventId, se -> se));
+
+
+            List<Map<String, Object>> mergedEvents = eventDetailsList.stream()
+                    .map(event -> {
+                        Map<String, Object> eventWithSaveData = new HashMap<>();
+
+                        eventWithSaveData.put("eventDetails", event);
+
+                        SaveEvent saveEvent = saveEventMap.get(event.getEventId());
+                        if (saveEvent != null) {
+                            eventWithSaveData.put("savedEventId", saveEvent.getId());
+                            eventWithSaveData.put("savedUserId", saveEvent.getUserId());
+                            eventWithSaveData.put("savedAt", saveEvent.getCreatedAt());
+                        }
+
+                        return eventWithSaveData;
+                    })
+                    .collect(Collectors.toList());
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Saved events retrieved successfully");
-            response.put("totalCount", savedEvents.size());
-            response.put("savedEvents", eventDetailsList);
+            response.put("totalCount", mergedEvents.size());
+            response.put("savedEvents", mergedEvents);
             response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
 
             return ResponseEntity.ok(response);
@@ -371,6 +403,7 @@ public class EventServiceImpl implements EventService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
 
     @Override
     public ResponseEntity<?> reportEvent(ReportEventDto reportEventDto) {
