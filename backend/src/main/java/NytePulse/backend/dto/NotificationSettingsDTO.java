@@ -20,4 +20,5 @@ public class NotificationSettingsDTO {
     private Boolean notifyShare;
     private Boolean notifyFollowRequest;
     private Boolean notifyFollowRequestAccepted;
+    private Boolean notifyNewMessage;
 }

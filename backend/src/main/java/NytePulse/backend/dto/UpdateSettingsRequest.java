@@ -32,4 +32,5 @@ public class UpdateSettingsRequest {
     private Boolean notifyShare;
     private Boolean notifyFollowRequest;
     private Boolean notifyFollowRequestAccepted;
+    private Boolean notifyNewMessage;
 }
