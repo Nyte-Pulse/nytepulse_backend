@@ -57,7 +57,7 @@ public class EventDetails {
     private int isActive;
 
     @Column(name = "is_approved_by_organizer")
-    private int isApprovedByOrganizer;
+    private Integer isApprovedByOrganizer;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "organizer_id", referencedColumnName = "id")
@@ -278,11 +278,11 @@ public class EventDetails {
         this.organizer = organizer;
     }
 
-    public int getIsApprovedByOrganizer() {
+    public Integer getIsApprovedByOrganizer() {
         return isApprovedByOrganizer;
     }
 
-    public void setIsApprovedByOrganizer(int isApprovedByOrganizer) {
+    public void setIsApprovedByOrganizer(Integer isApprovedByOrganizer) {
         this.isApprovedByOrganizer = isApprovedByOrganizer;
     }
 }
