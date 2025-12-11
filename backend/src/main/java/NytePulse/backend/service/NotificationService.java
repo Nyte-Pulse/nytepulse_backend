@@ -52,11 +52,12 @@ public class NotificationService {
                         .orElseThrow(() -> new ResourceNotFoundException("Actor not found: " + actorId));
             }
 
-            // Don't notify yourself
             if (actorId != null && recipientId.equals(actorId)) {
                 log.debug("Skipping notification: actor and recipient are the same");
                 return null;
             }
+
+            System.out.println("Checking notification settings for user " + !shouldNotify(recipientId, type));
 
             if (!shouldNotify(recipientId, type)) {
                 log.info("User {} has disabled notifications for type: {}", recipientId, type);
@@ -142,6 +143,9 @@ public class NotificationService {
 
                 case FOLLOW_REQUEST_ACCEPTED:
                     return settings.getNotifyFollowRequestAccepted() != null ? settings.getNotifyFollowRequestAccepted() : true;
+
+                case NEW_MESSAGE:
+                    return settings.getNotifyNewMessage() != null ? settings.getNotifyNewMessage() : true;
 
                 default:
                     // For unknown types, default to true
