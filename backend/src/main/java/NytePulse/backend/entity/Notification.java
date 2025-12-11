@@ -31,17 +31,15 @@ public class Notification {
     private User actor;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false,length = 50)
     private NotificationType type;
 
     @Column(nullable = false, length = 500)
     private String message;
 
-    // Reference to the related entity (post_id, comment_id, etc.)
     @Column(name = "reference_id")
     private Long referenceId;
 
-    // Type of reference (POST, COMMENT, STORY, etc.)
     @Column(name = "reference_type", length = 50)
     private String referenceType;
 

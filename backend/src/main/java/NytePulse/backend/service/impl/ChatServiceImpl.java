@@ -7,6 +7,7 @@ import NytePulse.backend.repository.*;
 import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.ChatService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ChatServiceImpl implements ChatService {
 
     @Autowired
@@ -34,6 +36,9 @@ public class ChatServiceImpl implements ChatService {
     private ChatMessageRepository messageRepository;
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private UserSettingsRepository userSettingsRepository;
     @Autowired
     private UserDetailsRepository userDetailsRepository;
 
@@ -195,8 +200,6 @@ public class ChatServiceImpl implements ChatService {
                 status.setStatus(MessageStatus.Status.SENT);
                 messageStatusRepository.save(status);
 
-                System.out.println("✓ Created message status for user: " + participant.getUser().getId());
-
                 String notificationMessage = sender.getUsername() + " sent you a message";
                 if (content != null && !content.isEmpty()) {
                     // Truncate long messages
@@ -217,6 +220,7 @@ public class ChatServiceImpl implements ChatService {
 
         return mapToChatMessageDTO(message);
     }
+
 
     @Override
     @Transactional(readOnly = true)

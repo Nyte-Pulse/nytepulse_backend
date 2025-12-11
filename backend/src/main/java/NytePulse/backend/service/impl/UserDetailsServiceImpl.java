@@ -261,8 +261,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public ResponseEntity<?> getAllBusinessAccount(){
         try{
-            List<UserDetails> userDetails=userDetailsRepository.findByAccountType("BUSINESS");
-            if(userDetails.size()==0){
+            List<ClubDetails> clubDetails=clubDetailsRepository.findAll();
+            if(clubDetails.size()==0){
 
                 Map<String, Object> response = new HashMap<>();
                 response.put("message", "No Data");
@@ -270,7 +270,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 return ResponseEntity.ok(response);
             }
             Map<String, Object> response = new HashMap<>();
-            response.put("userDetails", userDetails);
+            response.put("businessAccountDetails", clubDetails);
             response.put("message", "Data fetched successfully");
             response.put("status", HttpStatus.OK.value());
             return ResponseEntity.ok(response);

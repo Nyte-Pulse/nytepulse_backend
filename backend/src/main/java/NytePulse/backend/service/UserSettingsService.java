@@ -147,6 +147,11 @@ public class UserSettingsService {
                 log.debug("Updated notifyFollowRequestAccepted to: {}", request.getNotifyFollowRequestAccepted());
             }
 
+            if (request.getNotifyNewMessage() != null) {
+                settings.setNotifyNewMessage(request.getNotifyNewMessage());
+                log.debug("Updated NotifyNewMessage to: {}", request.getNotifyNewMessage());
+            }
+
             UserSettings updated = settingsRepository.save(settings);
             log.info("Settings updated successfully for user ID: {}", userId);
 
