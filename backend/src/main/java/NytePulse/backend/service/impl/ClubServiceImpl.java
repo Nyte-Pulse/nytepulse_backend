@@ -137,6 +137,7 @@ public class ClubServiceImpl implements ClubService {
 
             Map<String, Object> response = new HashMap<>();
             response.put("userId", clubDetails.getUserId());
+            response.put("username", clubDetails.getUsername());
             response.put("bio", clubDetails.getBio());
             response.put("contactPhone", clubDetails.getContactPhone());
             response.put("name", clubDetails.getName());
