@@ -356,7 +356,7 @@ public class EventServiceImpl implements EventService {
                 response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
                 return ResponseEntity.ok(response);
             }
-            
+
             List<String> eventIds = savedEvents.stream()
                     .map(SaveEvent::getEventId)
                     .collect(Collectors.toList());
