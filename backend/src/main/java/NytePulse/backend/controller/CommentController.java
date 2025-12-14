@@ -25,7 +25,7 @@ public class CommentController {
         return commentService.addCommentToStory(storyId,userId,commentRequestDTO);
     }
 
-    @GetMapping
+    @GetMapping("/post/{postId}")
     public ResponseEntity<?> getCommentsByPost(@PathVariable Long postId) {
 
         return commentService.getCommentsByPostId(postId);
