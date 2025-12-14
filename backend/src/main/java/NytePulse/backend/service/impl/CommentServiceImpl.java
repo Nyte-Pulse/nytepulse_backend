@@ -321,22 +321,20 @@ public class CommentServiceImpl implements CommentService {
             dto.setId(comment.getId());
             dto.setContent(comment.getContent());
 
-            // Safely set post ID
             if (comment.getPost() != null) {
                 dto.setPostId(comment.getPost().getId());
             }
 
-            // Safely set user information
             if (comment.getUser() != null) {
                 UserBasicDTO userDto = new UserBasicDTO();
                 userDto.setId(comment.getUser().getId());
                 userDto.setUsername(comment.getUser().getUsername());
 
-                // Safely get user details
                 try {
                     UserDetails userDetails = userDetailsRepository.findByUsername(comment.getUser().getUsername());
                     if (userDetails != null) {
                         userDto.setName(userDetails.getName());
+                        userDto.setProfilePicture(userDetails != null ? userDetails.getProfilePicture() : null);
                     }
                 } catch (Exception e) {
                     // Log error but don't fail the whole mapping
@@ -349,16 +347,13 @@ public class CommentServiceImpl implements CommentService {
             dto.setCreatedAt(comment.getCreatedAt());
             dto.setUpdatedAt(comment.getUpdatedAt());
 
-            // Set parent comment ID if exists
             if (comment.getParentComment() != null) {
                 dto.setParentCommentId(comment.getParentComment().getId());
             }
 
-            // Set like information
             Long likeCount = commentLikeRepository.countByCommentId(comment.getId());
             dto.setLikeCount(likeCount != null ? likeCount : 0L);
 
-            // Check if current user liked the comment
             boolean likedByCurrentUser = false;
             if (currentUserId != null) {
                 likedByCurrentUser = commentLikeRepository.existsByCommentIdAndUserId(comment.getId(), currentUserId);

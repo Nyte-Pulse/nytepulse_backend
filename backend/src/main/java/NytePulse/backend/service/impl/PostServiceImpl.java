@@ -26,10 +26,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,6 +43,12 @@ public class PostServiceImpl implements PostService {
     private MediaRepository mediaRepository;
     @Autowired
     private BunnyNetService bunnyNetService;
+
+    @Autowired
+    private ClubDetailsRepository clubDetailsRepository;
+
+    @Autowired
+    private UserDetailsRepository  userDetailsRepository;
 
     @Autowired
     private UserRelationshipRepository userRelationshipRepository;
@@ -662,14 +665,113 @@ public class PostServiceImpl implements PostService {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         try {
-            // Create Pageable object
             Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-
-            // Fetch paginated posts
             Page<Post> postPage = postRepository.findAll(pageable);
 
+            Set<String> allUserIds = new HashSet<>();
+            Set<String> personalUserIds = new HashSet<>();
+            Set<String> businessUserIds = new HashSet<>();
+
+            postPage.getContent().forEach(post -> {
+                String postUserId = post.getUser().getUserId();
+                allUserIds.add(postUserId);
+
+                if (postUserId.startsWith("BS")) {
+                    businessUserIds.add(postUserId);
+                } else {
+                    personalUserIds.add(postUserId);
+                }
+
+                if (post.getTagFriendId() != null) {
+                    allUserIds.add(post.getTagFriendId());
+                    if (post.getTagFriendId().startsWith("BS")) {
+                        businessUserIds.add(post.getTagFriendId());
+                    } else {
+                        personalUserIds.add(post.getTagFriendId());
+                    }
+                }
+
+                if (post.getMentionFriendId() != null) {
+                    allUserIds.add(post.getMentionFriendId());
+                    if (post.getMentionFriendId().startsWith("BS")) {
+                        businessUserIds.add(post.getMentionFriendId());
+                    } else {
+                        personalUserIds.add(post.getMentionFriendId());
+                    }
+                }
+            });
+
+            List<User> usersList = userRepository.findByUserIdIn(new ArrayList<>(allUserIds));
+
+            List<UserDetails> userDetailsList = personalUserIds.isEmpty() ?
+                    Collections.emptyList() :
+                    userDetailsRepository.findByUserIdIn(new ArrayList<>(personalUserIds));
+
+            List<ClubDetails> clubDetailsList = businessUserIds.isEmpty() ?
+                    Collections.emptyList() :
+                    clubDetailsRepository.findByUserIdIn(new ArrayList<>(businessUserIds));
+
+            Map<String, User> usersMap = usersList.stream()
+                    .collect(Collectors.toMap(User::getUserId, u -> u));
+
+            Map<String, UserDetails> userDetailsMap = userDetailsList.stream()
+                    .collect(Collectors.toMap(UserDetails::getUserId, ud -> ud));
+
+            Map<String, ClubDetails> clubDetailsMap = clubDetailsList.stream()
+                    .collect(Collectors.toMap(ClubDetails::getUserId, cd -> cd));
+
+            List<Map<String, Object>> enrichedPosts = postPage.getContent().stream()
+                    .map(post -> {
+                        Map<String, Object> postData = new HashMap<>();
+
+                        postData.put("id", post.getId());
+                        postData.put("content", post.getContent());
+                        postData.put("location", post.getLocation());
+                        postData.put("createdAt", post.getCreatedAt());
+                        postData.put("updatedAt", post.getUpdatedAt());
+                        postData.put("shareCount", post.getShareCount());
+                        postData.put("media", post.getMedia());
+                        postData.put("likesCount", post.getLikes().size());
+                        postData.put("commentsCount", post.getComments().size());
+
+                        User user = post.getUser();
+                        Map<String, Object> userInfo = buildUserInfo(
+                                user,
+                                userDetailsMap.get(user.getUserId()),
+                                clubDetailsMap.get(user.getUserId())
+                        );
+                        postData.put("userDetails", userInfo);
+
+                        if (post.getTagFriendId() != null) {
+                            User taggedUser = usersMap.get(post.getTagFriendId());
+                            if (taggedUser != null) {
+                                Map<String, Object> taggedFriendInfo = buildUserInfo(
+                                        taggedUser,
+                                        userDetailsMap.get(post.getTagFriendId()),
+                                        clubDetailsMap.get(post.getTagFriendId())
+                                );
+                                postData.put("taggedFriend", taggedFriendInfo);
+                            }
+                        }
+                        
+                        if (post.getMentionFriendId() != null) {
+                            User mentionedUser = usersMap.get(post.getMentionFriendId());
+                            if (mentionedUser != null) {
+                                Map<String, Object> mentionedFriendInfo = buildUserInfo(
+                                        mentionedUser,
+                                        userDetailsMap.get(post.getMentionFriendId()),
+                                        clubDetailsMap.get(post.getMentionFriendId())
+                                );
+                                postData.put("mentionedFriend", mentionedFriendInfo);
+                            }
+                        }
+
+                        return postData;
+                    })
+                    .collect(Collectors.toList());
+
             Map<String, Object> response = new HashMap<>();
-            response.put("posts", postPage.getContent());
+            response.put("posts", enrichedPosts);
             response.put("currentPage", postPage.getNumber());
             response.put("totalPages", postPage.getTotalPages());
             response.put("totalPosts", postPage.getTotalElements());
@@ -680,12 +782,39 @@ public class PostServiceImpl implements PostService {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("Error fetching feed posts: {}", e.getMessage());
+            log.error("Error fetching feed posts: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "error", "Failed to fetch feed posts",
                     "message", e.getMessage()
             ));
         }
     }
+
+    // Helper method to build user info from either UserDetails or ClubDetails
+    private Map<String, Object> buildUserInfo(User user, UserDetails userDetails, ClubDetails clubDetails) {
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("userId", user.getUserId());
+        userInfo.put("username", user.getUsername());
+
+        // Check if it's a business account (userId starts with BS)
+        if (user.getUserId().startsWith("BS") && clubDetails != null) {
+            userInfo.put("name", clubDetails.getName());
+            userInfo.put("profilePicture", clubDetails.getProfilePicture());
+            userInfo.put("profilePictureFileName", clubDetails.getProfilePictureFileName());
+            userInfo.put("accountType", "BUSINESS");
+        }
+        // Personal account
+        else if (userDetails != null) {
+            userInfo.put("name", userDetails.getName());
+            userInfo.put("profilePicture", userDetails.getProfilePicture());
+            userInfo.put("profilePictureFileName", userDetails.getProfilePictureFileName());
+            userInfo.put("accountType", "PERSONAL");
+        }
+
+        return userInfo;
+    }
+
+
+
 
 }
