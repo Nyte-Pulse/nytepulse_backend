@@ -236,8 +236,11 @@ public class UserServiceImpl implements UserService {
 
             List<Map<String, String>> followerList = new ArrayList<>();
             for (User follower : followers) {
+                UserDetails userDetails=userDetailsRepository.findByUserId(follower.getUserId());
                 Map<String, String> followerInfo = new HashMap<>();
                 followerInfo.put("userId", follower.getUserId());
+                followerInfo.put("userDetails", userDetails.getProfilePicture());
+                followerInfo.put("name", userDetails.getName());
                 followerInfo.put("username", follower.getUsername());
                 followerInfo.put("email", follower.getEmail());
                 followerList.add(followerInfo);
