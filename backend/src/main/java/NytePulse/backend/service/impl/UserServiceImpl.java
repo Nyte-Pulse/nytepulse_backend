@@ -234,15 +234,61 @@ public class UserServiceImpl implements UserService {
         try {
             Page<User> followers = relationshipRepository.getFollowers(userId, Pageable.unpaged());
 
+            if (followers.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("count", 0);
+                response.put("followers", Collections.emptyList());
+                return ResponseEntity.ok(response);
+            }
+
+            Set<String> personalUserIds = new HashSet<>();
+            Set<String> businessUserIds = new HashSet<>();
+
+            followers.forEach(user -> {
+                if (user.getUserId().startsWith("BS")) {
+                    businessUserIds.add(user.getUserId());
+                } else {
+                    personalUserIds.add(user.getUserId());
+                }
+            });
+
+            List<UserDetails> userDetailsList = personalUserIds.isEmpty() ?
+                    Collections.emptyList() :
+                    userDetailsRepository.findByUserIdIn(new ArrayList<>(personalUserIds));
+
+            List<ClubDetails> clubDetailsList = businessUserIds.isEmpty() ?
+                    Collections.emptyList() :
+                    clubDetailsRepository.findByUserIdIn(new ArrayList<>(businessUserIds));
+
+            Map<String, UserDetails> userDetailsMap = new HashMap<>();
+            userDetailsList.forEach(ud -> userDetailsMap.putIfAbsent(ud.getUserId(), ud));
+
+            Map<String, ClubDetails> clubDetailsMap = new HashMap<>();
+            clubDetailsList.forEach(cd -> clubDetailsMap.putIfAbsent(cd.getUserId(), cd));
+
             List<Map<String, String>> followerList = new ArrayList<>();
             for (User follower : followers) {
-                UserDetails userDetails=userDetailsRepository.findByUserId(follower.getUserId());
                 Map<String, String> followerInfo = new HashMap<>();
                 followerInfo.put("userId", follower.getUserId());
-                followerInfo.put("userDetails", userDetails.getProfilePicture());
-                followerInfo.put("name", userDetails.getName());
                 followerInfo.put("username", follower.getUsername());
                 followerInfo.put("email", follower.getEmail());
+
+                if (follower.getUserId().startsWith("BS")) {
+                    ClubDetails clubDetails = clubDetailsMap.get(follower.getUserId());
+                    if (clubDetails != null) {
+                        followerInfo.put("name", clubDetails.getName());
+                        followerInfo.put("profilePicture", clubDetails.getProfilePicture());
+                        followerInfo.put("accountType", "BUSINESS");
+                    }
+                } else {
+                    UserDetails userDetails = userDetailsMap.get(follower.getUserId());
+                    if (userDetails != null) {
+                        followerInfo.put("name", userDetails.getName());
+                        followerInfo.put("profilePicture", userDetails.getProfilePicture());
+                        followerInfo.put("accountType", "PERSONAL");
+                    }
+                }
+
                 followerList.add(followerInfo);
             }
 
@@ -253,17 +299,50 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            logger.error("Error while fetching followers: {}", e.getMessage());
+            logger.error("Error while fetching followers: {}", e.getMessage(), e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred while trying to fetch followers.");
         }
     }
 
+
     @Override
     public ResponseEntity<?> getFollowing(String userId) {
         try {
             Page<User> following = relationshipRepository.getFollowing(userId, Pageable.unpaged());
+
+            if (following.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("count", 0);
+                response.put("following", Collections.emptyList());
+                return ResponseEntity.ok(response);
+            }
+
+            Set<String> personalUserIds = new HashSet<>();
+            Set<String> businessUserIds = new HashSet<>();
+
+            following.forEach(user -> {
+                if (user.getUserId().startsWith("BS")) {
+                    businessUserIds.add(user.getUserId());
+                } else {
+                    personalUserIds.add(user.getUserId());
+                }
+            });
+
+            List<UserDetails> userDetailsList = personalUserIds.isEmpty() ?
+                    Collections.emptyList() :
+                    userDetailsRepository.findByUserIdIn(new ArrayList<>(personalUserIds));
+
+            List<ClubDetails> clubDetailsList = businessUserIds.isEmpty() ?
+                    Collections.emptyList() :
+                    clubDetailsRepository.findByUserIdIn(new ArrayList<>(businessUserIds));
+
+            Map<String, UserDetails> userDetailsMap = new HashMap<>();
+            userDetailsList.forEach(ud -> userDetailsMap.putIfAbsent(ud.getUserId(), ud));
+
+            Map<String, ClubDetails> clubDetailsMap = new HashMap<>();
+            clubDetailsList.forEach(cd -> clubDetailsMap.putIfAbsent(cd.getUserId(), cd));
 
             List<Map<String, String>> followingList = new ArrayList<>();
             for (User followee : following) {
@@ -271,22 +350,40 @@ public class UserServiceImpl implements UserService {
                 followeeInfo.put("userId", followee.getUserId());
                 followeeInfo.put("username", followee.getUsername());
                 followeeInfo.put("email", followee.getEmail());
+
+                if (followee.getUserId().startsWith("BS")) {
+                    ClubDetails clubDetails = clubDetailsMap.get(followee.getUserId());
+                    if (clubDetails != null) {
+                        followeeInfo.put("name", clubDetails.getName());
+                        followeeInfo.put("profilePicture", clubDetails.getProfilePicture());
+                        followeeInfo.put("accountType", "BUSINESS");
+                    }
+                } else {
+                    UserDetails userDetails = userDetailsMap.get(followee.getUserId());
+                    if (userDetails != null) {
+                        followeeInfo.put("name", userDetails.getName());
+                        followeeInfo.put("profilePicture", userDetails.getProfilePicture());
+                        followeeInfo.put("accountType", "PERSONAL");
+                    }
+                }
+
                 followingList.add(followeeInfo);
             }
 
             Map<String, Object> response = new HashMap<>();
             response.put("count", followingList.size());
-            response.put("followers", followingList);
+            response.put("following", followingList);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            logger.error("Error while fetching following: {}", e.getMessage());
+            logger.error("Error while fetching following: {}", e.getMessage(), e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred while trying to fetch following.");
         }
     }
+
 
     @Override
     public ResponseEntity<?> unfollowUser(String userId, String followingUserId) {
