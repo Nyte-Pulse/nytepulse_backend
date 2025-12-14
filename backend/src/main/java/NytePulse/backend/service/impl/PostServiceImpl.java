@@ -753,7 +753,7 @@ public class PostServiceImpl implements PostService {
                                 postData.put("taggedFriend", taggedFriendInfo);
                             }
                         }
-                        
+
                         if (post.getMentionFriendId() != null) {
                             User mentionedUser = usersMap.get(post.getMentionFriendId());
                             if (mentionedUser != null) {
