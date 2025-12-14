@@ -6,6 +6,7 @@ import NytePulse.backend.entity.User;
 import NytePulse.backend.entity.UserDetails;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,4 +20,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     User findTopByAccountTypeOrderByUserIdDesc(String accountType);
 
     List<UserDetails> findByIdIn(List<Long> userIds);
+
+    List<User> findByUserIdIn(ArrayList<String> strings);
 }
