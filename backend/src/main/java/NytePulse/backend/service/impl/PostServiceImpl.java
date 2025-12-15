@@ -526,8 +526,11 @@ public class PostServiceImpl implements PostService {
             List<Story> stories = storyRepository
                     .findByUserUserIdAndExpiresAtAfterOrderByCreatedAtDesc(userId, now);
 
+            UserDetails userDetails=userDetailsRepository.findByUserId(userId);
+
             Map<String, Object> response = new HashMap<>();
             response.put("userId", userId);
+            response.put("profilePicture", userDetails.getProfilePicture());
             response.put("totalStories", stories.size());
             response.put("stories", stories);
             response.put("status", HttpStatus.OK.value());
