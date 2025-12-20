@@ -20,4 +20,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Transactional
     @Query("UPDATE Post p SET p.shareCount = p.shareCount + 1 WHERE p.id = :postId")
     void incrementShareCount(@Param("postId") Long postId);
+
+    List<Post> findByTagFriendIdOrderByCreatedAtDesc(String userId);
 }

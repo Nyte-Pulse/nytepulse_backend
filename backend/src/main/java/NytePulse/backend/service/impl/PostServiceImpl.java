@@ -817,6 +817,31 @@ public class PostServiceImpl implements PostService {
         return userInfo;
     }
 
+    @Override
+    public ResponseEntity<?> getTaggedPosts(String userId){
+        try {
+            User user = userRepository.findByUserId(userId);
+            if (user == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "User not found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+
+            List<Post> taggedPosts = postRepository.findByTagFriendIdOrderByCreatedAtDesc(userId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", userId);
+            response.put("taggedPosts", taggedPosts);
+            response.put("taggedPostCount", taggedPosts.size());
+
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to retrieve tagged posts");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
 
 
 

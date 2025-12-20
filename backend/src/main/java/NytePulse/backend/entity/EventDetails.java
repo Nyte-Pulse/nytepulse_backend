@@ -20,6 +20,8 @@ public class EventDetails {
 
     private String name;
     private String clubId;
+
+    private String clubName;
     private String description;
     private String category;
 
@@ -109,6 +111,14 @@ public class EventDetails {
 
     public void setClubId(String clubId) {
         this.clubId = clubId;
+    }
+
+    public String getClubName() {
+        return clubName;
+    }
+
+    public void setClubName(String clubName) {
+        this.clubName = clubName;
     }
 
     public String getDescription() {
