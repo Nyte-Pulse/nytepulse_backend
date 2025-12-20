@@ -25,4 +25,6 @@ public interface ClubDetailsRepository extends JpaRepository<ClubDetails, Long> 
     List<UserDetails> findByAccountType(String business);
 
     List<ClubDetails> findByUserIdIn(ArrayList<String> strings);
+
+    Optional<ClubDetails> findByEmail(String email);
 }
