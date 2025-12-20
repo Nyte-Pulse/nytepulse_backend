@@ -166,5 +166,9 @@ public class PostController {
         return postService.getPostForFeed(page, size);
     }
 
+    @GetMapping("/getTaggedPosts/{userId}")
+    public ResponseEntity<?> getTaggedPosts(@PathVariable String userId) {
+        return postService.getTaggedPosts(userId);
+    }
 
 }

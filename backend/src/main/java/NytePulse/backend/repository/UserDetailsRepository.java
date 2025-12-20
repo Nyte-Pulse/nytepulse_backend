@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserDetailsRepository extends JpaRepository<UserDetails, Long> {
@@ -37,6 +38,7 @@ public interface UserDetailsRepository extends JpaRepository<UserDetails, Long> 
 
 
     List<UserDetails> findByUserIdIn(List<String> userIds);
+
 
 
 }

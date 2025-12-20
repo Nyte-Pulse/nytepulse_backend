@@ -83,6 +83,7 @@ public class EventServiceImpl implements EventService {
             eventDetails.setAgeRestriction(eventDetailsDto.getAgeRestriction());
             eventDetails.setDressCode(eventDetailsDto.getDressCode());
             eventDetails.setTicketType(eventDetailsDto.getTicketType());
+            eventDetails.setClubName(eventDetailsDto.getClubName());
             eventDetails.setWebsiteUrl(eventDetailsDto.getWebsiteUrl());
             eventDetails.setPosterUrl(eventDetails.getEventPosterCdnUrl());
             eventDetails.setEventPosterFileName(eventDetailsDto.getEventPosterFileName());

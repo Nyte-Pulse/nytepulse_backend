@@ -19,6 +19,8 @@ public class EventDetailsDto {
     private String dressCode;
     private String ticketType;
     private String websiteUrl;
+
+    private String clubName;
     private String posterUrl;
     private String status;
     private String highlightTags;
@@ -45,6 +47,14 @@ public class EventDetailsDto {
     private String eventPosterCdnUrl;
     private String eventPosterFileName;
     private  LocalDateTime createdAt;
+
+    public String getClubName() {
+        return clubName;
+    }
+
+    public void setClubName(String clubName) {
+        this.clubName = clubName;
+    }
 
     public Long getOrganizerId() {
         return organizerId;
