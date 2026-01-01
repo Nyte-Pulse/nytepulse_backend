@@ -605,9 +605,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     private boolean isFollowing(Long followerId, String followingUserId) {
         try {
-            return userRelationshipRepository.existsByFollower_IdAndFollowing_UserId(
+            User following = userRepository.findByUserId(followingUserId);
+            return userRelationshipRepository.existsByFollower_IdAndFollowing_Id(
                     followerId,
-                    followingUserId
+                    following.getId()
             );
         } catch (Exception e) {
             logger.error("Error checking follow relationship: {}", e.getMessage());
