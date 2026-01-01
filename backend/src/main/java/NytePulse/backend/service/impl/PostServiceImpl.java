@@ -843,6 +843,41 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+    @Override
+    public ResponseEntity<?> getStoriesBySettings(String userId){
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            List<Story> stories = storyRepository
+                    .findByUserUserIdAndExpiresAtAfterOrderByCreatedAtDesc(userId, now);
+
+            // Filter stories based on close friends setting
+            List<Story> visibleStories = stories.stream()
+                    .filter(story -> {
+                        if (!story.getIsCloseFriendsOnly()) {
+                            return true; // Public story
+                        }
+                        // Close friends only story - check if viewer is in close friends
+                        return closeFriendServiceImpl.isCloseFriend(userId, userId);
+                    })
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", userId);
+            response.put("totalStories", visibleStories.size());
+            response.put("stories", visibleStories);
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error fetching stories for user: {}", userId, e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to fetch stories");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+
+    }
 
 
 }

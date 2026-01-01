@@ -171,4 +171,9 @@ public class PostController {
         return postService.getTaggedPosts(userId);
     }
 
+    @GetMapping("/getStoriesBySettings/{userId}")
+    public ResponseEntity<?> getStoriesBySettings(@PathVariable String userId) {
+        return postService.getStoriesBySettings(userId);
+    }
+
 }

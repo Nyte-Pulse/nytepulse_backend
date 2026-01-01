@@ -46,4 +46,6 @@ public interface PostService {
     ResponseEntity<?> getPostForFeed(int page,int size);
 
     ResponseEntity<?> getTaggedPosts(String userId);
+
+    ResponseEntity<?> getStoriesBySettings(String userId);
 }

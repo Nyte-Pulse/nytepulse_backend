@@ -119,22 +119,23 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private boolean canCommentOnPost(UserSettings postOwnerSettings, String postOwnerUserId, Long commenterUserId) {
+
+        User user = userRepository.findByUserId(postOwnerUserId);
         if (postOwnerSettings == null) {
             // Default to followers-only if no settings
-            return userRelationshipRepository.existsByFollower_IdAndFollowing_UserId(
-                    commenterUserId, postOwnerUserId);
+            return userRelationshipRepository.existsByFollower_IdAndFollowing_Id(
+                    commenterUserId, user.getId());
         }
 
         CommentVisibility commentVisibility = postOwnerSettings.getCommentVisibility();
 
-        System.out.println("Post owner comment visibility: " + commentVisibility);
 
         switch (commentVisibility) {
             case EVERYONE:
                 return true;
             case FOLLOWERS:
-                return userRelationshipRepository.existsByFollower_IdAndFollowing_UserId(
-                        commenterUserId, postOwnerUserId);
+                return userRelationshipRepository.existsByFollower_IdAndFollowing_Id(
+                        commenterUserId, user.getId());
             case MENTIONED_ONLY:
                 // Check if commenter is mentioned in post content
                 return isMentionedInPost(postOwnerUserId, commenterUserId);
