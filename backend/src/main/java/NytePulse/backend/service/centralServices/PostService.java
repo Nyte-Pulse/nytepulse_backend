@@ -47,5 +47,5 @@ public interface PostService {
 
     ResponseEntity<?> getTaggedPosts(String userId);
 
-    ResponseEntity<?> getStoriesBySettings(String userId);
+    ResponseEntity<?> getStoriesBySettings(Long userId);
 }

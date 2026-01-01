@@ -1,11 +1,10 @@
 package NytePulse.backend.service.impl;
 
-import NytePulse.backend.dto.BunnyNetUploadResult;
+import NytePulse.backend.dto.*;
 
-import NytePulse.backend.dto.PostShareInfoDTO;
-import NytePulse.backend.dto.ShareResponseDTO;
 import NytePulse.backend.entity.*;
 import NytePulse.backend.enums.PostVisibility;
+import NytePulse.backend.enums.StoryVisibility;
 import NytePulse.backend.exception.ResourceNotFoundException;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
@@ -893,40 +892,164 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public ResponseEntity<?> getStoriesBySettings(String userId){
+    public ResponseEntity<?> getStoriesBySettings(Long viewerId) {
         try {
-            LocalDateTime now = LocalDateTime.now();
-            List<Story> stories = storyRepository
-                    .findByUserUserIdAndExpiresAtAfterOrderByCreatedAtDesc(userId, now);
+            // Fetch viewer
+            User viewer = userRepository.findById(viewerId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Viewer not found"));
 
-            // Filter stories based on close friends setting
-            List<Story> visibleStories = stories.stream()
-                    .filter(story -> {
-                        if (!story.getIsCloseFriendsOnly()) {
-                            return true; // Public story
-                        }
-                        // Close friends only story - check if viewer is in close friends
-                        return closeFriendServiceImpl.isCloseFriend(userId, userId);
+            LocalDateTime now = LocalDateTime.now();
+
+            // Fetch all non-expired stories from all users
+            List<Story> allStories = storyRepository.findByExpiresAtAfterOrderByCreatedAtDesc(now);
+
+            // Filter stories based on each owner's settings and viewer's permissions
+            List<Story> visibleStories = allStories.stream()
+                    .filter(story -> canViewStory(story, viewerId))
+                    .collect(Collectors.toList());
+
+            // Group stories by user
+            Map<String, List<Story>> storiesByUser = visibleStories.stream()
+                    .collect(Collectors.groupingBy(
+                            story -> story.getUser().getUserId(),
+                            LinkedHashMap::new,
+                            Collectors.toList()
+                    ));
+
+            // Convert to DTO format
+            List<UserStoriesDTO> userStoriesList = storiesByUser.entrySet().stream()
+                    .map(entry -> {
+                        List<Story> userStories = entry.getValue();
+                        User storyOwner = userStories.get(0).getUser();
+
+                        // Map user info
+                        StoryUserDTO userDTO = StoryUserDTO.builder()
+                                .id(storyOwner.getId())
+                                .userId(storyOwner.getUserId())
+                                .username(storyOwner.getUsername())
+                                .accountType(storyOwner.getAccountType().toString())
+                                .build();
+
+                        // Map stories
+                        List<StoryResponseDTO> storyDTOs = userStories.stream()
+                                .map(this::mapToStoryDTO)
+                                .collect(Collectors.toList());
+
+                        return UserStoriesDTO.builder()
+                                .user(userDTO)
+                                .storyCount(storyDTOs.size())
+                                .stories(storyDTOs)
+                                .build();
                     })
                     .collect(Collectors.toList());
 
             Map<String, Object> response = new HashMap<>();
-            response.put("userId", userId);
+            response.put("totalUsers", userStoriesList.size());
             response.put("totalStories", visibleStories.size());
-            response.put("stories", visibleStories);
+            response.put("userStories", userStoriesList);
             response.put("status", HttpStatus.OK.value());
 
             return ResponseEntity.ok(response);
 
+        } catch (ResourceNotFoundException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Resource not found");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.NOT_FOUND.value());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
         } catch (Exception e) {
-            log.error("Error fetching stories for user: {}", userId, e);
+            log.error("Error fetching stories feed for viewer: {}", viewerId, e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to fetch stories");
             errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
-
     }
+
+    private StoryResponseDTO mapToStoryDTO(Story story) {
+        List<StoryMediaDTO> mediaDTOs = story.getMedia().stream()
+                .map(media -> StoryMediaDTO.builder()
+                        .id(media.getId())
+                        .bunnyUrl(media.getBunnyUrl())
+                        .mediaType(media.getMediaType().toString())
+                        .fileType(media.getFileType())
+                        .build())
+                .collect(Collectors.toList());
+
+        return StoryResponseDTO.builder()
+                .id(story.getId())
+                .content(story.getContent())
+                .media(mediaDTOs)
+                .createdAt(story.getCreatedAt())
+                .expiresAt(story.getExpiresAt())
+                .isCloseFriendsOnly(story.getIsCloseFriendsOnly())
+                .build();
+    }
+
+
+    private boolean canViewStory(Story story, Long viewerId) {
+        User storyOwner = story.getUser();
+        Long storyOwnerId = storyOwner.getId();
+
+        // User can always see their own stories
+        if (storyOwnerId.equals(viewerId)) {
+            return true;
+        }
+
+        // Check if story is close friends only first
+        if (story.getIsCloseFriendsOnly()) {
+            // Only close friends can view this story
+            User viewer = userRepository.findById(viewerId).orElse(null);
+            if (viewer == null) {
+                return false;
+            }
+            return closeFriendServiceImpl.isCloseFriend(
+                    storyOwner.getUserId(), viewer.getUserId());
+        }
+
+        // Get story owner's settings
+        UserSettings ownerSettings = userSettingsRepository
+                .findByUserId(storyOwner.getId())
+                .orElse(null);
+
+        // Check story visibility based on owner's settings
+        return canViewStoriesBasedOnSettings(storyOwnerId, viewerId, ownerSettings);
+    }
+
+    private boolean canViewStoriesBasedOnSettings(Long storyOwnerId, Long viewerId, UserSettings ownerSettings) {
+        // Default to FOLLOWERS if no settings exist
+        if (ownerSettings == null) {
+            return userRelationshipRepository.existsByFollower_IdAndFollowing_Id(
+                    viewerId, storyOwnerId);
+        }
+
+        StoryVisibility visibility = ownerSettings.getStoryVisibility();
+
+        switch (visibility) {
+            case EVERYONE:
+                return true;
+
+            case FOLLOWERS:
+                return userRelationshipRepository.existsByFollower_IdAndFollowing_Id(
+                        viewerId, storyOwnerId);
+
+            case CLOSE_FRIENDS:
+                // Only close friends can see ALL stories when this setting is enabled
+                User storyOwner = userRepository.findById(storyOwnerId).orElse(null);
+                User viewer = userRepository.findById(viewerId).orElse(null);
+                if (storyOwner != null && viewer != null) {
+                    return closeFriendServiceImpl.isCloseFriend(
+                            storyOwner.getUserId(), viewer.getUserId());
+                }
+                return false;
+
+            default:
+                return false;
+        }
+    }
+
+
 
 
 }
