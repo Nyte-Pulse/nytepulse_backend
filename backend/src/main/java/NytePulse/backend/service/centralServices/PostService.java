@@ -12,11 +12,9 @@ import java.util.List;
 
 
 public interface PostService {
-    ResponseEntity<?> createPost(String content, String userId,String tagFriendId , String mentionFriendId,String location,MultipartFile[] files);
+    ResponseEntity<?> createPost(String content, String userId,List<String> tagFriendIds , List<String> mentionFriendIds,String location,MultipartFile[] files);
 
     ResponseEntity<?> getPostsByUser(String userId);
-
-    Post getPostById(Long id);
 
     ResponseEntity<?> generateShareLink(Long postId);
 
@@ -48,4 +46,8 @@ public interface PostService {
     ResponseEntity<?> getTaggedPosts(String userId);
 
     ResponseEntity<?> getStoriesBySettings(Long userId);
+
+    ResponseEntity<?> getPostByPostId(Long id);
+
+    Post getPostById(Long postId);
 }

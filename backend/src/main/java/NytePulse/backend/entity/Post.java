@@ -45,6 +45,31 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PostLike> likes = new ArrayList<>();
 
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostTag> tags = new ArrayList<>();
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostMention> mentions = new ArrayList<>();
+    public void addTag(PostTag tag) {
+        tags.add(tag);
+        tag.setPost(this);
+    }
+
+    public void removeTag(PostTag tag) {
+        tags.remove(tag);
+        tag.setPost(null);
+    }
+
+    public void addMention(PostMention mention) {
+        mentions.add(mention);
+        mention.setPost(this);
+    }
+
+    public void removeMention(PostMention mention) {
+        mentions.remove(mention);
+        mention.setPost(null);
+    }
+
     public Long getId() {
         return id;
     }
