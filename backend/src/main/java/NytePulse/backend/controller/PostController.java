@@ -162,13 +162,19 @@ public class PostController {
     @GetMapping("/feed")
     public ResponseEntity<?> getPostForFeed(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return postService.getPostForFeed(page, size);
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam("viewerId") Long viewerId) {
+        return postService.getPostForFeed(page, size,viewerId);
     }
 
     @GetMapping("/getTaggedPosts/{userId}")
     public ResponseEntity<?> getTaggedPosts(@PathVariable String userId) {
         return postService.getTaggedPosts(userId);
+    }
+
+    @GetMapping("/getStoriesBySettings/{userId}")
+    public ResponseEntity<?> getStoriesBySettings(@PathVariable String userId) {
+        return postService.getStoriesBySettings(userId);
     }
 
 }

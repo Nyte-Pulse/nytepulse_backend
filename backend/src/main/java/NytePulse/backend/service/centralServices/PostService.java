@@ -43,7 +43,9 @@ public interface PostService {
 
     ResponseEntity<?> showStoryOnlyForFollowers(Long storyId, String viewerId);
 
-    ResponseEntity<?> getPostForFeed(int page,int size);
+    ResponseEntity<?> getPostForFeed(int page,int size,Long viewerId);
 
     ResponseEntity<?> getTaggedPosts(String userId);
+
+    ResponseEntity<?> getStoriesBySettings(String userId);
 }
