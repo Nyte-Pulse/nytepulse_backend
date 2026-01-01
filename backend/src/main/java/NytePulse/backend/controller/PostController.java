@@ -173,8 +173,9 @@ public class PostController {
     }
 
     @GetMapping("/getStoriesBySettings/{userId}")
-    public ResponseEntity<?> getStoriesBySettings(@PathVariable String userId) {
+    public ResponseEntity<?> getStoriesBySettings(@PathVariable Long userId) {
         return postService.getStoriesBySettings(userId);
     }
+
 
 }

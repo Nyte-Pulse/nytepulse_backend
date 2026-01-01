@@ -206,5 +206,37 @@ public class UserSettingsService {
                 .build();
     }
 
+    public ResponseEntity<?> deactivateAccount(Long userId,boolean deactivate) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        user.setDeactivated(deactivate);
+        userRepository.save(user);
+
+        Map<String, Object> response = new HashMap<>();
+        if(deactivate){
+            response.put("message", "Account deactivated successfully");
+        } else {
+            response.put("message", "Account activated successfully");
+        }
+        response.put("status", HttpStatus.OK.value());
+
+        return ResponseEntity.ok(response);
+    }
+
+
+    public ResponseEntity<?> deleteAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        user.setDeleted(true);
+        userRepository.save(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Account deleted successfully");
+        response.put("status", HttpStatus.OK.value());
+
+        return ResponseEntity.ok(response);
+    }
 }
 

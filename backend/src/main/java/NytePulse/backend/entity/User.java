@@ -35,6 +35,10 @@ public class User {
     @Column(nullable = false, unique = true)
     private String userId;
 
+    private boolean isDeactivated;
+
+    private boolean isDeleted;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -116,4 +120,19 @@ public class User {
         this.createdAt = createdAt;
     }
 
+    public boolean isDeactivated() {
+        return isDeactivated;
+    }
+
+    public void setDeactivated(boolean deactivated) {
+        isDeactivated = deactivated;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
+    }
 }
