@@ -5,6 +5,8 @@ import NytePulse.backend.dto.BunnyNetUploadResult;
 import NytePulse.backend.dto.PostShareInfoDTO;
 import NytePulse.backend.dto.ShareResponseDTO;
 import NytePulse.backend.entity.*;
+import NytePulse.backend.enums.PostVisibility;
+import NytePulse.backend.exception.ResourceNotFoundException;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.PostService;
@@ -58,6 +60,9 @@ public class PostServiceImpl implements PostService {
 
     @Autowired
     private CloseFriendServiceImpl closeFriendServiceImpl;
+
+    @Autowired
+    private UserSettingsRepository userSettingsRepository;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -665,17 +670,26 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public ResponseEntity<?> getPostForFeed(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,Long viewerId) {
+            int page,
+             int size,
+            Long viewerId) {
         try {
+            User viewer = userRepository.findById(viewerId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Viewer not found"));
+
             Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-            Page<Post> postPage = postRepository.findAll(pageable);
+            Page<Post> postPage = postRepository.findVisiblePostsForUser(viewerId, pageable);
 
             Set<String> allUserIds = new HashSet<>();
             Set<String> personalUserIds = new HashSet<>();
             Set<String> businessUserIds = new HashSet<>();
 
-            postPage.getContent().forEach(post -> {
+            // Filter posts based on visibility settings
+            List<Post> visiblePosts = postPage.getContent().stream()
+                    .filter(post -> canViewPost(post, viewerId))
+                    .collect(Collectors.toList());
+
+            visiblePosts.forEach(post -> {
                 String postUserId = post.getUser().getUserId();
                 allUserIds.add(postUserId);
 
@@ -723,7 +737,7 @@ public class PostServiceImpl implements PostService {
             Map<String, ClubDetails> clubDetailsMap = clubDetailsList.stream()
                     .collect(Collectors.toMap(ClubDetails::getUserId, cd -> cd));
 
-            List<Map<String, Object>> enrichedPosts = postPage.getContent().stream()
+            List<Map<String, Object>> enrichedPosts = visiblePosts.stream()
                     .map(post -> {
                         Map<String, Object> postData = new HashMap<>();
 
@@ -777,7 +791,7 @@ public class PostServiceImpl implements PostService {
             response.put("posts", enrichedPosts);
             response.put("currentPage", postPage.getNumber());
             response.put("totalPages", postPage.getTotalPages());
-            response.put("totalPosts", postPage.getTotalElements());
+            response.put("totalPosts", (long) visiblePosts.size());
             response.put("hasNext", postPage.hasNext());
             response.put("hasPrevious", postPage.hasPrevious());
             response.put("status", HttpStatus.OK.value());
@@ -792,6 +806,41 @@ public class PostServiceImpl implements PostService {
             ));
         }
     }
+
+    private boolean canViewPost(Post post, Long viewerId) {
+        Long postOwnerId = post.getUser().getId();
+
+        // User can always see their own posts
+        if (postOwnerId.equals(viewerId)) {
+            return true;
+        }
+
+        // Get post owner's settings
+        UserSettings postOwnerSettings = userSettingsRepository
+                .findByUserId(post.getUser().getId())
+                .orElse(null);
+
+        // Default to FOLLOWERS if no settings exist
+        if (postOwnerSettings == null) {
+            return userRelationshipRepository.existsByFollower_IdAndFollowing_Id(
+                    viewerId, postOwnerId);
+        }
+
+        PostVisibility visibility = postOwnerSettings.getPostVisibility();
+
+        switch (visibility) {
+            case EVERYONE:
+                return true;
+            case FOLLOWERS:
+                return userRelationshipRepository.existsByFollower_IdAndFollowing_Id(
+                        viewerId, postOwnerId);
+            case PRIVATE:
+                return false;
+            default:
+                return false;
+        }
+    }
+
 
     // Helper method to build user info from either UserDetails or ClubDetails
     private Map<String, Object> buildUserInfo(User user, UserDetails userDetails, ClubDetails clubDetails) {
