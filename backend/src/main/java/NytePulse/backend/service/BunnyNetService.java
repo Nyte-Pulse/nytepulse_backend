@@ -273,8 +273,8 @@ public class BunnyNetService {
             uploadVideoFile(videoId, file);
 
             // Generate CDN URL for video
-            String cdnUrl = String.format("https://iframe.mediadelivery.net/embed/%s/%s",
-                    bunnyNetConfig.getStream().getLibraryId(), videoId);
+            String cdnUrl = String.format("%s/%s/playlist.m3u8",
+                    bunnyNetConfig.getStream().getPullZoneUrl(), videoId);
 
             return BunnyNetUploadResult.builder()
                     .fileName(file.getOriginalFilename())
@@ -446,7 +446,7 @@ public class BunnyNetService {
             String generatedFileName = generateFileName(file.getOriginalFilename());
             Map<String, Object> videoMetadata = new HashMap<>();
             videoMetadata.put("title", title);
-            videoMetadata.put("folder", folderName);
+            videoMetadata.put("collectionId", folderName);
             videoMetadata.put("fileName", generatedFileName);
 
             // Create video resource and get videoId
@@ -482,8 +482,8 @@ public class BunnyNetService {
                     .block();
 
             // Construct CDN URL for BunnyNet Stream playback
-            String cdnUrl = "https://iframe.mediadelivery.net/embed/" +
-                    bunnyNetConfig.getStream().getLibraryId() + "/" + videoId;
+            String cdnUrl = String.format("%s/%s/playlist.m3u8",
+                    bunnyNetConfig.getStream().getPullZoneUrl(), videoId);
 
             // Return result
             return BunnyNetUploadResult.builder()
