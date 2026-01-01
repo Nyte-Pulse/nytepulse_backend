@@ -44,4 +44,14 @@ public class UserSettingsController {
         return ResponseEntity.ok(settingsService.updateSettings(userId, request));
     }
 
+    @PostMapping("/deactivateOrActivateAccount/{userId}")
+    public ResponseEntity<?> deactivateOrActivateAccount(@PathVariable Long userId, @RequestParam boolean deactivate) {
+        return ResponseEntity.ok( settingsService.deactivateAccount(userId, deactivate));
+    }
+
+    @PostMapping("/deleteAccount/{userId}")
+    public ResponseEntity<?> deleteAccount(@PathVariable Long userId) {
+        return ResponseEntity.ok( settingsService.deleteAccount(userId));
+    }
+
 }

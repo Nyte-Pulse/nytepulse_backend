@@ -14,4 +14,6 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
     List<Story> findByUserUserIdAndExpiresAtAfterOrderByCreatedAtDesc(String userId, LocalDateTime now);
 
     Optional<Story> findStoryById(Long storyId);
+
+    List<Story> findByExpiresAtAfterOrderByCreatedAtDesc(LocalDateTime now);
 }
