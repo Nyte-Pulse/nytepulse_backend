@@ -439,53 +439,22 @@ public class BunnyNetService {
 
     public BunnyNetUploadResult uploadVideoToFolder(MultipartFile file, String title, String folderName) throws IOException {
         try {
-            // Create video metadata with folder info
-            String createVideoUrl = bunnyNetConfig.getStream().getBaseUrl() +
-                    "/library/" + bunnyNetConfig.getStream().getLibraryId() + "/videos";
-
-            String generatedFileName = generateFileName(file.getOriginalFilename());
-            Map<String, Object> videoMetadata = new HashMap<>();
-            videoMetadata.put("title", title);
-            videoMetadata.put("collectionId", folderName);
-            videoMetadata.put("fileName", generatedFileName);
-
-            // Create video resource and get videoId
-            String response = webClient.post()
-                    .uri(createVideoUrl)
-                    .header("AccessKey", bunnyNetConfig.getStream().getApiKey())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .bodyValue(videoMetadata)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
-            String videoId = parseVideoIdFromResponse(response);
+            // Step 1: Create video object with correct metadata
+            String videoId = createVideoObjectInFolder(title, folderName);
 
             if (videoId == null) {
                 throw new IOException("Failed to get video ID from BunnyNet");
             }
 
-            // Upload video binary file (same as your existing function)
-            String uploadUrl = bunnyNetConfig.getStream().getBaseUrl() +
-                    "/library/" + bunnyNetConfig.getStream().getLibraryId() +
-                    "/videos/" + videoId;
+            // Step 2: Upload video file
+            uploadVideoFile(videoId, file);
 
-            webClient.put()
-                    .uri(uploadUrl)
-                    .header("AccessKey", bunnyNetConfig.getStream().getApiKey())
-                    .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .body(BodyInserters.fromResource(file.getResource()))
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
-            // Construct CDN URL for BunnyNet Stream playback
+            // Step 3: Generate HLS URL (simple URL without token)
             String cdnUrl = String.format("%s/%s/playlist.m3u8",
                     bunnyNetConfig.getStream().getPullZoneUrl(), videoId);
 
-            // Return result
+            String generatedFileName = generateFileName(file.getOriginalFilename());
+
             return BunnyNetUploadResult.builder()
                     .fileName(generatedFileName)
                     .cdnUrl(cdnUrl)
@@ -495,10 +464,86 @@ public class BunnyNetService {
                     .build();
 
         } catch (Exception e) {
-            log.error("Failed to upload video to folder: {}", e.getMessage());
+            log.error("Failed to upload video to folder: {}", e.getMessage(), e);
             throw new IOException("Failed to upload video", e);
         }
     }
+
+    private String createVideoObjectInFolder(String title, String collectionId) throws IOException {
+        String createVideoUrl = bunnyNetConfig.getStream().getBaseUrl() +
+                "/library/" + bunnyNetConfig.getStream().getLibraryId() + "/videos";
+
+        log.info("Creating video object with title: {}", title);
+        log.info("API URL: {}", createVideoUrl);
+        log.info("Library ID: {}", bunnyNetConfig.getStream().getLibraryId());
+
+        // Create simple request body - only title is required
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("title", title);
+
+        try {
+            String response = webClient.post()
+                    .uri(createVideoUrl)
+                    .header("AccessKey", bunnyNetConfig.getStream().getApiKey())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)  // Use bodyValue instead of body(BodyInserters...)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info("Video creation response: {}", response);
+
+            JsonNode jsonNode = objectMapper.readTree(response);
+            String videoId = jsonNode.get("guid").asText();
+
+            log.info("Created video with ID: {}", videoId);
+            return videoId;
+
+        } catch (Exception e) {
+            log.error("Failed to create video object: {}", e.getMessage(), e);
+            throw new IOException("Failed to create video object: " + e.getMessage(), e);
+        }
+    }
+
+
+//    private String createVideoObjectInFolder(String title, String collectionId) throws IOException {
+//        String createVideoUrl = bunnyNetConfig.getStream().getBaseUrl() +
+//                "/library/" + bunnyNetConfig.getStream().getLibraryId() + "/videos";
+//
+//        log.info("Creating video object with title: {} in collection: {}", title, collectionId);
+//
+//        Map<String, Object> requestBody = new HashMap<>();
+//        requestBody.put("title", title);
+//
+//        // Only add collectionId if it's not null and not empty
+//        if (collectionId != null && !collectionId.isEmpty()) {
+//            requestBody.put("collectionId", collectionId);
+//        }
+//
+//        try {
+//            String response = webClient.post()
+//                    .uri(createVideoUrl)
+//                    .header("AccessKey", bunnyNetConfig.getStream().getApiKey())
+//                    .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+//                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+//                    .bodyValue(requestBody)
+//                    .retrieve()
+//                    .bodyToMono(String.class)
+//                    .block();
+//
+//            log.info("Video creation response: {}", response);
+//
+//            JsonNode jsonNode = objectMapper.readTree(response);
+//            String videoId = jsonNode.get("guid").asText();
+//
+//            log.info("Created video with ID: {}", videoId);
+//            return videoId;
+//
+//        } catch (Exception e) {
+//            log.error("Failed to create video object: {}", e.getMessage(), e);
+//            throw new IOException("Failed to create video object: " + e.getMessage(), e);
+//        }
+//    }
 
 
 

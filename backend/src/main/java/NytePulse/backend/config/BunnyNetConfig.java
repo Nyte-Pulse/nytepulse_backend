@@ -73,6 +73,8 @@ public class BunnyNetConfig {
         private String baseUrl;
         private String pullZoneUrl;
 
+        private String tokenAuthKey;
+
         // Stream getters and setters
         public String getApiKey() {
             return apiKey;
@@ -103,6 +105,13 @@ public class BunnyNetConfig {
         }
         public void setPullZoneUrl(String pullZoneUrl) {
             this.pullZoneUrl = pullZoneUrl;
+        }
+
+        public String getTokenAuthKey() {
+            return tokenAuthKey;
+        }
+        public void setTokenAuthKey(String tokenAuthKey) {
+            this.tokenAuthKey = tokenAuthKey;
         }
     }
 }
