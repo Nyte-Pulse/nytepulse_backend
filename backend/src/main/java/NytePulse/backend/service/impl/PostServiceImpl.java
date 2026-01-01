@@ -666,7 +666,7 @@ public class PostServiceImpl implements PostService {
     @Override
     public ResponseEntity<?> getPostForFeed(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,Long viewerId) {
         try {
             Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
             Page<Post> postPage = postRepository.findAll(pageable);
