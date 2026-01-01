@@ -28,12 +28,14 @@ public class PostController {
     public ResponseEntity<?> createPost(
             @RequestParam("content") String content,
             @RequestParam("userId") String userId,
-            @RequestParam("tagFriendId") String tagFriendId,
-            @RequestParam("mentionFriendId") String mentionFriendId,
-            @RequestParam("location") String location,
+            @RequestParam(value = "tagFriendIds", required = false) List<String> tagFriendIds,
+            @RequestParam(value = "mentionFriendIds", required = false) List<String> mentionFriendIds,
+            @RequestParam(value = "location", required = false) String location,
             @RequestParam(value = "files", required = false) MultipartFile[] files) {
-       return postService.createPost(content, userId,tagFriendId,mentionFriendId,location, files);
+
+        return postService.createPost(content, userId, tagFriendIds, mentionFriendIds, location, files);
     }
+
 
 
     @GetMapping("/getPostsByUser/{userId}")
@@ -43,13 +45,8 @@ public class PostController {
 
 
     @GetMapping("/getPostById/{id}")
-    public ResponseEntity<Post> getPostById(@PathVariable Long id) {
-        try {
-            Post post = postService.getPostById(id);
-            return ResponseEntity.ok(post);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<?> getPostByPostId(@PathVariable Long id) {
+        return postService.getPostByPostId(id);
     }
 
     @PostMapping("/{postId}/share")

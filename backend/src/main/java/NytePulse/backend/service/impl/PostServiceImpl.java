@@ -61,52 +61,125 @@ public class PostServiceImpl implements PostService {
     private CloseFriendServiceImpl closeFriendServiceImpl;
 
     @Autowired
+    private PostTagRepository postTagRepository;
+
+    @Autowired
+    private PostMentionRepository postMentionRepository;
+
+    @Autowired
     private UserSettingsRepository userSettingsRepository;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
     @Override
-    public ResponseEntity<?> createPost(String content, String userId,String tagFriendId,String mentionFriendId,String location, MultipartFile[] files) {
+    @Transactional
+    public ResponseEntity<?> createPost(
+            String content,
+            String userId,
+            List<String> tagFriendIds,
+            List<String> mentionFriendIds,
+            String location,
+            MultipartFile[] files) {
         try {
             if (content == null || content.trim().isEmpty()) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("error", "Content is required");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Content is required"));
             }
 
             User user = userRepository.findByUserId(userId);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "User not found"));
+            }
 
-            // Create and save the post
             Post post = new Post();
             post.setContent(content);
             post.setUser(user);
             post.setLocation(location);
-            post.setTagFriendId(tagFriendId);
-            post.setMentionFriendId(mentionFriendId);
             Post savedPost = postRepository.save(post);
 
-            // Process and upload files to BunnyNet
-            List<Media> mediaList = new ArrayList<>();
+            List<TaggedUserDTO> taggedUserDTOs = new ArrayList<>();
+            if (tagFriendIds != null && !tagFriendIds.isEmpty()) {
+                for (String taggedUserId : tagFriendIds) {
+                    User taggedUser = userRepository.findByUserId(taggedUserId);
+                    if (taggedUser != null) {
+                        PostTag postTag = PostTag.builder()
+                                .post(savedPost)
+                                .taggedUser(taggedUser)
+                                .taggedUserId(taggedUserId)
+                                .build();
+                        postTagRepository.save(postTag);
 
-            if (files != null) {
-                for (MultipartFile file : files) {
-                    if (!file.isEmpty()) {
-                        Media media = processAndUploadFile(file, savedPost);
-                        mediaList.add(mediaRepository.save(media));
+                        taggedUserDTOs.add(TaggedUserDTO.builder()
+                                .userId(taggedUser.getUserId())
+                                .username(taggedUser.getUsername())
+                                .build());
                     }
                 }
             }
 
-            savedPost.setMedia(mediaList);
-            return ResponseEntity.ok(savedPost);
+            List<MentionedUserDTO> mentionedUserDTOs = new ArrayList<>();
+            if (mentionFriendIds != null && !mentionFriendIds.isEmpty()) {
+                for (String mentionedUserId : mentionFriendIds) {
+                    User mentionedUser = userRepository.findByUserId(mentionedUserId);
+                    if (mentionedUser != null) {
+                        PostMention postMention = PostMention.builder()
+                                .post(savedPost)
+                                .mentionedUser(mentionedUser)
+                                .mentionedUserId(mentionedUserId)
+                                .build();
+                        postMentionRepository.save(postMention);
+
+                        mentionedUserDTOs.add(MentionedUserDTO.builder()
+                                .userId(mentionedUser.getUserId())
+                                .username(mentionedUser.getUsername())
+                                .build());
+                    }
+                }
+            }
+
+            List<MediaDTO> mediaDTOs = new ArrayList<>();
+            if (files != null && files.length > 0) {
+                for (MultipartFile file : files) {
+                    if (!file.isEmpty()) {
+                        Media media = processAndUploadFile(file, savedPost);
+                        Media savedMedia = mediaRepository.save(media);
+
+                        mediaDTOs.add(MediaDTO.builder()
+                                .id(savedMedia.getId())
+                                .bunnyUrl(savedMedia.getBunnyUrl())
+                                .mediaType(savedMedia.getMediaType().toString())
+                                .build());
+                    }
+                }
+            }
+
+            PostResponseDTO response = PostResponseDTO.builder()
+                    .id(savedPost.getId())
+                    .content(savedPost.getContent())
+                    .location(savedPost.getLocation())
+                    .userId(savedPost.getUser().getUserId())
+                    .username(savedPost.getUser().getUsername())
+                    .createdAt(savedPost.getCreatedAt())
+                    .shareCount(savedPost.getShareCount())
+                    .mediaCount(mediaDTOs.size())
+                    .likesCount(0)
+                    .commentsCount(0)
+                    .taggedUsers(taggedUserDTOs)
+                    .mentionedUsers(mentionedUserDTOs)
+                    .media(mediaDTOs)
+                    .build();
+
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Failed to create Post");
-            errorResponse.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            log.error("Failed to create post: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to create Post", "message", e.getMessage()));
         }
     }
+
 
     private Media processAndUploadFile(MultipartFile file, Post post) throws IOException {
         String contentType = file.getContentType();
@@ -143,28 +216,82 @@ public class PostServiceImpl implements PostService {
         try {
             User user = userRepository.findByUserId(userId);
             if (user == null) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("error", "User not found");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "User not found"));
             }
 
             List<Post> posts = postRepository.findByUserOrderByCreatedAtDesc(user);
+
+            List<PostResponseDTO> postDTOs = posts.stream()
+                    .map(this::convertToPostDTO)
+                    .collect(Collectors.toList());
+
             Map<String, Object> response = new HashMap<>();
             response.put("userId", userId);
-            response.put("posts", posts);
-            response.put("postCount", posts.size());
+            response.put("posts", postDTOs);
+            response.put("postCount", postDTOs.size());
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Failed to retrieve posts");
-            errorResponse.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            log.error("Failed to retrieve posts for user {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to retrieve posts", "message", e.getMessage()));
         }
     }
 
-    @Override
+    private PostResponseDTO convertToPostDTO(Post post) {
+        // Get tags
+        List<TaggedUserDTO> taggedUsers = new ArrayList<>();
+        if (post.getTags() != null) {
+            taggedUsers = post.getTags().stream()
+                    .map(tag -> TaggedUserDTO.builder()
+                            .userId(tag.getTaggedUserId())
+                            .username(tag.getTaggedUser() != null ? tag.getTaggedUser().getUsername() : null)
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        List<MentionedUserDTO> mentionedUsers = new ArrayList<>();
+        if (post.getMentions() != null) {
+            mentionedUsers = post.getMentions().stream()
+                    .map(mention -> MentionedUserDTO.builder()
+                            .userId(mention.getMentionedUserId())
+                            .username(mention.getMentionedUser() != null ? mention.getMentionedUser().getUsername() : null)
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+
+        List<MediaDTO> mediaDTOs = new ArrayList<>();
+        if (post.getMedia() != null) {
+            mediaDTOs = post.getMedia().stream()
+                    .map(media -> MediaDTO.builder()
+                            .id(media.getId())
+                            .bunnyUrl(media.getBunnyUrl())
+                            .mediaType(media.getMediaType() != null ? media.getMediaType().toString() : null)
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        return PostResponseDTO.builder()
+                .id(post.getId())
+                .content(post.getContent())
+                .location(post.getLocation())
+                .userId(post.getUser().getUserId())
+                .username(post.getUser().getUsername())
+                .createdAt(post.getCreatedAt())
+                .shareCount(post.getShareCount())
+                .mediaCount(mediaDTOs.size())
+                .likesCount(post.getLikes() != null ? post.getLikes().size() : 0)
+                .commentsCount(post.getComments() != null ? post.getComments().size() : 0)
+                .taggedUsers(taggedUsers)
+                .mentionedUsers(mentionedUsers)
+                .media(mediaDTOs)
+                .build();
+    }
+
+
     public Post getPostById(Long id) {
         return postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
@@ -1049,6 +1176,21 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+    @Override
+    public ResponseEntity<?> getPostByPostId(Long postId){
+        try {
+            Post post = getPostById(postId);
+
+            PostResponseDTO postDTO = convertToPostDTO(post);
+
+            return ResponseEntity.ok(postDTO);
+
+        } catch (Exception e) {
+            log.error("Failed to retrieve post by ID {}: {}", postId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to retrieve Post", "message", e.getMessage()));
+        }
+    }
 
 
 
