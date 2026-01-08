@@ -204,7 +204,9 @@ public class UserServiceImpl implements UserService {
             UserRelationship relationship = new UserRelationship(follower, following);
             relationshipRepository.save(relationship);
 
-            String message = follower.getUsername() + " started following you";
+            UserDetails followerDetails = userDetailsRepository.findByUserId(followerUserId);
+
+            String message = followerDetails.getName() + " started following you" + " profilePicture :" + followerDetails.getProfilePicture();
             notificationService.createNotification(
                     following.getId(),           // Recipient (the person being followed)
                     follower.getId(),            // Actor (the person who followed)

@@ -200,11 +200,13 @@ public class ChatServiceImpl implements ChatService {
                 status.setStatus(MessageStatus.Status.SENT);
                 messageStatusRepository.save(status);
 
-                String notificationMessage = sender.getUsername() + " sent you a message";
+                UserDetails userDetails = userDetailsRepository.findByUsername(sender.getUsername());
+
+                String notificationMessage = userDetails.getName() + " sent you a message";
                 if (content != null && !content.isEmpty()) {
                     // Truncate long messages
                     String preview = content.length() > 50 ? content.substring(0, 50) + "..." : content;
-                    notificationMessage = sender.getUsername() + ": " + preview;
+                    notificationMessage = userDetails.getName() + " sent you a message : " + preview + " profilePicture :" + userDetails.getProfilePicture() ;
                 }
 
                 notificationService.createNotification(
