@@ -65,5 +65,5 @@ public class EventItemsServiceImpl implements EventItemsService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching items.");
         }
     }
-    
+
 }
