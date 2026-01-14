@@ -1,9 +1,6 @@
 package NytePulse.backend.service.impl;
 
-import NytePulse.backend.dto.BunnyNetUploadResult;
-import NytePulse.backend.dto.EventDetailsDto;
-import NytePulse.backend.dto.SaveEventDto;
-import NytePulse.backend.dto.ReportEventDto;
+import NytePulse.backend.dto.*;
 import NytePulse.backend.entity.*;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
@@ -71,8 +68,24 @@ public class EventServiceImpl implements EventService {
             }
             eventDetails.setEventId(newEventId);
 
-            ClubDetails organizer = clubDetailsRepository.getReferenceById(eventDetailsDto.getOrganizerId());
-            eventDetails.setOrganizer(organizer);
+            if (eventDetailsDto.getOrganizerDetails() != null && !eventDetailsDto.getOrganizerDetails().isEmpty()) {
+                for (OrganizerDetailDto orgDto : eventDetailsDto.getOrganizerDetails()) {
+                    EventOrganizer organizer = new EventOrganizer();
+                    organizer.setOrganizerName(orgDto.getOrganizerName());
+                    organizer.setOrganizerContact(orgDto.getOrganizerContact());
+                    organizer.setOrganizerEmail(orgDto.getOrganizerEmail());
+                    organizer.setWebsiteUrl(orgDto.getWebsiteUrl());
+
+                    if (orgDto.getUserId() != null) {
+                        if (clubDetailsRepository.existsById(orgDto.getUserId())) {
+                            organizer.setUserId(orgDto.getUserId());
+                        }
+                    }
+
+                    eventDetails.addOrganizer(organizer);
+                }
+            }
+
 
             eventDetails.setName(eventDetailsDto.getName());
             eventDetails.setClubId(eventDetailsDto.getUserId());
@@ -95,7 +108,7 @@ public class EventServiceImpl implements EventService {
             eventDetails.setLatitude(eventDetailsDto.getVenueLatitude());
             eventDetails.setLocationName(eventDetailsDto.getVenueName());
             eventDetails.setCity(eventDetailsDto.getVenueCity());
-            eventDetails.setOrganizer(organizer);
+//            eventDetails.setOrganizer(organizer);
             eventDetails.setIsApprovedByOrganizer(eventDetailsDto.getIsApprovedByOrganizer());
             eventDetails.setLocationName(eventDetailsDto.getLocationName());
             eventDetails.setCreatedAt(LocalDateTime.now(SRI_LANKA_ZONE));
@@ -135,7 +148,7 @@ public class EventServiceImpl implements EventService {
             response.put("ageRestriction", savedEventDetails.getAgeRestriction());
             response.put("dressCode", savedEventDetails.getDressCode());
             response.put("eventPosterUrl", savedEventDetails.getEventPosterCdnUrl());
-            response.put("organizer", savedEventDetails.getOrganizer());
+//            response.put("organizer", savedEventDetails.getOrganizer());
             response.put("eventPosterFileName", savedEventDetails.getEventPosterFileName());
             response.put("ticketType", savedEventDetails.getTicketType());
             response.put("websiteUrl", savedEventDetails.getWebsiteUrl());
