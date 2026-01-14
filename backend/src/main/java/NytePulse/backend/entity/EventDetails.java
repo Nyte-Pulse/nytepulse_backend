@@ -4,7 +4,9 @@ package NytePulse.backend.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "event_details")
@@ -61,9 +63,13 @@ public class EventDetails {
     @Column(name = "is_approved_by_organizer")
     private Integer isApprovedByOrganizer;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "organizer_id", referencedColumnName = "id")
-    private ClubDetails organizer;
+
+//    @ManyToOne(fetch = FetchType.EAGER)
+//    @JoinColumn(name = "organizer_id", referencedColumnName = "id")
+//    private ClubDetails organizer;
+
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EventOrganizer> organizers = new ArrayList<>();
 
     @Column(name = "location_name")
     private String locationName;
@@ -77,6 +83,10 @@ public class EventDetails {
     @Column(name = "event_poster_cdn_url")
     private String eventPosterCdnUrl;
 
+    public void addOrganizer(EventOrganizer organizer) {
+        this.organizers.add(organizer);
+        organizer.setEvent(this);
+    }
 
     public String getEventPosterCdnUrl() {
         return eventPosterCdnUrl;
@@ -280,13 +290,13 @@ public class EventDetails {
         this.eventPosterFileName = eventPosterFileName;
     }
 
-    public ClubDetails getOrganizer() {
-        return organizer;
-    }
-
-    public void setOrganizer(ClubDetails organizer) {
-        this.organizer = organizer;
-    }
+//    public ClubDetails getOrganizer() {
+//        return organizer;
+//    }
+//
+//    public void setOrganizer(ClubDetails organizer) {
+//        this.organizer = organizer;
+//    }
 
     public Integer getIsApprovedByOrganizer() {
         return isApprovedByOrganizer;

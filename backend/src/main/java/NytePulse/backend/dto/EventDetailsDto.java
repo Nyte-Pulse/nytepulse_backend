@@ -2,6 +2,7 @@ package NytePulse.backend.dto;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 
 public class EventDetailsDto {
 
@@ -9,16 +10,16 @@ public class EventDetailsDto {
     private String userId;
     private String description;
 
+    private List<OrganizerDetailDto> organizerDetails;
     private String dateFilter;
-
-    private Long organizerId;
     private String category;
     private Date startDateTime;// "any", "today", "tomorrow", "this_week", "this_weekend"
     private Date endDateTime;
     private String ageRestriction;
     private String dressCode;
     private String ticketType;
-    private String websiteUrl;
+
+    private String organizerwebsiteUrl;
 
     private String clubName;
     private String posterUrl;
@@ -40,6 +41,8 @@ public class EventDetailsDto {
 
     private String organizerEmail;
 
+    private String websiteUrl;
+
     private String locationName;
 
     private int isActive;
@@ -56,12 +59,6 @@ public class EventDetailsDto {
         this.clubName = clubName;
     }
 
-    public Long getOrganizerId() {
-        return organizerId;
-    }
-    public void setOrganizerId(Long organizerId) {
-        this.organizerId = organizerId;
-    }
 
     public String getDateFilter() {
         return dateFilter;
@@ -286,5 +283,21 @@ public class EventDetailsDto {
     }
     public void setIsApprovedByOrganizer(int isApprovedByOrganizer) {
         this.isApprovedByOrganizer = isApprovedByOrganizer;
+    }
+
+    public String getOrganizerwebsiteUrl() {
+        return organizerwebsiteUrl;
+    }
+
+    public void setOrganizerwebsiteUrl(String organizerwebsiteUrl) {
+        this.organizerwebsiteUrl = organizerwebsiteUrl;
+    }
+
+    public List<OrganizerDetailDto> getOrganizerDetails() {
+        return organizerDetails;
+    }
+
+    public void setOrganizerDetails(List<OrganizerDetailDto> organizerDetails) {
+        this.organizerDetails = organizerDetails;
     }
 }
