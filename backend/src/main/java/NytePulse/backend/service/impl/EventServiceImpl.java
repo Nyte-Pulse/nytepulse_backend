@@ -108,6 +108,12 @@ public class EventServiceImpl implements EventService {
             eventDetails.setLatitude(eventDetailsDto.getVenueLatitude());
             eventDetails.setLocationName(eventDetailsDto.getVenueName());
             eventDetails.setCity(eventDetailsDto.getVenueCity());
+            eventDetails.setAmenities(eventDetailsDto.getAmenities());
+            eventDetails.setParking(eventDetailsDto.getParking());
+            eventDetails.setSpecialOffers(eventDetailsDto.getSpecialOffers());
+            eventDetails.setCurrency(eventDetailsDto.getCurrency());
+            eventDetails.setTicketLink(eventDetailsDto.getTicketLink());
+            eventDetails.setTicketPrice(eventDetailsDto.getTicketPrice());
 //            eventDetails.setOrganizer(organizer);
             eventDetails.setIsApprovedByOrganizer(eventDetailsDto.getIsApprovedByOrganizer());
             eventDetails.setLocationName(eventDetailsDto.getLocationName());
