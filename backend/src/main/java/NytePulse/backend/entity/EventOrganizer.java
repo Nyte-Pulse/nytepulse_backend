@@ -1,7 +1,9 @@
 package NytePulse.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 @Entity
 @Table(name = "event_organizers")
@@ -14,6 +16,8 @@ public class EventOrganizer {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
+    @JsonBackReference
+    @ToString.Exclude
     private EventDetails event;
 
     private Long userId;

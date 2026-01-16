@@ -1,5 +1,6 @@
 package NytePulse.backend.dto;
 
+
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -300,4 +301,5 @@ public class EventDetailsDto {
     public void setOrganizerDetails(List<OrganizerDetailDto> organizerDetails) {
         this.organizerDetails = organizerDetails;
     }
+
 }
