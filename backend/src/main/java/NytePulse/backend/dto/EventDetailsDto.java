@@ -48,6 +48,18 @@ public class EventDetailsDto {
 
     private int isActive;
 
+    private String amenities;
+
+    private String parking;
+
+    private String specialOffers;
+
+    private String currency;
+
+    private String ticketPrice;
+
+    private String ticketLink;
+
     private String eventPosterCdnUrl;
     private String eventPosterFileName;
     private  LocalDateTime createdAt;
@@ -302,4 +314,51 @@ public class EventDetailsDto {
         this.organizerDetails = organizerDetails;
     }
 
+    public String getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(String amenities) {
+        this.amenities = amenities;
+    }
+
+    public String getParking() {
+        return parking;
+    }
+
+    public void setParking(String parking) {
+        this.parking = parking;
+    }
+
+    public String getSpecialOffers() {
+        return specialOffers;
+    }
+
+    public void setSpecialOffers(String specialOffers) {
+        this.specialOffers = specialOffers;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public String getTicketPrice() {
+        return ticketPrice;
+    }
+
+    public void setTicketPrice(String ticketPrice) {
+        this.ticketPrice = ticketPrice;
+    }
+
+    public String getTicketLink() {
+        return ticketLink;
+    }
+
+    public void setTicketLink(String ticketLink) {
+        this.ticketLink = ticketLink;
+    }
 }
