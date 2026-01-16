@@ -468,7 +468,7 @@ public class UserServiceImpl implements UserService {
             long countFollowers = relationshipRepository.countFollowers(userId);
             List<Post> posts = postRepository.findByUserOrderByCreatedAtDesc(user);
 
-            Map<String, String> response = new HashMap<>();
+            Map<String, Object> response = new HashMap<>();
             response.put("followingCount", String.valueOf(countFollowing));
             response.put("followersCount", String.valueOf(countFollowers));
             response.put("userId", userId);
@@ -480,6 +480,8 @@ public class UserServiceImpl implements UserService {
             if (userId.startsWith("PS")) {
                 UserDetails userDetails = userDetailsRepository.findByUsername(username);
                 response.put("name", userDetails.getName());
+                response.put("birthDay", userDetails.getBirthday());
+                response.put("gender", userDetails.getGender());
                 response.put("profileImage", userDetails.getProfilePicture());
                 response.put("profileImageFileName", userDetails.getProfilePictureFileName());
                 response.put("bio", userDetails.getBio());
