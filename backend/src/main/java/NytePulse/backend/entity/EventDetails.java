@@ -63,6 +63,18 @@ public class EventDetails {
     @Column(name = "is_approved_by_organizer")
     private Integer isApprovedByOrganizer;
 
+    private String amenities;
+
+    private String parking;
+
+    private String specialOffers;
+
+    private String currency;
+
+    private String ticketPrice;
+
+    private String ticketLink;
+
 
 //    @ManyToOne(fetch = FetchType.EAGER)
 //    @JoinColumn(name = "organizer_id", referencedColumnName = "id")
@@ -305,5 +317,61 @@ public class EventDetails {
 
     public void setIsApprovedByOrganizer(Integer isApprovedByOrganizer) {
         this.isApprovedByOrganizer = isApprovedByOrganizer;
+    }
+
+    public String getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(String amenities) {
+        this.amenities = amenities;
+    }
+
+    public String getParking() {
+        return parking;
+    }
+
+    public void setParking(String parking) {
+        this.parking = parking;
+    }
+
+    public String getSpecialOffers() {
+        return specialOffers;
+    }
+
+    public void setSpecialOffers(String specialOffers) {
+        this.specialOffers = specialOffers;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public String getTicketPrice() {
+        return ticketPrice;
+    }
+
+    public void setTicketPrice(String ticketPrice) {
+        this.ticketPrice = ticketPrice;
+    }
+
+    public String getTicketLink() {
+        return ticketLink;
+    }
+
+    public void setTicketLink(String ticketLink) {
+        this.ticketLink = ticketLink;
+    }
+
+    public List<EventOrganizer> getOrganizers() {
+        return organizers;
+    }
+
+    public void setOrganizers(List<EventOrganizer> organizers) {
+        this.organizers = organizers;
     }
 }
