@@ -75,6 +75,9 @@ public class EventDetails {
 
     private String ticketLink;
 
+    private String venueName;
+    private String venueAddress;
+    private String venueCity;
 
 //    @ManyToOne(fetch = FetchType.EAGER)
 //    @JoinColumn(name = "organizer_id", referencedColumnName = "id")
@@ -373,5 +376,29 @@ public class EventDetails {
 
     public void setOrganizers(List<EventOrganizer> organizers) {
         this.organizers = organizers;
+    }
+
+    public String getVenueName() {
+        return venueName;
+    }
+
+    public void setVenueName(String venueName) {
+        this.venueName = venueName;
+    }
+
+    public String getVenueAddress() {
+        return venueAddress;
+    }
+
+    public void setVenueAddress(String venueAddress) {
+        this.venueAddress = venueAddress;
+    }
+
+    public String getVenueCity() {
+        return venueCity;
+    }
+
+    public void setVenueCity(String venueCity) {
+        this.venueCity = venueCity;
     }
 }

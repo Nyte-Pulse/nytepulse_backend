@@ -106,8 +106,11 @@ public class EventServiceImpl implements EventService {
             eventDetails.setAddress(eventDetailsDto.getVenueAddress());
             eventDetails.setLongitude(eventDetailsDto.getVenueLongitude());
             eventDetails.setLatitude(eventDetailsDto.getVenueLatitude());
-            eventDetails.setLocationName(eventDetailsDto.getVenueName());
+//            eventDetails.setLocationName(eventDetailsDto.getVenueName());
             eventDetails.setCity(eventDetailsDto.getVenueCity());
+            eventDetails.setVenueName(eventDetailsDto.getVenueName());
+            eventDetails.setVenueAddress(eventDetailsDto.getVenueAddress());
+            eventDetails.setVenueCity(eventDetailsDto.getVenueCity());
             eventDetails.setAmenities(eventDetailsDto.getAmenities());
             eventDetails.setParking(eventDetailsDto.getParking());
             eventDetails.setSpecialOffers(eventDetailsDto.getSpecialOffers());
@@ -148,6 +151,9 @@ public class EventServiceImpl implements EventService {
             response.put("name", savedEventDetails.getName());
             response.put("clubId", savedEventDetails.getClubId());
             response.put("description", savedEventDetails.getDescription());
+            response.put("venueName", savedEventDetails.getVenueName());
+            response.put("venueAddress", savedEventDetails.getVenueAddress());
+            response.put("venueCity", savedEventDetails.getVenueCity());
             response.put("category", savedEventDetails.getCategory());
             response.put("startDateTime", savedEventDetails.getStartDateTime());
             response.put("endDateTime", savedEventDetails.getEndDateTime());
