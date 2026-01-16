@@ -69,6 +69,7 @@ public class EventDetails {
 //    private ClubDetails organizer;
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonManagedReference
     private List<EventOrganizer> organizers = new ArrayList<>();
 
     @Column(name = "location_name")
