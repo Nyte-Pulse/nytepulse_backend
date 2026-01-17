@@ -21,7 +21,7 @@ public interface CommentService {
 
     ResponseEntity<?> addReply(Long commentId, Long userId, CommentRequestDTO commentRequestDTO);
 
-    ResponseEntity<?> getCommentsWithRepliesByPostId(Long postId, Long currentUserId);
+    ResponseEntity<?> getCommentsWithRepliesByPostId(Long postId, Long currentUserId,int page,int size);
 
 
     ResponseEntity<?> addCommentToStory(Long storyId, Long userId, CommentRequestDTO commentRequestDTO);
