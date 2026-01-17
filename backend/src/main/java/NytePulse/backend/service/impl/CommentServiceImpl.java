@@ -14,6 +14,10 @@ import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -290,20 +294,30 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseEntity<?> getCommentsWithRepliesByPostId(Long postId, Long currentUserId) {
+    public ResponseEntity<?> getCommentsWithRepliesByPostId(Long postId, Long currentUserId,int page, int size) {
         try {
             if (!postRepository.existsById(postId)) {
                 throw new RuntimeException("Post not found with id: " + postId);
             }
 
-            List<Comment> rootComments = commentRepository.findRootCommentsByPostId(postId);
+            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-            List<CommentResponseDTO> responseDTOs = rootComments.stream()
+            Page<Comment> rootCommentsPage = commentRepository.findRootCommentsByPostId(postId,pageable);
+
+            List<CommentResponseDTO> content = rootCommentsPage.stream()
                     .map(comment -> mapToCommentResponseDTOWithReplies(comment, currentUserId))
                     .filter(dto -> dto != null) // Filter out null results
                     .collect(Collectors.toList());
 
-            return ResponseEntity.ok(responseDTOs);
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", content);
+            response.put("currentPage", rootCommentsPage.getNumber());
+            response.put("totalItems", rootCommentsPage.getTotalElements());
+            response.put("totalPages", rootCommentsPage.getTotalPages());
+            response.put("pageSize", rootCommentsPage.getSize());
+            response.put("hasNext", rootCommentsPage.hasNext());
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to get comments with replies");

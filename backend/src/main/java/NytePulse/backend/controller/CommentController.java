@@ -45,7 +45,7 @@ public class CommentController {
 
     }
 
-    @GetMapping("/count")
+    @GetMapping("/post/{postId}/count")
     public ResponseEntity<?> getCommentCount(@PathVariable Long postId) {
         return commentService.getCommentCount(postId);
     }
@@ -59,9 +59,9 @@ public class CommentController {
     }
 
     @GetMapping("/post/{postId}/nested")
-    public ResponseEntity<?> getCommentsWithReplies(@PathVariable Long postId, @RequestHeader("User-Id") Long userId) {
+    public ResponseEntity<?> getCommentsWithReplies(@PathVariable Long postId, @RequestHeader("User-Id") Long userId,@RequestParam(defaultValue = "0") int page,@RequestParam(defaultValue = "10") int size) {
 
-        return commentService.getCommentsWithRepliesByPostId(postId, userId);
+        return commentService.getCommentsWithRepliesByPostId(postId, userId,page,size);
 
     }
 
