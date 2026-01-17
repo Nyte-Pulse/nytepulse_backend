@@ -58,7 +58,7 @@ public class CommentController {
 
     }
 
-    @GetMapping("/nested")
+    @GetMapping("/post/{postId}/nested")
     public ResponseEntity<?> getCommentsWithReplies(@PathVariable Long postId, @RequestHeader("User-Id") Long userId) {
 
         return commentService.getCommentsWithRepliesByPostId(postId, userId);
