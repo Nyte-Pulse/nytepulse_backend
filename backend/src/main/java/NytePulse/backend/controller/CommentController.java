@@ -52,7 +52,7 @@ public class CommentController {
 
 
     @PostMapping("/{commentId}/reply")
-    public ResponseEntity<?> addReply(@PathVariable Long postId, @PathVariable Long commentId, @RequestHeader("User-Id") Long userId, @RequestBody CommentRequestDTO commentRequestDTO) {
+    public ResponseEntity<?> addReply(@PathVariable Long commentId, @RequestHeader("User-Id") Long userId, @RequestBody CommentRequestDTO commentRequestDTO) {
 
         return commentService.addReply(commentId, userId, commentRequestDTO);
 
