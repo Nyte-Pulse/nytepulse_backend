@@ -31,14 +31,14 @@ public class CommentController {
         return commentService.getCommentsByPostId(postId);
     }
 
-    @PutMapping("/{commentId}")
+    @PutMapping("/{commentId}/update")
     public ResponseEntity<?> updateComment(@PathVariable Long commentId, @RequestHeader("User-Id") Long userId, @RequestBody CommentRequestDTO commentRequestDTO) {
 
         return commentService.updateComment(commentId, userId, commentRequestDTO);
 
     }
 
-    @DeleteMapping("/{commentId}")
+    @DeleteMapping("/{commentId}/delete")
     public ResponseEntity<?> deleteComment(@PathVariable Long commentId, @RequestHeader("User-Id") Long userId) {
 
         return commentService.deleteComment(commentId, userId);
