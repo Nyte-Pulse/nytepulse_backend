@@ -84,4 +84,9 @@ public class EventController {
         return eventService.approveOrDeclineByOrganizer(eventId,isApproved);
     }
 
+    @PostMapping("/eventShareLink/{eventId}")
+    public ResponseEntity<?> generateEventShareLink(@PathVariable String eventId) {
+        return eventService.generateEventShareLink(eventId);
+    }
+
 }
