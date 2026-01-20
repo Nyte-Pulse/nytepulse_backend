@@ -191,7 +191,11 @@ public class EventServiceImpl implements EventService {
             String location = StringUtils.hasText(eventDetailsDto.getLocationName()) ? eventDetailsDto.getLocationName().trim() : null;
             String category = StringUtils.hasText(eventDetailsDto.getCategory()) ? eventDetailsDto.getCategory().trim() : null;
             String ticketType = StringUtils.hasText(eventDetailsDto.getTicketType()) ? eventDetailsDto.getTicketType().trim() : null;
+            String amenities = StringUtils.hasText(eventDetailsDto.getAmenities()) ? eventDetailsDto.getAmenities().trim() : null;
+            String dressCode = StringUtils.hasText(eventDetailsDto.getDressCode()) ? eventDetailsDto.getDressCode().trim() : null;
+            String ageRestriction = StringUtils.hasText(eventDetailsDto.getAgeRestriction()) ? eventDetailsDto.getAgeRestriction().trim() : null;
 
+            System.out.println("age: "+ageRestriction);
             // Calculate date range based on filter
             LocalDateTime startDate = null;
             LocalDateTime endDate = null;
@@ -247,7 +251,9 @@ public class EventServiceImpl implements EventService {
                     Date.from(endDate.atZone(ZoneId.systemDefault()).toInstant()) : null;
 
             List<EventDetails> events = eventDetailsRepository.searchEvents(
-                    name, location, startDateTime, endDateTime, category, ticketType
+                    name, location, startDateTime, endDateTime, category, ticketType,amenities,
+                    dressCode,
+                    ageRestriction
             );
 
             logger.info("Found {} events matching search criteria", events.size());
@@ -780,6 +786,49 @@ public class EventServiceImpl implements EventService {
             errorResponse.put("error", "Error processing event");
             errorResponse.put("message", e.getMessage());
             errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> generateEventShareLink(String eventId) {
+
+        try {
+            if (!StringUtils.hasText(eventId)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Invalid eventId");
+                errorResponse.put("message", "eventId cannot be null or empty");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+
+            EventDetails eventDetails = eventDetailsRepository.findByEventId(eventId);
+
+            if (eventDetails == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Event not found");
+                errorResponse.put("eventId", eventId);
+                errorResponse.put("message", "No event found for the provided eventId");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+
+            String baseUrl = "https://nytepulse.com/events/"; // Replace with actual base URL
+            String shareLink = baseUrl + eventDetails.getEventId();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Event share link generated successfully");
+            response.put("status", HttpStatus.OK.value());
+            response.put("eventId", eventDetails.getEventId());
+            response.put("shareLink", shareLink);
+            response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error generating share link for eventId: {}", eventId, e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error generating share link");
+            errorResponse.put("message", e.getMessage());
             errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }

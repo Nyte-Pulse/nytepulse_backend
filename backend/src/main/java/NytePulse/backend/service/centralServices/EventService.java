@@ -35,4 +35,6 @@ public interface EventService {
     ResponseEntity<?> getNotApprovedEvents();
 
     ResponseEntity<?> approveOrDeclineByOrganizer(Long eventId,boolean isApproved);
+
+    ResponseEntity<?> generateEventShareLink(String eventId);
 }

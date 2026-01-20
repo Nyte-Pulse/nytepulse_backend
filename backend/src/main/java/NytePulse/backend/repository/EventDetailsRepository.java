@@ -22,14 +22,21 @@ public interface EventDetailsRepository extends JpaRepository<EventDetails,Long>
             "(:startDateTime IS NULL OR e.startDateTime >= :startDateTime) AND " +
             "(:endDateTime IS NULL OR e.endDateTime <= :endDateTime) AND " +
             "(:category IS NULL OR :category = '' OR LOWER(e.category) = LOWER(:category)) AND " +
-            "(:ticketType IS NULL OR :ticketType = '' OR LOWER(e.ticketType) = LOWER(:ticketType)) " +
+            "(:ticketType IS NULL OR :ticketType = '' OR LOWER(e.ticketType) = LOWER(:ticketType)) AND " +
+            "(:amenities IS NULL OR :amenities = '' OR LOWER(e.amenities) LIKE LOWER(CONCAT('%', :amenities, '%'))) AND " +
+            "(:dressCode IS NULL OR :dressCode = '' OR LOWER(e.dressCode) = LOWER(:dressCode)) AND " +
+            // CHANGED THIS LINE BELOW to use LIKE
+            "(:ageRestriction IS NULL OR :ageRestriction = '' OR LOWER(e.ageRestriction) LIKE LOWER(CONCAT('%', :ageRestriction, '%'))) " +
             "ORDER BY e.startDateTime ASC")
     List<EventDetails> searchEvents(@Param("name") String name,
                                     @Param("locationName") String locationName,
                                     @Param("startDateTime") Date startDateTime,
                                     @Param("endDateTime") Date endDateTime,
                                     @Param("category") String category,
-                                    @Param("ticketType") String ticketType);
+                                    @Param("ticketType") String ticketType,
+                                    @Param("amenities") String amenities,
+                                    @Param("dressCode") String dressCode,
+                                    @Param("ageRestriction") String ageRestriction);
 
     EventDetails findByEventId(String eventId);
 
