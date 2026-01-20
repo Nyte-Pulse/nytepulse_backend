@@ -191,7 +191,11 @@ public class EventServiceImpl implements EventService {
             String location = StringUtils.hasText(eventDetailsDto.getLocationName()) ? eventDetailsDto.getLocationName().trim() : null;
             String category = StringUtils.hasText(eventDetailsDto.getCategory()) ? eventDetailsDto.getCategory().trim() : null;
             String ticketType = StringUtils.hasText(eventDetailsDto.getTicketType()) ? eventDetailsDto.getTicketType().trim() : null;
+            String amenities = StringUtils.hasText(eventDetailsDto.getAmenities()) ? eventDetailsDto.getAmenities().trim() : null;
+            String dressCode = StringUtils.hasText(eventDetailsDto.getDressCode()) ? eventDetailsDto.getDressCode().trim() : null;
+            String ageRestriction = StringUtils.hasText(eventDetailsDto.getAgeRestriction()) ? eventDetailsDto.getAgeRestriction().trim() : null;
 
+            System.out.println("age: "+ageRestriction);
             // Calculate date range based on filter
             LocalDateTime startDate = null;
             LocalDateTime endDate = null;
@@ -247,7 +251,9 @@ public class EventServiceImpl implements EventService {
                     Date.from(endDate.atZone(ZoneId.systemDefault()).toInstant()) : null;
 
             List<EventDetails> events = eventDetailsRepository.searchEvents(
-                    name, location, startDateTime, endDateTime, category, ticketType
+                    name, location, startDateTime, endDateTime, category, ticketType,amenities,
+                    dressCode,
+                    ageRestriction
             );
 
             logger.info("Found {} events matching search criteria", events.size());
