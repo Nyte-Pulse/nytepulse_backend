@@ -29,7 +29,7 @@ public class Post {
     private LocalDateTime updatedAt;
 
     @Column(name = "share_count", columnDefinition = "bigint default 0")
-    private Long shareCount = 0L;  // ADD THIS FIELD
+    private Long shareCount = 0L;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
