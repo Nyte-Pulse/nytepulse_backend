@@ -234,5 +234,9 @@ public class UserController {
         return userDetailsService.getTaggedAllowUserList(currentUserId);
     }
 
+    @PostMapping("/generateProfileShareLink/{userId}")
+    public ResponseEntity<?> generateProfileShareLink(@PathVariable Long userId) {
+        return userService.generateProfileShareLink(userId);
+    }
 
 }

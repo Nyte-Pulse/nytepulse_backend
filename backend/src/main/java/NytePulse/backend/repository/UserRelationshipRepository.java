@@ -187,4 +187,11 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
     );
 
 
+    @Query("SELECT CASE WHEN COUNT(ur) > 0 THEN true ELSE false END " +
+            "FROM UserRelationship ur " +
+            "WHERE ur.following.userId = :followingUserId " +
+            "AND ur.follower.userId = :followerUserId " +
+            "AND ur.relationshipType = 'FOLLOWING'")
+    Boolean isFollowers(@Param("followingUserId") String followingUserId,
+                        @Param("followerUserId") String followerUserId);
 }

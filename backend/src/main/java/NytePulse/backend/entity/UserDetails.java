@@ -54,6 +54,9 @@ public class UserDetails {
     @Column(name = "profile_picture")
     private String ProfilePicture;
 
+    @Column(name = "contact_phone")
+    private String contactPhone;
+
     @Column(name = "profile_picture_file_name")
     private String ProfilePictureFileName;
 
@@ -192,4 +195,19 @@ public class UserDetails {
         ProfilePictureFileName = profilePictureFileName;
     }
 
+    public Boolean getPrivate() {
+        return isPrivate;
+    }
+
+    public void setPrivate(Boolean aPrivate) {
+        isPrivate = aPrivate;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
 }

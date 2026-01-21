@@ -50,4 +50,8 @@ public interface PostService {
     ResponseEntity<?> getPostByPostId(Long id);
 
     Post getPostById(Long postId);
+
+    ResponseEntity<?> recordStoryView(Long storyId, String token);
+
+    ResponseEntity<?> getStoryViewers(Long storyId);
 }
