@@ -1,92 +1,158 @@
 package NytePulse.backend.service.impl;
 
-import NytePulse.backend.dto.StartStreamRequest;
-import NytePulse.backend.dto.StreamResponse;
+import NytePulse.backend.dto.LiveStreamResponseDTO;
+import NytePulse.backend.dto.StartStreamRequestDTO;
+import NytePulse.backend.dto.StreamAccessResponseDTO;
+import NytePulse.backend.dto.StreamFeedItemDTO;
 import NytePulse.backend.entity.LiveStream;
 import NytePulse.backend.entity.User;
+import NytePulse.backend.entity.UserDetails;
+import NytePulse.backend.enums.StreamVisibility;
 import NytePulse.backend.repository.LiveStreamRepository;
+import NytePulse.backend.repository.UserDetailsRepository;
+import NytePulse.backend.repository.UserRelationshipRepository;
 import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.centralServices.LiveStreamService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class LiveStreamServiceImpl implements LiveStreamService {
 
-    @Value("${bunnynet.stream.api-key}")
-    private String apiKey;
+    private final LiveStreamRepository liveStreamRepository;
+    private final UserRepository userRepository;
+    private final UserRelationshipRepository userRelationshipRepository;
 
-    @Value("${bunnynet.stream.library-id}")
-    private String libraryId;
+    private final UserDetailsRepository userDetailsRepository;
 
-    // Usually: https://video.bunnycdn.com
-    @Value("${bunnynet.stream.base-url}")
-    private String bunnyBaseUrl;
+    private final CloseFriendServiceImpl closeFriendServiceImpl;
 
-    // Usually: https://{pull-zone}.b-cdn.net
-    @Value("${bunnynet.stream.pull-zone-url}")
-    private String pullZoneUrl;
+    @Value("${ome.ingest.ip}")
+    private String OME_INGEST_IP;
 
-    private final LiveStreamRepository streamRepo;
-    private final UserRepository userRepo;
-    private final RestTemplate restTemplate;
+    @Value("${bunny.cdn.domain}")
+    private String CDN_DOMAIN;
 
-    public LiveStreamServiceImpl(LiveStreamRepository streamRepo, UserRepository userRepo) {
-        this.streamRepo = streamRepo;
-        this.userRepo = userRepo;
-        this.restTemplate = new RestTemplate();
+    @Override
+    @Transactional
+    public ResponseEntity<?> startStream(String userId, StartStreamRequestDTO request) {
+        User user = userRepository.findByUserId(userId);
+
+        liveStreamRepository.findByUser_Id(user.getId())
+                .ifPresent(liveStreamRepository::delete);
+
+        String streamKey = UUID.randomUUID().toString();
+
+        String ingestUrl = "rtmp://" + OME_INGEST_IP + ":1935/app/" + streamKey;
+        String playbackUrl = CDN_DOMAIN + "/app/" + streamKey + "/llhls.m3u8";
+
+        // Default to FOLLOWERS if visibility is null
+        StreamVisibility visibility = request.getVisibility() != null
+                ? request.getVisibility()
+                : StreamVisibility.FOLLOWERS;
+
+        LiveStream stream = LiveStream.builder()
+                .user(user)
+                .streamKey(streamKey)
+                .ingestUrl(ingestUrl)
+                .playbackUrl(playbackUrl)
+                .visibility(visibility)
+                .build();
+
+        liveStreamRepository.save(stream);
+
+        LiveStreamResponseDTO response = LiveStreamResponseDTO.builder()
+                .streamKey(streamKey)
+                .ingestUrl(ingestUrl)
+                .playbackUrl(playbackUrl)
+                .visibility(visibility.name())
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @Override
-    public StreamResponse startStream(StartStreamRequest request) {
-        // 1. Fetch the User
-        User user = userRepo.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    @Transactional
+    public void stopStream(String userId, String streamKey) {
+        LiveStream stream = liveStreamRepository.findByStreamKey(streamKey)
+                .orElseThrow(() -> new RuntimeException("Stream not found"));
 
-        // 2. Call Bunny.net to create the video object
-        String createUrl = String.format("%s/library/%s/videos", bunnyBaseUrl, libraryId);
+        if (!stream.getUser().getUserId().equals(userId)) {
+            throw new RuntimeException("Unauthorized to stop this stream");
+        }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("AccessKey", apiKey);
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        liveStreamRepository.delete(stream);
+    }
 
-        Map<String, String> body = new HashMap<>();
-        body.put("title", request.getTitle() + " by " + user.getUsername());
 
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
-        ResponseEntity<Map> response = restTemplate.postForEntity(createUrl, entity, Map.class);
+    @Override
+    public ResponseEntity<?> checkStreamAccess(String viewerId) {
+        List<LiveStream> allStreams = liveStreamRepository.findAll();
 
-        // 3. Extract Bunny.net GUID
-        Map<String, Object> data = response.getBody();
-        String videoId = (String) data.get("guid");
+        User viewer = userRepository.findByUserId(viewerId);
+        if (viewer == null) {
+            throw new RuntimeException("Viewer not found");
+        }
 
-        // 4. Save to Database
-        LiveStream stream = new LiveStream();
-        stream.setBroadcaster(user);
-        stream.setTitle(request.getTitle());
-        stream.setBunnyVideoId(videoId);
-        stream.setStatus("LIVE");
-        stream.setCreatedAt(LocalDateTime.now());
-        streamRepo.save(stream);
+        List<StreamFeedItemDTO> accessibleStreams = allStreams.stream()
+                .filter(stream -> isAllowedToWatch(viewer, stream))
+                .map(stream -> {
+                    User broadcaster = stream.getUser();
+                    UserDetails broadcasterDetails = userDetailsRepository.findById(broadcaster.getId()).orElse(null);
+                    return StreamFeedItemDTO.builder()
+                            .streamKey(stream.getStreamKey())
+                            .playbackUrl(stream.getPlaybackUrl())
+                            .broadcasterId(broadcaster.getUserId())
+                            .broadcasterName(broadcasterDetails.getName())
+                            .broadcasterUsername(broadcaster.getUsername())
+                            .broadcasterProfileUrl(broadcasterDetails.getProfilePicture())
+                            .visibility(stream.getVisibility().name())
+                            .build();
+                })
+                .collect(Collectors.toList());
 
-        // 5. Construct Response
-        StreamResponse resp = new StreamResponse();
-        resp.setBroadcasterName(user.getUsername());
-        resp.setStreamId(videoId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", HttpStatus.OK.value());
+            response.put("count", accessibleStreams.size());
+            response.put("streams", accessibleStreams);
 
-        // Bunny.net Standard RTMP URL (Check your dashboard for exact URL)
-        resp.setRtmpUrl("rtmp://rtmp-global.bunnycdn.com/live");
-        resp.setStreamKey(videoId); // For Bunny, the Key is usually the Video GUID
+        return ResponseEntity.ok(response);
+    }
 
-        // The HLS URL for viewers
-        resp.setPlaybackUrl(String.format("%s/%s/playlist.m3u8", pullZoneUrl, videoId));
 
-        return resp;
+    private boolean isAllowedToWatch(User viewer, LiveStream stream) {
+        User broadcaster = stream.getUser();
+
+        if (broadcaster.getUserId().equals(viewer.getUserId())) {
+            return true;
+        }
+
+        switch (stream.getVisibility()) {
+            case EVERYONE:
+                return true;
+
+            case FOLLOWERS:
+                return userRelationshipRepository
+                        .existsByFollower_IdAndFollowing_Id(viewer.getId(), broadcaster.getId());
+
+            case CLOSE_FRIENDS:
+                return closeFriendServiceImpl.isCloseFriend(
+                        broadcaster.getUserId(),
+                        viewer.getUserId()
+                );
+
+            default:
+                return false;
+        }
     }
 }

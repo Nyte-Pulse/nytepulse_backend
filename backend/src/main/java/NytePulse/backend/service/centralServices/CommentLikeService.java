@@ -7,7 +7,9 @@ public interface CommentLikeService {
 
     ResponseEntity<?> toggleCommentLike(Long commentId, Long userId);
 
-    ResponseEntity<?> getCommentLikeCount(Long commentId);
+    ResponseEntity<?> getCommentLikeCount(Long commentId,String token);
 
     boolean isCommentLikedByUser(Long commentId, Long userId);
+
+    ResponseEntity<?> getLikedUsersByPostId(Long postId);
 }

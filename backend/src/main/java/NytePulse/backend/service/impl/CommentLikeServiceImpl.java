@@ -8,12 +8,16 @@ import NytePulse.backend.repository.CommentLikeRepository;
 import NytePulse.backend.repository.CommentRepository;
 import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.centralServices.CommentLikeService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.PublicKey;
+import java.util.Base64;
 import java.util.Optional;
 
 @Service
@@ -68,18 +72,68 @@ public class CommentLikeServiceImpl implements CommentLikeService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseEntity<?> getCommentLikeCount(Long commentId) {
+    public ResponseEntity<LikeResponseDTO> getCommentLikeCount(Long commentId, String token) {
+
+        Long userId = null;
+
+        if (token != null && token.startsWith("Bearer ")) {
+            try {
+                String jwt = token.substring(7);
+                userId = extractUserIdFromToken(jwt);
+            } catch (Exception e) {
+                System.err.println("Failed to extract User ID from token: " + e.getMessage());
+            }
+        }
 
         Long totalLikes = commentLikeRepository.countByCommentId(commentId);
+
+        boolean isLiked = false;
+        if (userId != null) {
+            isLiked = commentLikeRepository.existsByCommentIdAndUserId(commentId, userId);
+        }
+
         LikeResponseDTO response = new LikeResponseDTO();
         response.setTotalLikes(totalLikes);
+        response.setLiked(isLiked);
+        response.setMessage("Like status fetched successfully");
 
         return ResponseEntity.ok(response);
+    }
+
+    private Long extractUserIdFromToken(String token) {
+        try {
+            String[] chunks = token.split("\\.");
+            if (chunks.length < 2) return null;
+
+            Base64.Decoder decoder = Base64.getUrlDecoder();
+            String payload = new String(decoder.decode(chunks[1]));
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(payload);
+
+            if (node.has("User-Id")) {
+                return node.get("User-Id").asLong();
+            }
+            return null;
+
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean isCommentLikedByUser(Long commentId, Long userId) {
         return commentLikeRepository.existsByCommentIdAndUserId(commentId, userId);
+    }
+
+
+    @Override
+    public ResponseEntity<?> getLikedUsersByPostId(Long postId){
+
+//        CommentLike commentLike=commentLikeRepository.findLikedUsersByPostId(postId);
+
+        return ResponseEntity.ok(true);
+
     }
 }
