@@ -9,6 +9,8 @@ import NytePulse.backend.exception.ResourceNotFoundException;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.PostService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,6 +45,9 @@ public class PostServiceImpl implements PostService {
     private UserRepository userRepository;
     @Autowired
     private MediaRepository mediaRepository;
+
+    @Autowired
+    private StoryViewRepository storyViewRepository;
     @Autowired
     private BunnyNetService bunnyNetService;
 
@@ -1192,6 +1198,109 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+    @Override
+    public ResponseEntity<?> recordStoryView(Long storyId, String token) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Long userId = extractUserIdFromToken(token);
+            if (userId == null) {
+                response.put("error", "Unauthorized");
+                response.put("message", "Invalid Token");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            // Check if view already exists (to avoid duplicates)
+            if (storyViewRepository.existsByStoryIdAndUserId(storyId, userId)) {
+                response.put("success", true);
+                response.put("message", "Story already viewed");
+                return ResponseEntity.ok(response);
+            }
+
+            // Save new view
+            StoryView view = new StoryView();
+            view.setStoryId(storyId);
+            view.setUserId(userId);
+            storyViewRepository.save(view);
+
+            response.put("success", true);
+            response.put("message", "Story view recorded successfully");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("error", "Internal Server Error");
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    // --- AUTOMATIC DELETION SCHEDULER ---
+    // Runs every hour to delete views older than 24 hours
+    @Scheduled(cron = "0 0 * * * *")
+    public void deleteExpiredStoryViews() {
+        LocalDateTime cutoffTime = LocalDateTime.now().minusHours(24);
+        storyViewRepository.deleteOldViews(cutoffTime);
+        System.out.println("Cleaned up story views older than: " + cutoffTime);
+    }
+
+    private Long extractUserIdFromToken(String token) {
+        if (token == null || !token.startsWith("Bearer ")) return null;
+        try {
+            String jwt = token.substring(7);
+            String[] chunks = jwt.split("\\.");
+            Base64.Decoder decoder = Base64.getUrlDecoder();
+            String payload = new String(decoder.decode(chunks[1]));
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(payload);
+            if (node.has("User-Id")) {
+                return node.get("User-Id").asLong();
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getStoryViewers(Long storyId) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            List<StoryView> views = storyViewRepository.findByStoryId(storyId);
+            long viewCount = views.size();
+
+            List<UserDetails> viewerProfiles = new ArrayList<>();
+
+            if (!views.isEmpty()) {
+                List<Long> dbIds = views.stream()
+                        .map(StoryView::getUserId)
+                        .distinct() // Remove duplicates just in case
+                        .collect(Collectors.toList());
+
+                List<User> users = userRepository.findAllById(dbIds);
+
+                List<String> customUserIds = users.stream()
+                        .map(User::getUserId)
+                        .collect(Collectors.toList());
+
+                if (!customUserIds.isEmpty()) {
+                    viewerProfiles = userDetailsRepository.findByUserIdIn(customUserIds);
+                }
+            }
+
+            response.put("success", HttpStatus.OK.value());
+            response.put("total_views", viewCount);
+            response.put("viewers", viewerProfiles);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Failed to fetch story viewers");
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
 
 
 }

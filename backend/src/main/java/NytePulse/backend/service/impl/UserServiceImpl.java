@@ -18,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -268,9 +267,10 @@ public class UserServiceImpl implements UserService {
             Map<String, ClubDetails> clubDetailsMap = new HashMap<>();
             clubDetailsList.forEach(cd -> clubDetailsMap.putIfAbsent(cd.getUserId(), cd));
 
-            List<Map<String, String>> followerList = new ArrayList<>();
+
+            List<Map<String, Object>> followerList = new ArrayList<>();
             for (User follower : followers) {
-                Map<String, String> followerInfo = new HashMap<>();
+                Map<String, Object> followerInfo = new HashMap<>();
                 followerInfo.put("userId", follower.getUserId());
                 followerInfo.put("username", follower.getUsername());
                 followerInfo.put("email", follower.getEmail());
@@ -290,7 +290,13 @@ public class UserServiceImpl implements UserService {
                         followerInfo.put("accountType", "PERSONAL");
                     }
                 }
+                boolean isFollowing = false;
 
+                if (userId != null && !userId.equals(follower.getUserId())) {
+                    isFollowing = relationshipRepository.isFollowing(userId, follower.getUserId());
+                }
+
+                followerInfo.put("isFollowing", isFollowing);
                 followerList.add(followerInfo);
             }
 
@@ -346,9 +352,9 @@ public class UserServiceImpl implements UserService {
             Map<String, ClubDetails> clubDetailsMap = new HashMap<>();
             clubDetailsList.forEach(cd -> clubDetailsMap.putIfAbsent(cd.getUserId(), cd));
 
-            List<Map<String, String>> followingList = new ArrayList<>();
+            List<Map<String, Object>> followingList = new ArrayList<>();
             for (User followee : following) {
-                Map<String, String> followeeInfo = new HashMap<>();
+                Map<String, Object> followeeInfo = new HashMap<>();
                 followeeInfo.put("userId", followee.getUserId());
                 followeeInfo.put("username", followee.getUsername());
                 followeeInfo.put("email", followee.getEmail());
@@ -368,6 +374,14 @@ public class UserServiceImpl implements UserService {
                         followeeInfo.put("accountType", "PERSONAL");
                     }
                 }
+
+                boolean isFollower = false;
+
+                if (userId != null && !userId.equals(followee.getUserId())) {
+                    isFollower = relationshipRepository.isFollowing(followee.getUserId(),userId);
+                }
+
+                followeeInfo.put("isFollower", isFollower);
 
                 followingList.add(followeeInfo);
             }
@@ -418,6 +432,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public Boolean isFollowing(String followerUserId, String followingUserId) {
         return relationshipRepository.isFollowing(followerUserId, followingUserId);
+    }
+
+    public Boolean isFollowers(String followerUserId, String followingUserId) {
+        return relationshipRepository.isFollowers(followingUserId, followerUserId);
     }
 
     @Override
@@ -695,6 +713,35 @@ public class UserServiceImpl implements UserService {
         error.put("success", "false");
         error.put("error", message);
         return error;
+    }
+
+    @Override
+    public ResponseEntity<?> generateProfileShareLink(Long userId){
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+
+            if (userOpt.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body("User not found with ID: " + userId);
+            }
+
+            User user = userOpt.get();
+            String profileLink = "https://www.nytepulse.com/profile/" + user.getUsername();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("profileLink", profileLink);
+            response.put("status", HttpStatus.OK.value());
+            response.put("message", "Profile share link generated successfully");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error generating profile share link: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while generating the profile share link.");
+        }
     }
 
 }

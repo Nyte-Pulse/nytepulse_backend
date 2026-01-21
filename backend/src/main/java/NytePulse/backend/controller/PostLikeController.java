@@ -14,32 +14,36 @@ public class PostLikeController {
     @Autowired
     private PostLikeService postLikeService;
 
-    // Toggle like on a post
     @PostMapping("/like")
     public ResponseEntity<?> toggleLike(@PathVariable Long postId, @RequestHeader("User-Id") Long userId) {
 
         return postLikeService.toggleLike(postId, userId);
     }
 
-    // Get like count for a post
     @GetMapping("/likes/count")
-    public ResponseEntity<?> getLikeCount(@PathVariable Long postId) {
+    public ResponseEntity<?> getLikeCount(@PathVariable Long postId,@RequestHeader("Authorization") String token) {
 
-        return postLikeService.getLikeCount(postId);
+        return postLikeService.getLikeCount(postId,token);
     }
 
-    // Check if post is liked by user
     @GetMapping("/likes/status")
     public ResponseEntity<?> checkLikeStatus(@PathVariable Long postId, @RequestHeader("User-Id") Long userId) {
         return postLikeService.isPostLikedByUser(postId, userId);
 
     }
 
-    // Get post statistics (likes + comments)
     @GetMapping("/stats")
     public ResponseEntity<?> getPostStats(@PathVariable Long postId, @RequestHeader("User-Id") Long userId) {
 
         return postLikeService.getPostStats(postId, userId);
 
     }
+
+    @GetMapping("/getLikedUsersByPostId")
+    public ResponseEntity<?> getLikedUsersByPostId(@PathVariable Long postId,@RequestParam(defaultValue = "0") int page,@RequestParam(defaultValue = "10") int size) {
+
+        return postLikeService.getLikedUsersByPostId(postId,page,size);
+    }
+
+
 }

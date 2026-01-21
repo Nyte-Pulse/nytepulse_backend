@@ -174,5 +174,16 @@ public class PostController {
         return postService.getStoriesBySettings(userId);
     }
 
+    @PostMapping("/stories/{storyId}/trackView")
+    public ResponseEntity<?> viewStory(
+            @PathVariable Long storyId,
+            @RequestHeader("Authorization") String token) {
+        return postService.recordStoryView(storyId, token);
+    }
+
+    @GetMapping("/stories/{storyId}/views")
+    public ResponseEntity<?> getStoryViewers(@PathVariable Long storyId) {
+        return postService.getStoryViewers(storyId);
+    }
 
 }
