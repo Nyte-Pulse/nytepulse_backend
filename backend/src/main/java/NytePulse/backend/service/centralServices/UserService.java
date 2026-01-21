@@ -33,4 +33,5 @@ public interface UserService {
 
     ResponseEntity<?> deleteProfilePicture(String fileName,String userId);
 
+    ResponseEntity<?> generateProfileShareLink(Long userId);
 }
