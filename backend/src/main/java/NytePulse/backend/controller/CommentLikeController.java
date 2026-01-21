@@ -23,9 +23,15 @@ public class CommentLikeController {
 
 
     @GetMapping("/likes/count")
-    public ResponseEntity<?> getCommentLikeCount(@PathVariable Long commentId) {
+    public ResponseEntity<?> getCommentLikeCount(@PathVariable Long commentId,@RequestHeader("Authorization") String token) {
 
-        return commentLikeService.getCommentLikeCount(commentId);
+        return commentLikeService.getCommentLikeCount(commentId,token);
+    }
+
+    @GetMapping("/getLikedUsersByPostId/{postId}")
+    public ResponseEntity<?> getLikedUsersByPostId(@PathVariable Long postId) {
+
+        return commentLikeService.getLikedUsersByPostId(postId);
     }
 
 }

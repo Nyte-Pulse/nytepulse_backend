@@ -5,21 +5,19 @@ import NytePulse.backend.dto.PostStatsDTO;
 import NytePulse.backend.entity.Post;
 import NytePulse.backend.entity.PostLike;
 import NytePulse.backend.entity.User;
-import NytePulse.backend.repository.CommentRepository;
-import NytePulse.backend.repository.PostLikeRepository;
-import NytePulse.backend.repository.PostRepository;
-import NytePulse.backend.repository.UserRepository;
+import NytePulse.backend.entity.UserDetails;
+import NytePulse.backend.repository.*;
 import NytePulse.backend.service.centralServices.PostLikeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +25,9 @@ public class PostLikeServiceImpl implements PostLikeService {
 
     @Autowired
     private  PostLikeRepository postLikeRepository;
+
+    @Autowired
+    private UserDetailsRepository userDetailsRepository;
 
     @Autowired
     private  PostRepository postRepository;
@@ -78,25 +79,62 @@ public class PostLikeServiceImpl implements PostLikeService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseEntity<?> getLikeCount(Long postId) {
+    public ResponseEntity<?> getLikeCount(Long postId,String token) {
 
-        try{
-        if (!postRepository.existsById(postId)) {
-            throw new RuntimeException("Post not found with id: " + postId);
+        try {
+            if (!postRepository.existsById(postId)) {
+                throw new RuntimeException("Post not found with id: " + postId);
+            }
+
+            Long totalLikes = postLikeRepository.countByPostId(postId);
+            boolean isLiked = false;
+            Long userId = extractUserIdFromToken(token);
+
+            if (userId != null) {
+                isLiked = postLikeRepository.existsByPostIdAndUserId(postId, userId);
+            }
+
+            LikeResponseDTO responseDTO = new LikeResponseDTO();
+            responseDTO.setTotalLikes(totalLikes);
+            responseDTO.setLiked(isLiked); // This sets the boolean
+            responseDTO.setMessage("Total likes retrieved successfully");
+
+            return ResponseEntity.ok(responseDTO);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get Like Count");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    private Long extractUserIdFromToken(String token) {
+        if (token == null || !token.startsWith("Bearer ")) {
+            return null;
         }
 
-        Long totalLikes = postLikeRepository.countByPostId(postId);
+        try {
+            String jwt = token.substring(7);
 
-        LikeResponseDTO responseDTO =new  LikeResponseDTO();
-        responseDTO.setTotalLikes(totalLikes);
-        responseDTO.setMessage("Total likes retrieved successfully");
-        return ResponseEntity.ok(responseDTO);
-    } catch (Exception e) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Failed to get Like Count");
-        errorResponse.put("message", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
+            String[] chunks = jwt.split("\\.");
+            if (chunks.length < 2) return null;
+
+            java.util.Base64.Decoder decoder = java.util.Base64.getUrlDecoder();
+            String payload = new String(decoder.decode(chunks[1]));
+
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(payload);
+
+            if (node.has("User-Id")) {
+                return node.get("User-Id").asLong();
+            }
+            return null;
+
+        } catch (Exception e) {
+            System.err.println("Token parsing failed: " + e.getMessage());
+            return null;
+        }
     }
 
     @Override
@@ -150,5 +188,38 @@ public class PostLikeServiceImpl implements PostLikeService {
         errorResponse.put("message", e.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
+    }
+
+    @Override
+    public ResponseEntity<?> getLikedUsersByPostId(Long postId,int page,int size) {
+        try{
+            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+            Page<PostLike> likesPage = postLikeRepository.findByPostId(postId, pageable);
+
+            List<String> userIds = likesPage.getContent().stream()
+                    .map(like -> like.getUser().getUserId())
+                    .collect(Collectors.toList());
+
+            List<UserDetails> userDetailsList = userDetailsRepository.findByUserIdIn(userIds);
+
+            Page<UserDetails> resultPage = new PageImpl<>(
+                    userDetailsList,
+                    pageable,
+                    likesPage.getTotalElements()
+            );
+
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("message", "Liked users retrieved successfully");
+            response.put("status", HttpStatus.OK.value());
+            response.put("result", resultPage);
+
+            return ResponseEntity.ok(response);
+        }catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get Liked Users By Post Id");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 }
