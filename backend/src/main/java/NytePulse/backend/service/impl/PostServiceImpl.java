@@ -3,11 +3,13 @@ package NytePulse.backend.service.impl;
 import NytePulse.backend.dto.*;
 
 import NytePulse.backend.entity.*;
+import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.enums.PostVisibility;
 import NytePulse.backend.enums.StoryVisibility;
 import NytePulse.backend.exception.ResourceNotFoundException;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
+import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.PostService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -75,6 +77,9 @@ public class PostServiceImpl implements PostService {
     @Autowired
     private UserSettingsRepository userSettingsRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
@@ -121,6 +126,20 @@ public class PostServiceImpl implements PostService {
                                 .userId(taggedUser.getUserId())
                                 .username(taggedUser.getUsername())
                                 .build());
+
+                        User taggedUserDetails = userRepository.findByUserId(taggedUserId);
+                        User creator = userRepository.findByUserId(userId);
+
+                        // ✅ NOTIFICATION: Send Tag Notification
+                        String notifMsg = user.getUsername() + " tagged you in a post.";
+                        notificationService.createNotification(
+                                taggedUserDetails.getId(),                   // Recipient (The tagged user)
+                                creator.getId(),                         // Sender (The post creator)
+                                NotificationType.TAG_POST,      // Enum (Ensure you have this or similar)
+                                notifMsg,                       // Message
+                                savedPost.getId(),              // Reference ID (The Post ID)
+                                "POST"                          // Reference Type
+                        );
                     }
                 }
             }
@@ -141,6 +160,20 @@ public class PostServiceImpl implements PostService {
                                 .userId(mentionedUser.getUserId())
                                 .username(mentionedUser.getUsername())
                                 .build());
+
+                        User MentionedUserDetails = userRepository.findByUserId(mentionedUserId);
+                        User creator = userRepository.findByUserId(userId);
+
+                        // ✅ NOTIFICATION: Send Mention Notification
+                        String notifMsg = user.getUsername() + " mentioned you in a post.";
+                        notificationService.createNotification(
+                                MentionedUserDetails.getId(),                // Recipient
+                                creator.getId(),                         // Sender
+                                NotificationType.MENTION_POST,  // Enum (Ensure you have this or similar)
+                                notifMsg,                       // Message
+                                savedPost.getId(),              // Reference ID
+                                "POST"                          // Reference Type
+                        );
                     }
                 }
             }
@@ -155,6 +188,7 @@ public class PostServiceImpl implements PostService {
                         mediaDTOs.add(MediaDTO.builder()
                                 .id(savedMedia.getId())
                                 .bunnyUrl(savedMedia.getBunnyUrl())
+                                .thumbnailUrl(savedMedia.getThumbnailUrl())
                                 .mediaType(savedMedia.getMediaType().toString())
                                 .build());
                     }
@@ -193,6 +227,7 @@ public class PostServiceImpl implements PostService {
 
         if (contentType != null && contentType.startsWith("image/")) {
             result = bunnyNetService.uploadImage(file);
+//            result.setThumbnailUrl(result.getCdnUrl());
         } else if (contentType != null && contentType.startsWith("video/")) {
             String title = "Video for post " + post.getId();
             result = bunnyNetService.uploadVideo(file, title);
@@ -209,6 +244,8 @@ public class PostServiceImpl implements PostService {
         media.setMediaType(result.getMediaType());
         media.setCreatedAt(ZonedDateTime.now());
         media.setPost(post);
+
+        media.setThumbnailUrl(result.getThumbnailUrl());
 
         return media;
     }

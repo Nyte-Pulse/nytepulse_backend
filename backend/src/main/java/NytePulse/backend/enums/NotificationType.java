@@ -14,5 +14,7 @@ public enum NotificationType {
     FOLLOW_REQUEST,         // Someone requested to follow you (private account)
     FOLLOW_REQUEST_ACCEPTED, // Your follow request was accepted
 
-    NEW_MESSAGE
+    NEW_MESSAGE,
+
+    COMMENT_REPLY
 }

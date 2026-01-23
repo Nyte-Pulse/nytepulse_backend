@@ -13,4 +13,5 @@ public class MediaDTO {
     private Long id;
     private String bunnyUrl;
     private String mediaType;
+    private String thumbnailUrl;
 }

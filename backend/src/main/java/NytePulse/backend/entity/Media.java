@@ -22,6 +22,8 @@ public class Media {
     private String bunnyVideoId; // For Bunny Stream videos
     private Long fileSize;
 
+    private String thumbnailUrl;
+
     @Column(name = "created_at")
     private ZonedDateTime createdAt;
 

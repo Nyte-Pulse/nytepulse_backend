@@ -9,16 +9,19 @@ public class BunnyNetUploadResult {
     private Long fileSize;
     private Media.MediaType mediaType;
 
+    private String thumbnailUrl;
+
     // Constructors
     public BunnyNetUploadResult() {}
 
     public BunnyNetUploadResult(String fileName, String cdnUrl, String bunnyVideoId,
-                                Long fileSize, Media.MediaType mediaType) {
+                                Long fileSize, Media.MediaType mediaType,String thumbnailUrl) {
         this.fileName = fileName;
         this.cdnUrl = cdnUrl;
         this.bunnyVideoId = bunnyVideoId;
         this.fileSize = fileSize;
         this.mediaType = mediaType;
+        this.thumbnailUrl = thumbnailUrl;
     }
 
     // Getters and Setters
@@ -67,6 +70,14 @@ public class BunnyNetUploadResult {
         return new BunnyNetUploadResultBuilder();
     }
 
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
+    }
+
+    public void setThumbnailUrl(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl;
+    }
+
     // Builder class
     public static class BunnyNetUploadResultBuilder {
         private String fileName;
@@ -74,6 +85,8 @@ public class BunnyNetUploadResult {
         private String bunnyVideoId;
         private Long fileSize;
         private Media.MediaType mediaType;
+
+        private String thumbnailUrl;
 
         public BunnyNetUploadResultBuilder fileName(String fileName) {
             this.fileName = fileName;
@@ -100,8 +113,15 @@ public class BunnyNetUploadResult {
             return this;
         }
 
-        public BunnyNetUploadResult build() {
-            return new BunnyNetUploadResult(fileName, cdnUrl, bunnyVideoId, fileSize, mediaType);
+        public BunnyNetUploadResultBuilder thumbnailUrl(String thumbnailUrl) {
+            this.thumbnailUrl = thumbnailUrl;
+            return this;
         }
+
+        public BunnyNetUploadResult build() {
+            return new BunnyNetUploadResult(fileName, cdnUrl, bunnyVideoId, fileSize, mediaType,thumbnailUrl);
+        }
+
+
     }
 }
