@@ -5,10 +5,12 @@ import NytePulse.backend.dto.CommentResponseDTO;
 import NytePulse.backend.dto.UserBasicDTO;
 import NytePulse.backend.entity.*;
 import NytePulse.backend.enums.CommentVisibility;
+import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.enums.StoryCommentVisibility;
 import NytePulse.backend.exception.PermissionDeniedException;
 import NytePulse.backend.exception.ResourceNotFoundException;
 import NytePulse.backend.repository.*;
+import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.CommentService;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +61,9 @@ public class CommentServiceImpl implements CommentService {
     @Autowired
     private StoryRepository storyRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Override
     @Transactional
     public ResponseEntity<?> addComment(Long postId, Long userId, CommentRequestDTO commentRequestDTO) {
@@ -93,6 +98,22 @@ public class CommentServiceImpl implements CommentService {
                     .build();
 
             Comment savedComment = commentRepository.save(comment);
+
+            if (!post.getUser().getId().equals(commenter.getId())) {
+                try {
+                    String notifMsg = commenter.getUsername() + " commented on your post." + savedComment.getContent();
+                    notificationService.createNotification(
+                            post.getUser().getId(), // Recipient (Post Owner)
+                            commenter.getId(),      // Sender (Commenter)
+                            NotificationType.COMMENT_POST,          // Ensure this ENUM exists
+                            notifMsg,                               // Message
+                            post.getId(),           // Reference ID (Post ID)
+                            "POST"                                  // Reference Type
+                    );
+                } catch (Exception e) {
+                    log.error("Failed to send comment notification: {}", e.getMessage());
+                }
+            }
             CommentResponseDTO responseDTO = mapToCommentResponseDTO(savedComment, userId);
 
             return ResponseEntity.ok(responseDTO);
@@ -281,6 +302,23 @@ public class CommentServiceImpl implements CommentService {
             reply.setParentComment(parentComment);
 
             Comment savedReply = commentRepository.save(reply);
+
+            if (!parentComment.getUser().getId().equals(user.getId())) {
+                try {
+                    String notifMsg = user.getUsername() + " replied to your comment.";
+
+                    notificationService.createNotification(
+                            parentComment.getUser().getId(), // Recipient (Original Commenter)
+                            user.getId(),                    // Sender (Replier)
+                            NotificationType.COMMENT_REPLY,                  // Ensure this ENUM exists
+                            notifMsg,                                        // Message
+                            parentComment.getPost().getId(), // Reference ID (Post ID is best for navigation)
+                            "POST"                                           // Reference Type
+                    );
+                } catch (Exception e) {
+                    log.error("Failed to send reply notification: {}", e.getMessage());
+                }
+            }
 
             CommentResponseDTO responseDTO = mapToCommentResponseDTO(savedReply, userId);
             return ResponseEntity.ok(responseDTO);

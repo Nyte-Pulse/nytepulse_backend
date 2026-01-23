@@ -276,12 +276,16 @@ public class BunnyNetService {
             String cdnUrl = String.format("%s/%s/playlist.m3u8",
                     bunnyNetConfig.getStream().getPullZoneUrl(), videoId);
 
+            String thumbnailUrl = String.format("%s/%s/thumbnail.jpg",
+                    bunnyNetConfig.getStream().getPullZoneUrl(), videoId);
+
             return BunnyNetUploadResult.builder()
                     .fileName(file.getOriginalFilename())
                     .cdnUrl(cdnUrl)
                     .bunnyVideoId(videoId)
                     .fileSize(file.getSize())
                     .mediaType(Media.MediaType.VIDEO)
+                    .thumbnailUrl(thumbnailUrl)
                     .build();
 
         } catch (Exception e) {

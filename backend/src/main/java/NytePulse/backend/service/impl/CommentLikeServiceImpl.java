@@ -4,13 +4,16 @@ import NytePulse.backend.dto.LikeResponseDTO;
 import NytePulse.backend.entity.Comment;
 import NytePulse.backend.entity.CommentLike;
 import NytePulse.backend.entity.User;
+import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.repository.CommentLikeRepository;
 import NytePulse.backend.repository.CommentRepository;
 import NytePulse.backend.repository.UserRepository;
+import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.CommentLikeService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CommentLikeServiceImpl implements CommentLikeService {
 
     @Autowired
@@ -32,6 +36,9 @@ public class CommentLikeServiceImpl implements CommentLikeService {
 
     @Autowired
     private  UserRepository userRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Override
     @Transactional
@@ -59,6 +66,23 @@ public class CommentLikeServiceImpl implements CommentLikeService {
             liked = true;
             message = "Comment liked successfully";
         }
+
+//        if (!comment.getUser().getId().equals(user.getId())) {
+//            try {
+//                String notifMsg = user.getUsername() + " liked your comment.";
+//                notificationService.createNotification(
+//                        comment.getUser().getId(),       // Recipient (Comment Owner)
+//                        user.getId(),                    // Sender (Liker)
+//                        NotificationType.LIKE_COMMENT,                   // Ensure this ENUM exists
+//                        notifMsg,                                        // Message
+//                        comment.getPost().getId(),       // Reference ID (Link to Post)
+//                        "POST"                                           // Reference Type
+//                );
+//            } catch (Exception e) {
+//                log.error("Failed to send comment like notification: {}", e.getMessage());
+//            }
+//        }
+
 
         Long totalLikes = commentLikeRepository.countByCommentId(commentId);
 
