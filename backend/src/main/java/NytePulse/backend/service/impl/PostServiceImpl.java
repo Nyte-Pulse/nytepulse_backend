@@ -312,6 +312,7 @@ public class PostServiceImpl implements PostService {
                     .map(media -> MediaDTO.builder()
                             .id(media.getId())
                             .bunnyUrl(media.getBunnyUrl())
+                            .thumbnailUrl(media.getThumbnailUrl())
                             .mediaType(media.getMediaType() != null ? media.getMediaType().toString() : null)
                             .build())
                     .collect(Collectors.toList());
