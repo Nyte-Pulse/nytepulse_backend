@@ -92,23 +92,23 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/followers")
-    public ResponseEntity<?> getFollowers(@PathVariable String userId,Authentication authentication) {
+    public ResponseEntity<?> getFollowers(@PathVariable String userId,Authentication authentication,@RequestParam(defaultValue = "0") int page,@RequestParam(defaultValue = "10") int size) {
         String currentLoginUserId = null;
         if (authentication != null && authentication.isAuthenticated()) {
             // Assuming your principal is the username or you have a custom UserDetails
             currentLoginUserId = authentication.getName();
         }
-        return userService.getFollowers(userId,currentLoginUserId);
+        return userService.getFollowers(userId,currentLoginUserId,page, size);
     }
 
     @GetMapping("/{userId}/following")
-    public ResponseEntity<?> getFollowing(@PathVariable String userId, Authentication authentication) {
+    public ResponseEntity<?> getFollowing(@PathVariable String userId, Authentication authentication,@RequestParam(defaultValue = "0") int page,@RequestParam(defaultValue = "10") int size) {
         String currentLoginUserId = null;
         if (authentication != null && authentication.isAuthenticated()) {
             // Assuming your principal is the username or you have a custom UserDetails
             currentLoginUserId = authentication.getName();
         }
-        return userService.getFollowing(userId,currentLoginUserId);
+        return userService.getFollowing(userId,currentLoginUserId,page,size);
     }
 
     @DeleteMapping("/{userId}/unfollow/{followingUserId}")
