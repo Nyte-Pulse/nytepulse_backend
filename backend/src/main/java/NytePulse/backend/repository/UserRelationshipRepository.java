@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface UserRelationshipRepository extends JpaRepository<UserRelationship, Long> {
@@ -24,6 +25,10 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
             "AND ur.relationshipType = 'FOLLOWING'")
     boolean isFollowing(@Param("followerUserId") String followerUserId,
                         @Param("followingUserId") String followingUserId);
+
+    // In RelationshipRepository.java
+    @Query("SELECT r.follower.id FROM UserRelationship r WHERE r.follower.id = :currentUserId AND r.follower.id IN :targetIds")
+    Set<String> findFolloweeIdsByFollowerAndTargets(@Param("currentUserId") String currentUserId, @Param("targetIds") List<String> targetIds);
 
     // Get all followers of a user
     @Query("SELECT ur.follower FROM UserRelationship ur " +
@@ -194,4 +199,30 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
             "AND ur.relationshipType = 'FOLLOWING'")
     Boolean isFollowers(@Param("followingUserId") String followingUserId,
                         @Param("followerUserId") String followerUserId);
+
+
+    // Existing method to get the list of followers
+
+
+    // NEW: Optimization to check "Am I following these people?" in one query
+    @Query("SELECT r.following.id FROM UserRelationship r " +
+            "WHERE r.follower.id = :currentUserId " +
+            "AND r.following.id IN :targetIds " +
+            "AND r.relationshipType = 'FOLLOWING'")
+    Set<Long> findFollowingIdsByFollowerAndTargets(
+            @Param("currentUserId") Long currentUserId,
+            @Param("targetIds") List<Long> targetIds
+    );
+
+    Optional<UserRelationship> findByFollowerAndFollowing(User blocker, User blocked);
+
+    @Query("SELECT CASE WHEN COUNT(ur) > 0 THEN true ELSE false END " +
+            "FROM UserRelationship ur " +
+            "WHERE ur.follower.userId = :targetUserId " +
+            "AND ur.following.userId = :userId " +
+            "AND ur.relationshipType = 'BLOCKED'")
+    boolean isBlocked(@Param("targetUserId") String userId,
+                        @Param("userId") String targetUserId);
+
+
 }

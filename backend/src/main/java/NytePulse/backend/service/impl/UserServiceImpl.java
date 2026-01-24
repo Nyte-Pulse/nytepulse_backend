@@ -229,27 +229,90 @@ public class UserServiceImpl implements UserService {
 
     }
 
+    @Override
+    public ResponseEntity<?> blockUser(String blockerUserId, String blockedUserId) {
+        try {
+            if (blockerUserId.equals(blockedUserId)) {
+                throw new IllegalArgumentException("User cannot block themselves");
+            }
+
+            // 1. Fetch Users (Assuming your repo returns User or null)
+            User blocker = userRepository.findByUserId(blockerUserId);
+            User blocked = userRepository.findByUserId(blockedUserId);
+
+            if (blocker == null || blocked == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
+            }
+
+            // 2. Check if a relationship already exists (to avoid unique constraint errors)
+            Optional<UserRelationship> existingRelationship = relationshipRepository
+                    .findByFollowerAndFollowing(blocker, blocked);
+
+            UserRelationship relationship;
+
+            if (existingRelationship.isPresent()) {
+                // CASE A: Update existing relationship (e.g., was 'FOLLOWING', now 'BLOCKED')
+                relationship = existingRelationship.get();
+                relationship.setRelationshipType(RelationshipType.BLOCKED);
+                relationship.setCreatedAt(LocalDateTime.now()); // Update timestamp
+            } else {
+                // CASE B: Create new relationship
+                relationship = new UserRelationship(blocker, blocked);
+                relationship.setRelationshipType(RelationshipType.BLOCKED); // <--- IMPORTANT
+            }
+
+            relationshipRepository.save(relationship);
+
+            // 3. (Optional but Recommended) Force unfollow in the reverse direction
+            // If I block you, you shouldn't be following me anymore.
+            Optional<UserRelationship> reverseRelationship = relationshipRepository
+                    .findByFollowerAndFollowing(blocked, blocker);
+
+            reverseRelationship.ifPresent(rel -> relationshipRepository.delete(rel));
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Successfully blocked user: " + blockedUserId);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error while blocking user: {}", e.getMessage(), e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to block the user.");
+        }
+    }
+
+
 
     @Override
-    public ResponseEntity<?> getFollowers(String userId) {
+    public ResponseEntity<?> getFollowers(String profileOwnerId, String currentLoginUserId) {
         try {
-            Page<User> followers = relationshipRepository.getFollowers(userId, Pageable.unpaged());
+            Page<User> followersPage = relationshipRepository.getFollowers(profileOwnerId, Pageable.unpaged());
 
-            if (followers.isEmpty()) {
+            if (followersPage.isEmpty()) {
                 Map<String, Object> response = new HashMap<>();
                 response.put("count", 0);
                 response.put("followers", Collections.emptyList());
                 return ResponseEntity.ok(response);
             }
 
+            List<User> followersList = followersPage.getContent();
+
             Set<String> personalUserIds = new HashSet<>();
             Set<String> businessUserIds = new HashSet<>();
 
-            followers.forEach(user -> {
+            List<Long> targetLongIds = new ArrayList<>();
+
+            followersList.forEach(user -> {
                 if (user.getUserId().startsWith("BS")) {
                     businessUserIds.add(user.getUserId());
                 } else {
                     personalUserIds.add(user.getUserId());
+                }
+
+                // B. Collect Long IDs for "Am I Following?" check
+                if (user.getId() != null) {
+                    targetLongIds.add(user.getId());
                 }
             });
 
@@ -267,9 +330,29 @@ public class UserServiceImpl implements UserService {
             Map<String, ClubDetails> clubDetailsMap = new HashMap<>();
             clubDetailsList.forEach(cd -> clubDetailsMap.putIfAbsent(cd.getUserId(), cd));
 
+            Set<Long> followingIdsSet = new HashSet<>();
+
+            Long currentUserIdLongVal = null;
+
+            if (currentLoginUserId != null && !targetLongIds.isEmpty()) {
+                try {
+                    Optional<User> currentUserOpt = userRepository.findByEmail(currentLoginUserId);
+
+                    if (currentUserOpt.isPresent()) {
+                        currentUserIdLongVal = currentUserOpt.get().getId();
+
+                        followingIdsSet = relationshipRepository
+                                .findFollowingIdsByFollowerAndTargets(currentUserIdLongVal, targetLongIds);
+                    }
+
+                } catch (Exception e) {
+                    logger.warn("Error resolving Current User ID for relationship check: {}", e.getMessage());
+                }
+            }
 
             List<Map<String, Object>> followerList = new ArrayList<>();
-            for (User follower : followers) {
+
+            for (User follower : followersList) {
                 Map<String, Object> followerInfo = new HashMap<>();
                 followerInfo.put("userId", follower.getUserId());
                 followerInfo.put("username", follower.getUsername());
@@ -290,19 +373,28 @@ public class UserServiceImpl implements UserService {
                         followerInfo.put("accountType", "PERSONAL");
                     }
                 }
-                boolean isFollowing = false;
 
-                if (userId != null && !userId.equals(follower.getUserId())) {
-                    isFollowing = relationshipRepository.isFollowing(userId, follower.getUserId());
+                boolean isFollowedByMe = false;
+
+                if (follower.getId() != null) {
+                    isFollowedByMe = followingIdsSet.contains(follower.getId());
                 }
 
-                followerInfo.put("isFollowing", isFollowing);
+                if (currentUserIdLongVal != null && currentUserIdLongVal.equals(follower.getId())) {
+                    isFollowedByMe = false;
+                } else if (currentLoginUserId != null && currentLoginUserId.equals(follower.getEmail())) {
+                    isFollowedByMe = false;
+                }
+
+                followerInfo.put("isFollowedByCurrentUser", isFollowedByMe);
+
                 followerList.add(followerInfo);
             }
 
             Map<String, Object> response = new HashMap<>();
             response.put("count", followerList.size());
             response.put("followers", followerList);
+            response.put("status", HttpStatus.OK.value());
 
             return ResponseEntity.ok(response);
 
@@ -316,34 +408,40 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public ResponseEntity<?> getFollowing(String userId) {
+    public ResponseEntity<?> getFollowing(String profileOwnerId, String currentLoginUserId) {
         try {
-            Page<User> following = relationshipRepository.getFollowing(userId, Pageable.unpaged());
+            Page<User> followingPage = relationshipRepository.getFollowing(profileOwnerId, Pageable.unpaged());
 
-            if (following.isEmpty()) {
+            if (followingPage.isEmpty()) {
                 Map<String, Object> response = new HashMap<>();
                 response.put("count", 0);
                 response.put("following", Collections.emptyList());
                 return ResponseEntity.ok(response);
             }
 
+            List<User> followingList = followingPage.getContent();
+
             Set<String> personalUserIds = new HashSet<>();
             Set<String> businessUserIds = new HashSet<>();
 
-            following.forEach(user -> {
+            List<Long> targetLongIds = new ArrayList<>();
+
+            followingList.forEach(user -> {
                 if (user.getUserId().startsWith("BS")) {
                     businessUserIds.add(user.getUserId());
                 } else {
                     personalUserIds.add(user.getUserId());
                 }
+
+                if (user.getId() != null) {
+                    targetLongIds.add(user.getId());
+                }
             });
 
-            List<UserDetails> userDetailsList = personalUserIds.isEmpty() ?
-                    Collections.emptyList() :
+            List<UserDetails> userDetailsList = personalUserIds.isEmpty() ? Collections.emptyList() :
                     userDetailsRepository.findByUserIdIn(new ArrayList<>(personalUserIds));
 
-            List<ClubDetails> clubDetailsList = businessUserIds.isEmpty() ?
-                    Collections.emptyList() :
+            List<ClubDetails> clubDetailsList = businessUserIds.isEmpty() ? Collections.emptyList() :
                     clubDetailsRepository.findByUserIdIn(new ArrayList<>(businessUserIds));
 
             Map<String, UserDetails> userDetailsMap = new HashMap<>();
@@ -352,51 +450,71 @@ public class UserServiceImpl implements UserService {
             Map<String, ClubDetails> clubDetailsMap = new HashMap<>();
             clubDetailsList.forEach(cd -> clubDetailsMap.putIfAbsent(cd.getUserId(), cd));
 
-            List<Map<String, Object>> followingList = new ArrayList<>();
-            for (User followee : following) {
+
+            Set<Long> followingIdsSet = new HashSet<>();
+
+            if (currentLoginUserId != null && !targetLongIds.isEmpty()) {
+                try {
+                    Optional<User> currentUserIdLong = userRepository.findByEmail(currentLoginUserId);
+
+                    followingIdsSet = relationshipRepository
+                            .findFollowingIdsByFollowerAndTargets(currentUserIdLong.get().getId(), targetLongIds);
+
+                } catch (NumberFormatException e) {
+                    logger.warn("Current User ID '{}' could not be parsed to Long for relationship check.", currentLoginUserId);
+                }
+            }
+
+            List<Map<String, Object>> responseList = new ArrayList<>();
+
+            for (User followee : followingList) {
                 Map<String, Object> followeeInfo = new HashMap<>();
-                followeeInfo.put("userId", followee.getUserId());
+                followeeInfo.put("userId", followee.getUserId()); // String ID (e.g., "BS101")
                 followeeInfo.put("username", followee.getUsername());
                 followeeInfo.put("email", followee.getEmail());
 
                 if (followee.getUserId().startsWith("BS")) {
-                    ClubDetails clubDetails = clubDetailsMap.get(followee.getUserId());
-                    if (clubDetails != null) {
-                        followeeInfo.put("name", clubDetails.getName());
-                        followeeInfo.put("profilePicture", clubDetails.getProfilePicture());
+                    ClubDetails club = clubDetailsMap.get(followee.getUserId());
+                    if (club != null) {
+                        followeeInfo.put("name", club.getName());
+                        followeeInfo.put("profilePicture", club.getProfilePicture());
                         followeeInfo.put("accountType", "BUSINESS");
                     }
                 } else {
-                    UserDetails userDetails = userDetailsMap.get(followee.getUserId());
-                    if (userDetails != null) {
-                        followeeInfo.put("name", userDetails.getName());
-                        followeeInfo.put("profilePicture", userDetails.getProfilePicture());
+                    UserDetails details = userDetailsMap.get(followee.getUserId());
+                    if (details != null) {
+                        followeeInfo.put("name", details.getName());
+                        followeeInfo.put("profilePicture", details.getProfilePicture());
                         followeeInfo.put("accountType", "PERSONAL");
                     }
                 }
 
-                boolean isFollower = false;
+                boolean isFollowedByMe = false;
 
-                if (userId != null && !userId.equals(followee.getUserId())) {
-                    isFollower = relationshipRepository.isFollowing(followee.getUserId(),userId);
+                if (followee.getId() != null) {
+                    isFollowedByMe = followingIdsSet.contains(followee.getId());
                 }
 
-                followeeInfo.put("isFollower", isFollower);
+                if (followee.getUserId().equals(currentLoginUserId)) {
+                    isFollowedByMe = false;
+                }
 
-                followingList.add(followeeInfo);
+                followeeInfo.put("isFollower", isFollowedByMe);
+
+                responseList.add(followeeInfo);
             }
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("count", followingList.size());
-            response.put("following", followingList);
+            Map<String, Object> finalResponse = new HashMap<>();
+            finalResponse.put("count", responseList.size());
+            finalResponse.put("following", responseList);
+            finalResponse.put("status", HttpStatus.OK.value());
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(finalResponse);
 
         } catch (Exception e) {
-            logger.error("Error while fetching following: {}", e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("An error occurred while trying to fetch following.");
+            logger.error("Error fetching following list: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while fetching following.");
         }
     }
 
@@ -428,10 +546,52 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Override
+    public ResponseEntity<?> unblock(String blockerUserId, String blockedUserId) { // Renamed arguments for clarity
+        try {
+            if (blockerUserId.equals(blockedUserId)) {
+                throw new IllegalArgumentException("User cannot unblock themselves");
+            }
+
+            Optional<UserRelationship> relationshipOpt = relationshipRepository
+                    .findByFollowerUserIdAndFollowingUserId(blockerUserId, blockedUserId);
+
+            if (relationshipOpt.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("No relationship found with user: " + blockedUserId);
+            }
+
+            UserRelationship relationship = relationshipOpt.get();
+
+            if (relationship.getRelationshipType() != RelationshipType.BLOCKED) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("User is not blocked, so they cannot be unblocked.");
+            }
+
+            relationshipRepository.delete(relationship);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Successfully unblocked user: " + blockedUserId);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error while unblocking user: {}", e.getMessage(), e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to unblock the user.");
+        }
+    }
 
     @Override
     public Boolean isFollowing(String followerUserId, String followingUserId) {
         return relationshipRepository.isFollowing(followerUserId, followingUserId);
+    }
+
+    @Override
+    public boolean isBlocked(String targetUserId, String userId) {
+        return relationshipRepository.isBlocked(userId, targetUserId);
     }
 
     public Boolean isFollowers(String followerUserId, String followingUserId) {
@@ -714,6 +874,7 @@ public class UserServiceImpl implements UserService {
         error.put("error", message);
         return error;
     }
+
 
     @Override
     public ResponseEntity<?> generateProfileShareLink(Long userId){

@@ -11,9 +11,9 @@ public interface UserService {
 
     ResponseEntity<?> followUser(String followerUserId, String followingUserId);
 
-    ResponseEntity<?> getFollowers(String userId);
+    ResponseEntity<?> getFollowers(String userId,String currentLoginUserId);
 
-    ResponseEntity<?> getFollowing(String userId);
+    ResponseEntity<?> getFollowing(String userId,String currentLoginUserId);
 
     ResponseEntity<?> unfollowUser(String userId, String followingUserId);
 
@@ -34,4 +34,10 @@ public interface UserService {
     ResponseEntity<?> deleteProfilePicture(String fileName,String userId);
 
     ResponseEntity<?> generateProfileShareLink(Long userId);
+
+    ResponseEntity<?> blockUser(String userId, String followingUserId);
+
+    ResponseEntity<?> unblock(String userId, String followingUserId);
+
+    boolean isBlocked(String userId, String targetUserId);
 }
