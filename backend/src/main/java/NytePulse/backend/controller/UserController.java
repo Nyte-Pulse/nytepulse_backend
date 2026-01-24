@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -85,15 +86,29 @@ public class UserController {
         return userService.followUser(userId, followingUserId);
     }
 
+    @PostMapping("/{userId}/block/{followingUserId}")
+    public ResponseEntity<?> blockUser(@PathVariable String userId, @PathVariable String followingUserId) {
+        return userService.blockUser(userId, followingUserId);
+    }
+
     @GetMapping("/{userId}/followers")
-    public ResponseEntity<?> getFollowers(@PathVariable String userId) {
-        ;
-        return userService.getFollowers(userId);
+    public ResponseEntity<?> getFollowers(@PathVariable String userId,Authentication authentication) {
+        String currentLoginUserId = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            // Assuming your principal is the username or you have a custom UserDetails
+            currentLoginUserId = authentication.getName();
+        }
+        return userService.getFollowers(userId,currentLoginUserId);
     }
 
     @GetMapping("/{userId}/following")
-    public ResponseEntity<?> getFollowing(@PathVariable String userId) {
-        return userService.getFollowing(userId);
+    public ResponseEntity<?> getFollowing(@PathVariable String userId, Authentication authentication) {
+        String currentLoginUserId = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            // Assuming your principal is the username or you have a custom UserDetails
+            currentLoginUserId = authentication.getName();
+        }
+        return userService.getFollowing(userId,currentLoginUserId);
     }
 
     @DeleteMapping("/{userId}/unfollow/{followingUserId}")
@@ -101,17 +116,26 @@ public class UserController {
         return userService.unfollowUser(userId, followingUserId);
     }
 
+    @DeleteMapping("/{userId}/unblock/{followingUserId}")
+    public ResponseEntity<?> unblock(@PathVariable String userId, @PathVariable String followingUserId) {
+        return userService.unblock(userId, followingUserId);
+    }
+
     @GetMapping("/{userId}/follow-status/{targetUserId}")
     public ResponseEntity<?> getFollowStatus(@PathVariable String userId, @PathVariable String targetUserId) {
 
         boolean isFollowing = userService.isFollowing(userId, targetUserId);
         boolean isFollowedBy = userService.isFollowing(targetUserId, userId);
+        boolean isBlockedBy = userService.isBlocked(userId, targetUserId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("isFollowing", isFollowing);
         response.put("isFollowedBy", isFollowedBy);
+        response.put("isBlockedBy", isBlockedBy);
         response.put("userId", userId);
         response.put("targetUserId", targetUserId);
+        response.put("status", HttpStatus.OK.value());
+
         return ResponseEntity.ok(response);
 
     }
