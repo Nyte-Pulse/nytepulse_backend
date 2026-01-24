@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -285,14 +286,19 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public ResponseEntity<?> getFollowers(String profileOwnerId, String currentLoginUserId) {
+    public ResponseEntity<?> getFollowers(String profileOwnerId, String currentLoginUserId, int page, int size) {
         try {
-            Page<User> followersPage = relationshipRepository.getFollowers(profileOwnerId, Pageable.unpaged());
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> followersPage = relationshipRepository.getFollowers(profileOwnerId, pageable);
 
             if (followersPage.isEmpty()) {
                 Map<String, Object> response = new HashMap<>();
-                response.put("count", 0);
                 response.put("followers", Collections.emptyList());
+                response.put("totalElements", 0);
+                response.put("totalPages", 0);
+                response.put("currentPage", page);
+                response.put("status", HttpStatus.OK.value());
                 return ResponseEntity.ok(response);
             }
 
@@ -408,14 +414,19 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public ResponseEntity<?> getFollowing(String profileOwnerId, String currentLoginUserId) {
+    public ResponseEntity<?> getFollowing(String profileOwnerId, String currentLoginUserId,int page,int size) {
         try {
-            Page<User> followingPage = relationshipRepository.getFollowing(profileOwnerId, Pageable.unpaged());
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<User> followingPage = relationshipRepository.getFollowing(profileOwnerId, pageable);
 
             if (followingPage.isEmpty()) {
                 Map<String, Object> response = new HashMap<>();
-                response.put("count", 0);
                 response.put("following", Collections.emptyList());
+                response.put("totalElements", 0);
+                response.put("totalPages", 0);
+                response.put("currentPage", page);
+                response.put("status", HttpStatus.OK.value());
                 return ResponseEntity.ok(response);
             }
 

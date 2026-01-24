@@ -11,9 +11,9 @@ public interface UserService {
 
     ResponseEntity<?> followUser(String followerUserId, String followingUserId);
 
-    ResponseEntity<?> getFollowers(String userId,String currentLoginUserId);
+    ResponseEntity<?> getFollowers(String userId,String currentLoginUserId,int page,int size);
 
-    ResponseEntity<?> getFollowing(String userId,String currentLoginUserId);
+    ResponseEntity<?> getFollowing(String userId,String currentLoginUserId,int page,int size);
 
     ResponseEntity<?> unfollowUser(String userId, String followingUserId);
 
