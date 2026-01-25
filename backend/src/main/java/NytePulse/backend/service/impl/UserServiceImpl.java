@@ -930,8 +930,9 @@ public class UserServiceImpl implements UserService {
                 Optional<User> user= userRepository.findById(userId);
 
                 Map<String, Object> userMap = new HashMap<>();
-                userMap.put("userId", userId);
+                userMap.put("id", userId);
                 userMap.put("followersCount", followersCount);
+
 
                 if (user.get().getUserId().startsWith("BS")) {
                     ClubDetails clubDetails = clubDetailsRepository.findByUserId(user.get().getUserId());
@@ -939,6 +940,9 @@ public class UserServiceImpl implements UserService {
                         userMap.put("name", clubDetails.getName());
                         userMap.put("profilePicture", clubDetails.getProfilePicture());
                         userMap.put("accountType", "BUSINESS");
+                        userMap.put("username", clubDetails.getUsername());
+                        userMap.put("userId", clubDetails.getUserId());
+
                     }
                 } else {
                     UserDetails userDetails = userDetailsRepository.findByUserId(user.get().getUserId());
@@ -946,6 +950,8 @@ public class UserServiceImpl implements UserService {
                         userMap.put("name", userDetails.getName());
                         userMap.put("profilePicture", userDetails.getProfilePicture());
                         userMap.put("accountType", "PERSONAL");
+                        userMap.put("username", userDetails.getUsername());
+                        userMap.put("userId", userDetails.getUserId());
                     }
                 }
 
