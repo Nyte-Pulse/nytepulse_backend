@@ -183,7 +183,7 @@ public class CommentLikeServiceImpl implements CommentLikeService {
                     UserDetails userDetails = userDetailsRepository.findByUserId(like.getUser().getUserId());
 
                     if (userDetails != null) {
-                        userMap.put("profilePic", userDetails.getProfilePicture());
+                        userMap.put("profilePicture", userDetails.getProfilePicture());
                         userMap.put("name", userDetails.getName());
                     } else {
                         userMap.put("profilePic", null);
