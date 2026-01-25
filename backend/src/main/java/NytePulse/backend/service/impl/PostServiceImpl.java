@@ -1137,7 +1137,7 @@ public class PostServiceImpl implements PostService {
                         StoryUserDTO userDTO = StoryUserDTO.builder()
                                 .id(storyOwner.getId())
                                 .userId(storyOwner.getUserId())
-                                .profilePictureUrl(userDetails.getProfilePicture())
+                                .profilePicture(userDetails.getProfilePicture())
                                 .username(storyOwner.getUsername())
                                 .accountType(storyOwner.getAccountType().toString())
                                 .build();
