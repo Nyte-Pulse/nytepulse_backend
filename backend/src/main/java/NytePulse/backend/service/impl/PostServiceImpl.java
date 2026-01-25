@@ -49,6 +49,9 @@ public class PostServiceImpl implements PostService {
     private MediaRepository mediaRepository;
 
     @Autowired
+    private SavedPostRepository savedPostRepository;
+
+    @Autowired
     private StoryViewRepository storyViewRepository;
     @Autowired
     private BunnyNetService bunnyNetService;
@@ -1337,6 +1340,121 @@ public class PostServiceImpl implements PostService {
             response.put("error", "Failed to fetch story viewers");
             response.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+
+    @Override
+    public ResponseEntity<?> savePost(String currentUserId, Long postId) {
+        try {
+            Optional<User> user = userRepository.findByEmail(currentUserId);
+            Optional<Post> postOpt = postRepository.findById(postId);
+
+            if (user == null || postOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User or Post not found.");
+            }
+
+            Post post = postOpt.get();
+
+            if (savedPostRepository.existsByUserAndPost(user.get(), post)) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Post is already saved.");
+                response.put("status", HttpStatus.CONFLICT.value());
+                return ResponseEntity.ok(response);
+            }
+
+            SavedPost savedPost = new SavedPost(user.get(), post);
+            savedPostRepository.save(savedPost);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Post saved successfully.");
+            response.put("status", HttpStatus.OK.value());
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error saving post.");
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> removeSavedPost(String currentUserId, Long postId) {
+        try {
+            Optional<User> user = userRepository.findByEmail(currentUserId);
+            Optional<Post> postOpt = postRepository.findById(postId);
+
+            if (user == null || postOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User or Post not found.");
+            }
+
+            Optional<SavedPost> savedPostOpt = savedPostRepository.findByUserAndPost(user.get(), postOpt.get());
+
+            if (savedPostOpt.isPresent()) {
+                savedPostRepository.delete(savedPostOpt.get());
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Post removed from saved list.");
+                response.put("status", HttpStatus.OK.value());
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Post was not in saved list.");
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error removing saved post.");
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getSavedPosts(String currentUserId, int page, int size) {
+        try {
+            Optional<User> user = userRepository.findByEmail(currentUserId);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
+            }
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<SavedPost> savedPostPage = savedPostRepository.findByUserOrderBySavedAtDesc(user.get(), pageable);
+
+            List<Map<String, Object>> responseList = new ArrayList<>();
+
+            for (SavedPost savedEntry : savedPostPage.getContent()) {
+                Post post = savedEntry.getPost();
+
+                Map<String, Object> postMap = new HashMap<>();
+                postMap.put("savedAt", savedEntry.getSavedAt());
+
+                postMap.put("postId", post.getId());
+                postMap.put("content", post.getContent());
+                postMap.put("createdAt", post.getCreatedAt());
+                postMap.put("shareCount", post.getShareCount());
+                postMap.put("location", post.getLocation());
+
+                if (post.getUser() != null) {
+                    Map<String, Object> ownerMap = new HashMap<>();
+                    ownerMap.put("userId", post.getUser().getUserId());
+                    ownerMap.put("username", post.getUser().getUsername());
+                    // Add profile picture logic here if available
+                    postMap.put("postedBy", ownerMap);
+                }
+                if (post.getMedia() != null && !post.getMedia().isEmpty()) {
+                    // Assuming Media entity has a getUrl() method
+                    postMap.put("media", post.getMedia());
+                }
+
+                responseList.add(postMap);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("savedPosts", responseList);
+            response.put("totalPages", savedPostPage.getTotalPages());
+            response.put("totalElements", savedPostPage.getTotalElements());
+            response.put("currentPage", savedPostPage.getNumber());
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching saved posts.");
         }
     }
 
