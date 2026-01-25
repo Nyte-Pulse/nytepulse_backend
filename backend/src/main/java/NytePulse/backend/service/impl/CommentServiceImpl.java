@@ -141,6 +141,7 @@ public class CommentServiceImpl implements CommentService {
             }
 
             if (!post.getUser().getId().equals(commenter.getId())) {
+                System.out.println("Sending notification to post owner for new comment"+post.getUser().getId());
                 try {
                     String notifMsg = commenter.getUsername() + " commented on your post." + savedComment.getContent();
                     notificationService.createNotification(
