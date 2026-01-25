@@ -26,10 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +42,9 @@ public class CommentServiceImpl implements CommentService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private CommentMentionRepository commentMentionRepository;
 
     @Autowired
     private UserDetailsRepository userDetailsRepository;
@@ -98,6 +98,47 @@ public class CommentServiceImpl implements CommentService {
                     .build();
 
             Comment savedComment = commentRepository.save(comment);
+
+            List<String> mentionIds = commentRequestDTO.getMentionedUserIds();
+
+            if (mentionIds != null && !mentionIds.isEmpty()) {
+
+                // Fetch all mentioned User entities in one query
+                List<User> mentionedUsers = userRepository.findByUserIdIn((ArrayList<String>) mentionIds);
+                List<CommentMention> mentionsToSave = new ArrayList<>();
+
+                for (User mentionedUser : mentionedUsers) {
+                    // Build the Mention Entity linking Post, Comment, and User
+                    CommentMention mention = CommentMention.builder()
+                            .comment(savedComment)               // Link to the newly saved Comment
+                            .post(post)                          // Link to the Post (as requested)
+                            .mentionedUser(mentionedUser)        // Link to the User Entity
+                            .creatorUserId(commenter.getUserId())       // Store the Commenter's ID
+                            .createdAt(LocalDateTime.now())
+                            .build();
+
+                    mentionsToSave.add(mention);
+
+                    try {
+                        String mentionMsg = commenter.getUsername() + " mentioned you in a comment: " + savedComment.getContent();
+                        notificationService.createNotification(
+                                mentionedUser.getId(),            // Recipient (Mentioned User)
+                                commenter.getId(),                // Sender (Commenter)
+                                NotificationType.MENTION_COMMENT, // Ensure this ENUM exists
+                                mentionMsg,
+                                post.getId(),                     // Reference ID (Post)
+                                "COMMENT_MENTION"                 // Reference Type
+                        );
+                    } catch (Exception e) {
+                        log.error("Failed to send mention notification to user {}: {}", mentionedUser.getId(), e.getMessage());
+                    }
+                }
+
+                // Batch save all mentions to the database
+                if (!mentionsToSave.isEmpty()) {
+                    commentMentionRepository.saveAll(mentionsToSave);
+                }
+            }
 
             if (!post.getUser().getId().equals(commenter.getId())) {
                 try {
@@ -303,6 +344,45 @@ public class CommentServiceImpl implements CommentService {
 
             Comment savedReply = commentRepository.save(reply);
 
+            List<String> mentionIds = commentRequestDTO.getMentionedUserIds();
+
+            if (mentionIds != null && !mentionIds.isEmpty()) {
+
+                List<User> mentionedUsers = userRepository.findByUserIdIn((ArrayList<String>) mentionIds);
+                List<CommentMention> mentionsToSave = new ArrayList<>();
+
+                for (User mentionedUser : mentionedUsers) {
+                    CommentMention mention = CommentMention.builder()
+                            .comment(savedReply)                 // Link to the newly saved Reply
+                            .post(parentComment.getPost())       // Link to the Post (context)
+                            .mentionedUser(mentionedUser)        // Link to the User Entity
+                            .creatorUserId(user.getUserId())         // Store the Replier's ID
+                            .createdAt(LocalDateTime.now())
+                            .build();
+
+                    mentionsToSave.add(mention);
+
+                    try {
+                        String mentionMsg = user.getUsername() + " mentioned you in a reply: " + savedReply.getContent();
+                        notificationService.createNotification(
+                                mentionedUser.getId(),            // Recipient (Mentioned User)
+                                user.getId(),                  // Sender (Replier)
+                                NotificationType.MENTION_COMMENT, // Ensure this ENUM handles reply mentions too
+                                mentionMsg,
+                                parentComment.getPost().getId(),  // Reference ID (Post)
+                                "COMMENT_MENTION"                 // Reference Type
+                        );
+                    } catch (Exception e) {
+                        log.error("Failed to send mention notification to user {}: {}", mentionedUser.getId(), e.getMessage());
+                    }
+                }
+
+                // Batch save all mentions
+                if (!mentionsToSave.isEmpty()) {
+                    commentMentionRepository.saveAll(mentionsToSave);
+                }
+            }
+
             if (!parentComment.getUser().getId().equals(user.getId())) {
                 try {
                     String notifMsg = user.getUsername() + " replied to your comment.";
@@ -395,6 +475,36 @@ public class CommentServiceImpl implements CommentService {
                 }
 
                 dto.setUser(userDto);
+            }
+
+            if (comment.getMentions() != null && !comment.getMentions().isEmpty()) {
+                List<UserBasicDTO> mentionedUsersList = comment.getMentions().stream()
+                        .map(mention -> {
+                            User mUser = mention.getMentionedUser();
+                            if (mUser == null) return null;
+
+                            UserBasicDTO mDto = new UserBasicDTO();
+                            mDto.setId(mUser.getId());
+                            mDto.setUsername(mUser.getUsername());
+
+                            // Fetch Profile Details (Name/Image) for the mentioned user
+                            try {
+                                UserDetails mDetails = userDetailsRepository.findByUsername(mUser.getUsername());
+                                if (mDetails != null) {
+                                    mDto.setName(mDetails.getName());
+                                    mDto.setProfilePicture(mDetails.getProfilePicture());
+                                }
+                            } catch (Exception e) {
+                                // Log error silently
+                            }
+                            return mDto;
+                        })
+                        .filter(Objects::nonNull) // Remove any nulls if user lookup failed
+                        .collect(Collectors.toList());
+
+                dto.setMentionedUsers(mentionedUsersList);
+            } else {
+                dto.setMentionedUsers(new ArrayList<>());
             }
 
             dto.setCreatedAt(comment.getCreatedAt());

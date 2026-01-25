@@ -30,6 +30,9 @@ public class CommentResponseDTO {
     private boolean likedByCurrentUser;
     private Long replyCount;
 
+    private List<UserBasicDTO> mentionedUsers = new ArrayList<>();
+
+
     public Long getId() {
         return id;
     }

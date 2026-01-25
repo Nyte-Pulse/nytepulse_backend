@@ -62,6 +62,18 @@ public class Comment {
         updatedAt = LocalDateTime.now();
     }
 
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CommentMention> mentions = new ArrayList<>();
+
+    public void addMention(CommentMention mention) {
+        mentions.add(mention);
+        mention.setComment(this);
+    }
+
+    public void removeMention(CommentMention mention) {
+        mentions.remove(mention);
+        mention.setComment(null);
+    }
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();

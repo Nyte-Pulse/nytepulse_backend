@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -14,6 +16,8 @@ public class CommentRequestDTO {
     @NotBlank(message = "Comment content cannot be empty")
     @Size(max = 1000, message = "Comment cannot exceed 1000 characters")
     private String content;
+
+    private List<String> mentionedUserIds;
 
     public String getContent() {
         return content;
