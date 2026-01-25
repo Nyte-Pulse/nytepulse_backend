@@ -857,37 +857,30 @@ public class PostServiceImpl implements PostService {
             Set<String> personalUserIds = new HashSet<>();
             Set<String> businessUserIds = new HashSet<>();
 
-            // Filter posts based on visibility settings
             List<Post> visiblePosts = postPage.getContent().stream()
                     .filter(post -> canViewPost(post, viewerId))
                     .collect(Collectors.toList());
 
             visiblePosts.forEach(post -> {
-                String postUserId = post.getUser().getUserId();
-                allUserIds.add(postUserId);
+                categorizeUserId(post.getUser().getUserId(), allUserIds, personalUserIds, businessUserIds);
 
-                if (postUserId.startsWith("BS")) {
-                    businessUserIds.add(postUserId);
-                } else {
-                    personalUserIds.add(postUserId);
+                if (post.getTags() != null) {
+                    post.getTags().forEach(tag -> {
+                        // Use the string column to avoid Lazy Loading the User entity just for the ID
+                        String taggedId = tag.getTaggedUserId();
+                        if (taggedId != null) {
+                            categorizeUserId(taggedId, allUserIds, personalUserIds, businessUserIds);
+                        }
+                    });
                 }
 
-                if (post.getTagFriendId() != null) {
-                    allUserIds.add(post.getTagFriendId());
-                    if (post.getTagFriendId().startsWith("BS")) {
-                        businessUserIds.add(post.getTagFriendId());
-                    } else {
-                        personalUserIds.add(post.getTagFriendId());
-                    }
-                }
-
-                if (post.getMentionFriendId() != null) {
-                    allUserIds.add(post.getMentionFriendId());
-                    if (post.getMentionFriendId().startsWith("BS")) {
-                        businessUserIds.add(post.getMentionFriendId());
-                    } else {
-                        personalUserIds.add(post.getMentionFriendId());
-                    }
+                if (post.getMentions() != null) {
+                    post.getMentions().forEach(mention -> {
+                        String mentionedId = mention.getMentionedUserId();
+                        if (mentionedId != null) {
+                            categorizeUserId(mentionedId, allUserIds, personalUserIds, businessUserIds);
+                        }
+                    });
                 }
             });
 
@@ -921,6 +914,7 @@ public class PostServiceImpl implements PostService {
                         postData.put("updatedAt", post.getUpdatedAt());
                         postData.put("shareCount", post.getShareCount());
                         postData.put("media", post.getMedia());
+
                         postData.put("likesCount", post.getLikes().size());
                         postData.put("commentsCount", post.getComments().size());
 
@@ -932,29 +926,45 @@ public class PostServiceImpl implements PostService {
                         );
                         postData.put("userDetails", userInfo);
 
-                        if (post.getTagFriendId() != null) {
-                            User taggedUser = usersMap.get(post.getTagFriendId());
-                            if (taggedUser != null) {
-                                Map<String, Object> taggedFriendInfo = buildUserInfo(
-                                        taggedUser,
-                                        userDetailsMap.get(post.getTagFriendId()),
-                                        clubDetailsMap.get(post.getTagFriendId())
-                                );
-                                postData.put("taggedFriend", taggedFriendInfo);
-                            }
+                        List<Map<String, Object>> taggedUsersList = new ArrayList<>();
+                        if (post.getTags() != null) {
+                            taggedUsersList = post.getTags().stream()
+                                    .map(tag -> {
+                                        String uid = tag.getTaggedUserId();
+                                        User taggedUser = usersMap.get(uid);
+                                        if (taggedUser != null) {
+                                            return buildUserInfo(
+                                                    taggedUser,
+                                                    userDetailsMap.get(uid),
+                                                    clubDetailsMap.get(uid)
+                                            );
+                                        }
+                                        return null;
+                                    })
+                                    .filter(Objects::nonNull)
+                                    .collect(Collectors.toList());
                         }
+                        postData.put("taggedUsers", taggedUsersList);
 
-                        if (post.getMentionFriendId() != null) {
-                            User mentionedUser = usersMap.get(post.getMentionFriendId());
-                            if (mentionedUser != null) {
-                                Map<String, Object> mentionedFriendInfo = buildUserInfo(
-                                        mentionedUser,
-                                        userDetailsMap.get(post.getMentionFriendId()),
-                                        clubDetailsMap.get(post.getMentionFriendId())
-                                );
-                                postData.put("mentionedFriend", mentionedFriendInfo);
-                            }
+                        List<Map<String, Object>> mentionedUsersList = new ArrayList<>();
+                        if (post.getMentions() != null) {
+                            mentionedUsersList = post.getMentions().stream()
+                                    .map(mention -> {
+                                        String uid = mention.getMentionedUserId();
+                                        User mentionedUser = usersMap.get(uid);
+                                        if (mentionedUser != null) {
+                                            return buildUserInfo(
+                                                    mentionedUser,
+                                                    userDetailsMap.get(uid),
+                                                    clubDetailsMap.get(uid)
+                                            );
+                                        }
+                                        return null;
+                                    })
+                                    .filter(Objects::nonNull)
+                                    .collect(Collectors.toList());
                         }
+                        postData.put("mentionedUsers", mentionedUsersList);
 
                         return postData;
                     })
@@ -980,20 +990,28 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+
+    private void categorizeUserId(String userId, Set<String> allIds, Set<String> personalIds, Set<String> businessIds) {
+        if (userId == null) return;
+
+        allIds.add(userId);
+        if (userId.startsWith("BS")) {
+            businessIds.add(userId);
+        } else {
+            personalIds.add(userId);
+        }
+    }
     private boolean canViewPost(Post post, Long viewerId) {
         Long postOwnerId = post.getUser().getId();
 
-        // User can always see their own posts
         if (postOwnerId.equals(viewerId)) {
             return true;
         }
 
-        // Get post owner's settings
         UserSettings postOwnerSettings = userSettingsRepository
                 .findByUserId(post.getUser().getId())
                 .orElse(null);
 
-        // Default to FOLLOWERS if no settings exist
         if (postOwnerSettings == null) {
             return userRelationshipRepository.existsByFollower_IdAndFollowing_Id(
                     viewerId, postOwnerId);

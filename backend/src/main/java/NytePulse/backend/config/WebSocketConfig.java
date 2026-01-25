@@ -36,6 +36,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .setHandshakeHandler(new CustomHandshakeHandler()) // ✅ Add custom handler
                 .setAllowedOriginPatterns("*");
+
+        registry.addEndpoint("/ws-live")
+                .setAllowedOrigins("*"); // Allow Flutter app
     }
 
     @Override
