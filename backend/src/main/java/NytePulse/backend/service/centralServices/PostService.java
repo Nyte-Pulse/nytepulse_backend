@@ -54,4 +54,8 @@ public interface PostService {
     ResponseEntity<?> recordStoryView(Long storyId, String token);
 
     ResponseEntity<?> getStoryViewers(Long storyId);
+
+    ResponseEntity<?> savePost(String userId, Long postId);
+    ResponseEntity<?> removeSavedPost(String userId, Long postId);
+    ResponseEntity<?> getSavedPosts(String userId, int page, int size);
 }

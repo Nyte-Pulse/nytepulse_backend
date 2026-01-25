@@ -8,6 +8,7 @@ import NytePulse.backend.entity.Post;
 import NytePulse.backend.service.centralServices.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -184,6 +185,29 @@ public class PostController {
     @GetMapping("/stories/{storyId}/views")
     public ResponseEntity<?> getStoryViewers(@PathVariable Long storyId) {
         return postService.getStoryViewers(storyId);
+    }
+
+    @PostMapping("/{postId}/save")
+    public ResponseEntity<?> savePost(@PathVariable Long postId, Authentication authentication) {
+        String currentUserId = authentication.getName();
+        return postService.savePost(currentUserId, postId);
+    }
+
+    @DeleteMapping("/{postId}/unsave")
+    public ResponseEntity<?> unsavePost(@PathVariable Long postId, Authentication authentication) {
+        String currentUserId = authentication.getName();
+        return postService.removeSavedPost(currentUserId, postId);
+    }
+
+
+    @GetMapping("/saved")
+    public ResponseEntity<?> getSavedPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
+
+        String currentUserId = authentication.getName();
+        return postService.getSavedPosts(currentUserId, page, size);
     }
 
 }
