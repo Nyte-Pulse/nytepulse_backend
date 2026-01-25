@@ -4,6 +4,7 @@ import NytePulse.backend.entity.User;
 import NytePulse.backend.entity.UserRelationship;
 import NytePulse.backend.entity.RelationshipType;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -225,4 +226,9 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
                         @Param("userId") String targetUserId);
 
 
+    @Query("SELECT r.following.id, COUNT(r) as cnt " +
+            "FROM UserRelationship r " +
+            "GROUP BY r.following.id " +
+            "ORDER BY cnt DESC")
+    List<Object[]> findTopUsersByFollowersCount(Pageable pageable);
 }

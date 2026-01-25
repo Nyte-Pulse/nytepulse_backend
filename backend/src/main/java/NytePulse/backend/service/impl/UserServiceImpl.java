@@ -916,4 +916,56 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Override
+    public ResponseEntity<?>  getMostFollowersCountUsers(){
+        try {
+            List<Object[]> topUsersData = relationshipRepository.findTopUsersByFollowersCount(PageRequest.of(0, 10));
+
+            List<Map<String, Object>> topUsersList = new ArrayList<>();
+
+            for (Object[] row : topUsersData) {
+                Long userId = (Long) row[0];
+                Long followersCount = (Long) row[1];
+
+                Optional<User> user= userRepository.findById(userId);
+
+                Map<String, Object> userMap = new HashMap<>();
+                userMap.put("userId", userId);
+                userMap.put("followersCount", followersCount);
+
+                if (user.get().getUserId().startsWith("BS")) {
+                    ClubDetails clubDetails = clubDetailsRepository.findByUserId(user.get().getUserId());
+                    if (clubDetails != null) {
+                        userMap.put("name", clubDetails.getName());
+                        userMap.put("profilePicture", clubDetails.getProfilePicture());
+                        userMap.put("accountType", "BUSINESS");
+                    }
+                } else {
+                    UserDetails userDetails = userDetailsRepository.findByUserId(user.get().getUserId());
+                    if (userDetails != null) {
+                        userMap.put("name", userDetails.getName());
+                        userMap.put("profilePicture", userDetails.getProfilePicture());
+                        userMap.put("accountType", "PERSONAL");
+                    }
+                }
+
+                topUsersList.add(userMap);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("topUsers", topUsersList);
+            response.put("status", HttpStatus.OK.value());
+            response.put("message", "Top users by followers count retrieved successfully");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error retrieving top users by followers count: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while retrieving the top users by followers count.");
+        }
+    }
+
+
 }
