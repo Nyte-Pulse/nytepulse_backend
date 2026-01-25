@@ -1,5 +1,6 @@
 package NytePulse.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,6 +21,7 @@ public class CommentLike {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comment_id", nullable = false)
+    @JsonIgnore
     private Comment comment;
 
     @ManyToOne(fetch = FetchType.LAZY)

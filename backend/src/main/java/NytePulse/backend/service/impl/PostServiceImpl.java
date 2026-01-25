@@ -486,7 +486,7 @@ public class PostServiceImpl implements PostService {
             response.put("content", updatedPost.getContent());
             response.put("updatedAt", updatedPost.getUpdatedAt());
             response.put("userId", updatedPost.getUser().getUserId()); // Safe access
-            
+
             List<String> tagNames = updatedPost.getTags().stream()
                     .map(tag -> tag.getTaggedUser().getUsername()) // Assuming logic
                     .collect(Collectors.toList());
@@ -1132,10 +1132,12 @@ public class PostServiceImpl implements PostService {
                         List<Story> userStories = entry.getValue();
                         User storyOwner = userStories.get(0).getUser();
 
+                        UserDetails userDetails = userDetailsRepository.findByUserId(storyOwner.getUserId());
                         // Map user info
                         StoryUserDTO userDTO = StoryUserDTO.builder()
                                 .id(storyOwner.getId())
                                 .userId(storyOwner.getUserId())
+                                .profilePictureUrl(userDetails.getProfilePicture())
                                 .username(storyOwner.getUsername())
                                 .accountType(storyOwner.getAccountType().toString())
                                 .build();

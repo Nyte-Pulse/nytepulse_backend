@@ -24,14 +24,16 @@ public class CommentLikeController {
 
     @GetMapping("/likes/count")
     public ResponseEntity<?> getCommentLikeCount(@PathVariable Long commentId,@RequestHeader("Authorization") String token) {
-
         return commentLikeService.getCommentLikeCount(commentId,token);
     }
 
     @GetMapping("/getLikedUsersByPostId/{postId}")
     public ResponseEntity<?> getLikedUsersByPostId(@PathVariable Long postId) {
-
         return commentLikeService.getLikedUsersByPostId(postId);
     }
 
+    @GetMapping("/getLikedUsersByCommentId")
+    public ResponseEntity<?> getLikedUsersByCommentId(@PathVariable Long commentId,@RequestParam int page, @RequestParam int size) {
+        return commentLikeService.getLikedUsersByCommentId(commentId,page,size);
+    }
 }

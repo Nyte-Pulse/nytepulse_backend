@@ -4,9 +4,11 @@ import NytePulse.backend.dto.LikeResponseDTO;
 import NytePulse.backend.entity.Comment;
 import NytePulse.backend.entity.CommentLike;
 import NytePulse.backend.entity.User;
+import NytePulse.backend.entity.UserDetails;
 import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.repository.CommentLikeRepository;
 import NytePulse.backend.repository.CommentRepository;
+import NytePulse.backend.repository.UserDetailsRepository;
 import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.CommentLikeService;
@@ -15,13 +17,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.PublicKey;
-import java.util.Base64;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +38,9 @@ public class CommentLikeServiceImpl implements CommentLikeService {
 
     @Autowired
     private  CommentRepository commentRepository;
+
+    @Autowired
+    private UserDetailsRepository userDetailsRepository;
 
     @Autowired
     private  UserRepository userRepository;
@@ -159,5 +167,45 @@ public class CommentLikeServiceImpl implements CommentLikeService {
 
         return ResponseEntity.ok(true);
 
+    }
+
+    @Override
+    public ResponseEntity<?> getLikedUsersByCommentId(Long commentId,int page,int size){
+        try {
+            Pageable pageable = Pageable.ofSize(size).withPage(page);
+            Page<CommentLike> likes = commentLikeRepository.findLikedUsersByCommentId(commentId,pageable);
+
+            List<Map<String, Object>> users = likes.stream().map(like -> {
+                Map<String, Object> userMap = new HashMap<>();
+                userMap.put("userId", like.getUser().getUserId());
+                userMap.put("username", like.getUser().getUsername());
+                try {
+                    UserDetails userDetails = userDetailsRepository.findByUserId(like.getUser().getUserId());
+
+                    if (userDetails != null) {
+                        userMap.put("profilePic", userDetails.getProfilePicture());
+                        userMap.put("name", userDetails.getName());
+                    } else {
+                        userMap.put("profilePic", null);
+                        userMap.put("name", "Unknown");
+                    }
+                } catch (Exception e) {
+                    log.warn("Duplicate or missing data for user: {}", like.getUser().getUserId());
+                    userMap.put("profilePic", null);
+                    userMap.put("name", "Unknown");
+                }
+                return userMap;
+            }).collect(Collectors.toList());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("users", users);
+            result.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(result);
+
+        } catch (Exception e) {
+            log.error("Error fetching liked users: {}", e.getMessage());
+            return ResponseEntity.status(500).body("Internal Server Error");
+        }
     }
 }
