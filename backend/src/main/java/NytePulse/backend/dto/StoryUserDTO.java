@@ -14,4 +14,5 @@ public class StoryUserDTO {
     private String userId;
     private String username;
     private String accountType;
+    private String profilePictureUrl;
 }

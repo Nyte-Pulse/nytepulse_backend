@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Optional;
 
 @Entity
 @Table(name = "user_details")
@@ -210,4 +211,5 @@ public class UserDetails {
     public void setContactPhone(String contactPhone) {
         this.contactPhone = contactPhone;
     }
+
 }
