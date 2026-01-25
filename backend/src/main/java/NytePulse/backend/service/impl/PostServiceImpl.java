@@ -468,14 +468,32 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public ResponseEntity<?> updatePostContent(Long postId, String content, String userId) {
-
         try {
             Post post = getPostById(postId);
+
+            if (!post.getUser().getUserId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You can only edit your own posts"));
+            }
+
             post.setContent(content);
             post.setUpdatedAt(LocalDateTime.now());
 
             Post updatedPost = postRepository.save(post);
-            return ResponseEntity.ok(updatedPost);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", updatedPost.getId());
+            response.put("content", updatedPost.getContent());
+            response.put("updatedAt", updatedPost.getUpdatedAt());
+            response.put("userId", updatedPost.getUser().getUserId()); // Safe access
+            
+            List<String> tagNames = updatedPost.getTags().stream()
+                    .map(tag -> tag.getTaggedUser().getUsername()) // Assuming logic
+                    .collect(Collectors.toList());
+            response.put("tags", tagNames);
+
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to update Post Content");

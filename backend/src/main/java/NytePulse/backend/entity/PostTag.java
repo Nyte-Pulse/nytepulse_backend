@@ -28,6 +28,7 @@ public class PostTag {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tagged_user_id", nullable = false)
+    @JsonIgnore
     private User taggedUser;
 
     @Column(name = "tagged_user_id_string")
