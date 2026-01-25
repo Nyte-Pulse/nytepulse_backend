@@ -263,4 +263,9 @@ public class UserController {
         return userService.generateProfileShareLink(userId);
     }
 
+    @GetMapping("/getMostFollowersCountUsers")
+    public ResponseEntity<?> getMostFollowersCountUsers() {
+        return userService.getMostFollowersCountUsers();
+    }
+
 }

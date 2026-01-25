@@ -40,4 +40,6 @@ public interface UserService {
     ResponseEntity<?> unblock(String userId, String followingUserId);
 
     boolean isBlocked(String userId, String targetUserId);
+
+    ResponseEntity<?> getMostFollowersCountUsers();
 }
