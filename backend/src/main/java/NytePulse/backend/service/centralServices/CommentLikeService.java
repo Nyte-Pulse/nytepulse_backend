@@ -12,4 +12,6 @@ public interface CommentLikeService {
     boolean isCommentLikedByUser(Long commentId, Long userId);
 
     ResponseEntity<?> getLikedUsersByPostId(Long postId);
+
+    ResponseEntity<?> getLikedUsersByCommentId(Long commentId,int page,int size);
 }
