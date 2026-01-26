@@ -81,7 +81,7 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            String jwt = tokenProvider.generateToken(authentication,user.getId());
+            String jwt = tokenProvider.generateToken(authentication,user.getId(),user.getUsername());
 
             // Get device info from request headers
             String deviceInfo = httpRequest.getHeader("User-Agent");
