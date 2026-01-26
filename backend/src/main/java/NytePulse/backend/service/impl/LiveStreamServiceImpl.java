@@ -108,7 +108,7 @@ public class LiveStreamServiceImpl implements LiveStreamService {
                 .filter(stream -> isAllowedToWatch(viewer, stream))
                 .map(stream -> {
                     User broadcaster = stream.getUser();
-                    UserDetails broadcasterDetails = userDetailsRepository.findById(broadcaster.getId()).orElse(null);
+                    UserDetails broadcasterDetails = userDetailsRepository.findByUserId(broadcaster.getUserId());
                     return StreamFeedItemDTO.builder()
                             .streamKey(stream.getStreamKey())
                             .playbackUrl(stream.getPlaybackUrl())
