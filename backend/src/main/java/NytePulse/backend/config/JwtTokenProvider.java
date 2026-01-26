@@ -24,7 +24,7 @@ public class JwtTokenProvider {
     @Value("${app.jwt-expiration-milliseconds}")
     private long jwtExpirationDate;
 
-    public String generateToken(Authentication authentication, Long userId) {
+    public String generateToken(Authentication authentication, Long userId,String username) {
         String email = authentication.getName();
 
         String roles = authentication.getAuthorities().stream()
@@ -39,6 +39,7 @@ public class JwtTokenProvider {
                 .setSubject(email)
                 .claim("roles", roles)
                 .claim("User-Id", userId)
+                .claim("username", username)
                 .setIssuedAt(new Date())
                 .setExpiration(expireDate)
                 .signWith(key())
