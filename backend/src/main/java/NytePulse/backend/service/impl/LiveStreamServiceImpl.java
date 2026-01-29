@@ -54,8 +54,8 @@ public class LiveStreamServiceImpl implements LiveStreamService {
 
         String streamKey = UUID.randomUUID().toString();
 
-        String ingestUrl = "rtmp://" + OME_INGEST_IP + ":1935/app/" + streamKey;
-        String playbackUrl = CDN_DOMAIN + "/app/" + streamKey + "/llhls.m3u8";
+        String ingestUrl = "rtmp://" + OME_INGEST_IP + "/live/" + streamKey;
+        String playbackUrl = CDN_DOMAIN + "/live/" + streamKey + ".flv";
 
         // Default to FOLLOWERS if visibility is null
         StreamVisibility visibility = request.getVisibility() != null
