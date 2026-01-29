@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,9 @@ public class ChatServiceImpl implements ChatService {
     private UserSettingsRepository userSettingsRepository;
     @Autowired
     private UserDetailsRepository userDetailsRepository;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @Autowired
     private NotificationService notificationService;
@@ -253,14 +257,74 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional
-    public void markConversationAsRead(Long conversationId, Long userId) {
+//    public ResponseEntity<?> markConversationAsRead(Long conversationId, Long userId) {
+//        ConversationParticipant participant = participantRepository
+//                .findByConversationIdAndUserId(conversationId, userId)
+//                .orElseThrow(() -> new RuntimeException("Participant not found"));
+//
+//        participant.setLastReadAt(LocalDateTime.now());
+//        participantRepository.save(participant);
+//         HashMap<String,Object> res= new HashMap<>();
+//        res.put("success", HttpStatus.OK.value());
+//        res.put("message", "Conversation marked as read");
+//        return ResponseEntity.ok(res);
+//    }
+
+    public ResponseEntity<?> markConversationAsRead(Long conversationId, Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+
+        // A. Update Participant "Last Read" Timestamp
         ConversationParticipant participant = participantRepository
                 .findByConversationIdAndUserId(conversationId, userId)
                 .orElseThrow(() -> new RuntimeException("Participant not found"));
 
-        participant.setLastReadAt(LocalDateTime.now());
+        participant.setLastReadAt(now);
         participantRepository.save(participant);
+
+        // B. Update Message Statuses (DB)
+        // This query runs efficiently in the DB without fetching all message objects
+        messageStatusRepository.markAllAsRead(userId, conversationId, now);
+
+        // C. REAL-TIME NOTIFICATION (WebSockets)
+        // Notify the OTHER participants in this conversation that this user has read the messages.
+
+        // Payload to send via Socket
+        Map<String, Object> readReceipt = new HashMap<>();
+        readReceipt.put("type", "READ_RECEIPT");
+        readReceipt.put("conversationId", conversationId);
+        readReceipt.put("userId", userId); // Who read the messages
+        readReceipt.put("readAt", now);
+
+        // Send to a topic specific to this conversation
+        // Clients subscribed to "/topic/conversation/{id}" will receive this
+        messagingTemplate.convertAndSend("/topic/conversation/" + conversationId, readReceipt);
+
+        HashMap<String,Object> res= new HashMap<>();
+        res.put("success", HttpStatus.OK.value());
+        res.put("message", "Conversation marked as read");
+        return ResponseEntity.ok(res);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> getUnreadConversations(Long userId) {
+
+        List<Conversation> unreadConversations = conversationRepository
+                .findConversationsWithUnreadMessages(userId);
+
+        List<ConversationDTO> conversationDTOs = new ArrayList<>();
+        for (Conversation conversation : unreadConversations) {
+            conversationDTOs.add(mapToConversationDTO(conversation, userId));
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.OK.value());
+        response.put("message", "Successfully fetched unread conversations");
+        response.put("conversations", conversationDTOs);
+
+        return ResponseEntity.ok(response);
+    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -305,6 +369,11 @@ public class ChatServiceImpl implements ChatService {
         dto.setType(conversation.getType().name());
         dto.setUpdatedAt(conversation.getUpdatedAt());
 
+        Long unreadCount = messageStatusRepository.countUnreadMessages(conversation.getId(), currentUserId);
+        dto.setUnreadCount(unreadCount != null ? unreadCount.intValue() : 0);
+
+        System.out.println("Unread count for conversation " + conversation.getId() + ": " + unreadCount);
+
         // Get participants
         List<ConversationParticipant> participants = participantRepository
                 .findByConversationId(conversation.getId());
@@ -314,15 +383,17 @@ public class ChatServiceImpl implements ChatService {
                     UserBasicDTO userDTO = new UserBasicDTO();
                     userDTO.setId(p.getUser().getId());
                     userDTO.setUsername(p.getUser().getUsername());
-//                    userDTO.setProfilePicture(p.getUser().getProfilePicture());
 
                     try {
-                        var userDetails = userDetailsRepository.findByUsername(p.getUser().getUsername());
+                        UserDetails userDetails = userDetailsRepository.findByUsername(p.getUser().getUsername());
                         if (userDetails != null) {
                             userDTO.setName(userDetails.getName());
+                            userDTO.setProfilePicture(userDetails.getProfilePicture());
+                            userDTO.setUserId(userDetails.getUserId());
                         }
                     } catch (Exception e) {
-                        // Ignore
+
+                        logger.error("Error fetching user details for user: " + p.getUser().getUsername(), e);
                     }
 
                     return userDTO;
@@ -350,10 +421,7 @@ public class ChatServiceImpl implements ChatService {
         // Get last message
         var lastMessage = messageRepository.findLastMessageByConversationId(conversation.getId());
         lastMessage.ifPresent(msg -> dto.setLastMessage(mapToChatMessageDTO(msg)));
-
-        // Get unread count
-        dto.setUnreadCount(getUnreadCount(conversation.getId(), currentUserId).getStatusCodeValue());
-
+        
         return dto;
     }
 
