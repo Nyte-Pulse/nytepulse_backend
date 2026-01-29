@@ -583,7 +583,7 @@ public class BunnyNetService {
             if (oldFileName != null && !oldFileName.isEmpty()) {
                 deleteImageFromFolder(oldFileName, EVENT_POSTER_FOLDER);
             }
-            
+
             return uploadEventPoster(file, event_posters);
 
         } catch (IOException e) {
