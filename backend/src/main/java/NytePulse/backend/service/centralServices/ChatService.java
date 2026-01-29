@@ -25,4 +25,8 @@ public interface ChatService {
     ResponseEntity<?> deleteMessage(Long messageId, Long userId);
 
     ResponseEntity<?> getUnreadConversations(Long userId);
+
+    ResponseEntity<?> acceptMessageRequest(Long conversationId, Long userId);
+
+    ResponseEntity<?> getMessageRequests(Long userId);
 }

@@ -26,6 +26,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
             "JOIN ChatMessage m ON c.id = m.conversationId " +
             "JOIN MessageStatus ms ON m.id = ms.messageId " +
             "WHERE ms.userId = :userId AND ms.status != 'READ' " +
+            "AND c.status = 'ACCEPTED' " +
             "ORDER BY c.updatedAt DESC") // <--- FIX: Sort by Conversation time, not Message time
     List<Conversation> findConversationsWithUnreadMessages(@Param("userId") Long userId);
 
@@ -36,4 +37,18 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
             "AND ms.status != 'READ'")
     Long countUnreadForUser(@Param("conversationId") Long conversationId,
                             @Param("userId") Long userId);
+
+
+    @Query("SELECT DISTINCT c FROM Conversation c " +
+            "JOIN ConversationParticipant cp ON c.id = cp.conversation.id " +
+            "WHERE cp.user.id = :userId " +
+            "AND (c.status = 'ACCEPTED' OR c.type = 'GROUP')")
+    List<Conversation> findInboxConversations(@Param("userId") Long userId);
+
+    @Query("SELECT DISTINCT c FROM Conversation c " +
+            "JOIN ConversationParticipant cp ON c.id = cp.conversation.id " +
+            "WHERE cp.user.id = :userId " +
+            "AND c.status = 'PENDING' " +
+            "AND c.type = 'PRIVATE'")
+    List<Conversation> findPendingRequests(@Param("userId") Long userId);
 }

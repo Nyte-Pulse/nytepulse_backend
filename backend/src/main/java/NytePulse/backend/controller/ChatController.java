@@ -114,4 +114,15 @@ public class ChatController {
 
     }
 
+    @GetMapping("/requests/{userId}")
+    public ResponseEntity<?> getMessageRequests(@PathVariable Long userId) {
+        return chatService.getMessageRequests(userId);
+    }
+
+    @PostMapping("/{userId}/accept/{conversationId}")
+    public ResponseEntity<?> acceptRequest(@PathVariable Long conversationId,
+                                           @PathVariable Long userId) {
+        return chatService.acceptMessageRequest(conversationId, userId);
+    }
+
 }

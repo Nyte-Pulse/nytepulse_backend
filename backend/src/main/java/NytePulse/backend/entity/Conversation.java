@@ -49,6 +49,9 @@ public class Conversation {
         PRIVATE, GROUP
     }
 
+    @Enumerated(EnumType.STRING)
+    private ConversationStatus status = ConversationStatus.ACCEPTED;
+
 
     public Long getId() {
         return id;
@@ -104,6 +107,13 @@ public class Conversation {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+
+    public enum ConversationStatus {
+        ACCEPTED, // Normal chat (Inbox)
+        PENDING,  // Message Request (Request Tab)
+        REJECTED  // Blocked/Declined
     }
 }
 
