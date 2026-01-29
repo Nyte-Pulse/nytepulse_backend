@@ -973,5 +973,52 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Override
+    public ResponseEntity<?> getBlockListByUserId(Long userId){
+        try {
+            List<UserRelationship> blockedRelationships = relationshipRepository.findBlockedUsersByBlockerId(userId);
+
+            List<Map<String, Object>> blockedUsersList = new ArrayList<>();
+
+            for (UserRelationship relationship : blockedRelationships) {
+                User blockedUser = relationship.getFollowing();
+                Map<String, Object> userMap = new HashMap<>();
+                userMap.put("userId", blockedUser.getUserId());
+                userMap.put("username", blockedUser.getUsername());
+                userMap.put("email", blockedUser.getEmail());
+
+                if (blockedUser.getUserId().startsWith("BS")) {
+                    ClubDetails clubDetails = clubDetailsRepository.findByUserId(blockedUser.getUserId());
+                    if (clubDetails != null) {
+                        userMap.put("name", clubDetails.getName());
+                        userMap.put("profilePicture", clubDetails.getProfilePicture());
+                        userMap.put("accountType", "BUSINESS");
+                    }
+                } else {
+                    UserDetails userDetails = userDetailsRepository.findByUserId(blockedUser.getUserId());
+                    if (userDetails != null) {
+                        userMap.put("name", userDetails.getName());
+                        userMap.put("profilePicture", userDetails.getProfilePicture());
+                        userMap.put("accountType", "PERSONAL");
+                    }
+                }
+
+                blockedUsersList.add(userMap);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("blockedUsers", blockedUsersList);
+            response.put("status", HttpStatus.OK.value());
+            response.put("message", "Blocked users retrieved successfully");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error retrieving blocked users: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while retrieving the blocked users.");
+        }
+    }
 
 }

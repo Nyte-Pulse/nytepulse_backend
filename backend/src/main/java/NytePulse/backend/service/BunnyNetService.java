@@ -42,10 +42,61 @@ public class BunnyNetService {
     private static final String PROFILE_PICTURE_FOLDER = "profile_picture";
     private static final String EVENT_POSTER_FOLDER = "event_poster";
 
+    private static final String MUSIC_FOLDER = "music_tracks";
+
     public BunnyNetService() {
         this.webClient = WebClient.builder().build();
         this.objectMapper = new ObjectMapper();
     }
+
+    public BunnyNetUploadResult uploadMusicTrack(MultipartFile file) throws IOException {
+        String fileName = generateFileName(file.getOriginalFilename());
+        return uploadToBunnyStorage(file, fileName, MUSIC_FOLDER, Media.MediaType.AUDIO);
+    }
+
+    public String getMusicUrl(String fileName) {
+        return bunnyNetConfig.getStorage().getCdnUrl() + "/" + MUSIC_FOLDER + "/" + fileName;
+    }
+
+    public BunnyNetUploadResult uploadMusicCover(MultipartFile file) throws IOException {
+        String fileName = "cover_" + generateFileName(file.getOriginalFilename());
+        return uploadToBunnyStorage(file, fileName, MUSIC_FOLDER, Media.MediaType.IMAGE);
+    }
+
+    private BunnyNetUploadResult uploadToBunnyStorage(MultipartFile file, String fileName, String folder, Media.MediaType mediaType) throws IOException {
+        String uploadPath = "/" + folder + "/" + fileName;
+        String uploadUrl = bunnyNetConfig.getStorage().getBaseUrl() +
+                "/" + bunnyNetConfig.getStorage().getZoneName() + uploadPath;
+
+        log.info("Uploading file to: {}", uploadUrl);
+
+        try {
+            webClient.put()
+                    .uri(uploadUrl)
+                    .header("AccessKey", bunnyNetConfig.getStorage().getAccessKey())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(BodyInserters.fromResource(file.getResource()))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            String cdnUrl = bunnyNetConfig.getStorage().getCdnUrl() + uploadPath;
+            log.info("Upload successful: {}", cdnUrl);
+
+            return BunnyNetUploadResult.builder()
+                    .fileName(fileName)
+                    .cdnUrl(cdnUrl)
+                    .fileSize(file.getSize())
+                    .mediaType(mediaType)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Failed to upload to BunnyNet: {}", e.getMessage());
+            throw new IOException("Failed to upload file to " + folder, e);
+        }
+    }
+
+
 
     public BunnyNetUploadResult uploadEventPoster(MultipartFile file, String userId) throws IOException {
         log.info("Uploading event poster for user: {}", userId);
@@ -93,9 +144,6 @@ public class BunnyNetService {
         return userId + "_" + System.currentTimeMillis() + extension;
     }
 
-    /**
-     * Upload profile picture to specific folder
-     */
     public BunnyNetUploadResult uploadProfilePicture(MultipartFile file, String userId) throws IOException {
         log.info("Uploading profile picture for user: {}", userId);
 
@@ -134,18 +182,12 @@ public class BunnyNetService {
         }
     }
 
-    /**
-     * Get profile picture URL
-     */
     public String getProfilePictureUrl(String fileName) {
         return bunnyNetConfig.getStorage().getCdnUrl() +
                 "/" + PROFILE_PICTURE_FOLDER + "/" + fileName;
     }
 
 
-    /**
-     * Download profile picture as byte array
-     */
     public byte[] downloadProfilePicture(String fileName) throws IOException {
         String downloadUrl = bunnyNetConfig.getStorage().getBaseUrl() +
                 "/" + bunnyNetConfig.getStorage().getZoneName() +
@@ -167,9 +209,6 @@ public class BunnyNetService {
         }
     }
 
-    /**
-     * Delete profile picture from storage
-     */
     public boolean deleteProfilePicture(String fileName) {
         try {
             String deleteUrl = bunnyNetConfig.getStorage().getBaseUrl() +
@@ -192,9 +231,6 @@ public class BunnyNetService {
         }
     }
 
-    /**
-     * Generate filename for profile pictures with userId
-     */
     private String generateProfilePictureFileName(String userId, String originalFilename) {
         String extension = "";
         if (originalFilename != null && originalFilename.contains(".")) {
@@ -203,9 +239,6 @@ public class BunnyNetService {
         return userId + "_" + System.currentTimeMillis() + extension;
     }
 
-    /**
-     * Update user profile picture (delete old and upload new)
-     */
     public BunnyNetUploadResult updateProfilePicture(MultipartFile file, String userId, String oldFileName)
             throws IOException {
 
@@ -219,11 +252,7 @@ public class BunnyNetService {
 
     }
 
-    /**
-     * Upload image to BunnyNet Storage
-     */
     public BunnyNetUploadResult uploadImage(MultipartFile file) throws IOException {
-        // DEBUG: Print the configuration values
         log.info("DEBUG - Storage Access Key: {}", bunnyNetConfig.getStorage().getAccessKey());
         log.info("DEBUG - Storage Zone Name: {}", bunnyNetConfig.getStorage().getZoneName());
         log.info("DEBUG - Storage Base URL: {}", bunnyNetConfig.getStorage().getBaseUrl());
@@ -261,9 +290,6 @@ public class BunnyNetService {
         }
     }
 
-    /**
-     * Upload video to BunnyNet Stream
-     */
     public BunnyNetUploadResult uploadVideo(MultipartFile file, String title) throws IOException {
         try {
             // Step 1: Create video object
@@ -509,65 +535,6 @@ public class BunnyNetService {
         }
     }
 
-
-//    private String createVideoObjectInFolder(String title, String collectionId) throws IOException {
-//        String createVideoUrl = bunnyNetConfig.getStream().getBaseUrl() +
-//                "/library/" + bunnyNetConfig.getStream().getLibraryId() + "/videos";
-//
-//        log.info("Creating video object with title: {} in collection: {}", title, collectionId);
-//
-//        Map<String, Object> requestBody = new HashMap<>();
-//        requestBody.put("title", title);
-//
-//        // Only add collectionId if it's not null and not empty
-//        if (collectionId != null && !collectionId.isEmpty()) {
-//            requestBody.put("collectionId", collectionId);
-//        }
-//
-//        try {
-//            String response = webClient.post()
-//                    .uri(createVideoUrl)
-//                    .header("AccessKey", bunnyNetConfig.getStream().getApiKey())
-//                    .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-//                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-//                    .bodyValue(requestBody)
-//                    .retrieve()
-//                    .bodyToMono(String.class)
-//                    .block();
-//
-//            log.info("Video creation response: {}", response);
-//
-//            JsonNode jsonNode = objectMapper.readTree(response);
-//            String videoId = jsonNode.get("guid").asText();
-//
-//            log.info("Created video with ID: {}", videoId);
-//            return videoId;
-//
-//        } catch (Exception e) {
-//            log.error("Failed to create video object: {}", e.getMessage(), e);
-//            throw new IOException("Failed to create video object: " + e.getMessage(), e);
-//        }
-//    }
-
-
-
-    private String parseVideoIdFromResponse(String response) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(response);
-
-            // Extract the video ID (adjust field name based on actual API response)
-            String videoId = jsonNode.get("guid").asText();
-
-            log.info("Parsed video ID: {}", videoId);
-            return videoId;
-
-        } catch (Exception e) {
-            log.error("Failed to parse video ID from response: {}", e.getMessage());
-            return null;
-        }
-    }
-
     public void deleteImageFromFolder(String fileName, String folderName) throws IOException {
         String deletePath = "/" + folderName + "/" + fileName;
         String deleteUrl = bunnyNetConfig.getStorage().getBaseUrl() +
@@ -613,12 +580,10 @@ public class BunnyNetService {
 
     public BunnyNetUploadResult updateEventPoster(MultipartFile file, String event_posters, String oldFileName) {
         try {
-            // Delete old event poster if exists
             if (oldFileName != null && !oldFileName.isEmpty()) {
                 deleteImageFromFolder(oldFileName, EVENT_POSTER_FOLDER);
             }
-
-            // Upload new event poster
+            
             return uploadEventPoster(file, event_posters);
 
         } catch (IOException e) {

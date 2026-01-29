@@ -231,4 +231,7 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
             "GROUP BY r.following.id " +
             "ORDER BY cnt DESC")
     List<Object[]> findTopUsersByFollowersCount(Pageable pageable);
+
+    @Query("SELECT ur FROM UserRelationship ur WHERE ur.follower.id = :blockerId AND ur.relationshipType = 'BLOCKED'")
+    List<UserRelationship> findBlockedUsersByBlockerId(@Param("blockerId") Long blockerId);
 }

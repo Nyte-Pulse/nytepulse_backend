@@ -69,7 +69,7 @@ public class Media {
     private Story story;
 
     public enum MediaType {
-        IMAGE, VIDEO
+        IMAGE, VIDEO,AUDIO, OTHER
     }
 
     public Story getStory() {
