@@ -44,6 +44,9 @@ public class ChatServiceImpl implements ChatService {
     private UserDetailsRepository userDetailsRepository;
 
     @Autowired
+    private UserRelationshipRepository userRelationshipRepository;
+
+    @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
     @Autowired
@@ -69,9 +72,16 @@ public class ChatServiceImpl implements ChatService {
                 return ResponseEntity.ok(mapToConversationDTO(existingConversation.get(), userId1));
             }
 
+            boolean isFollower = userRelationshipRepository.existsByFollower_IdAndFollowing_Id(userId1, userId2);
+
+            Conversation.ConversationStatus initialStatus = isFollower
+                    ? Conversation.ConversationStatus.ACCEPTED
+                    : Conversation.ConversationStatus.PENDING;
+
             // Create new conversation
             Conversation conversation = new Conversation();
             conversation.setType(Conversation.ConversationType.PRIVATE);
+            conversation.setStatus(initialStatus);
             conversation = conversationRepository.save(conversation);
 
             // Add participants
@@ -103,6 +113,48 @@ public class ChatServiceImpl implements ChatService {
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<?> acceptMessageRequest(Long conversationId, Long userId) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+
+        if (conversation.getStatus() == Conversation.ConversationStatus.PENDING) {
+            conversation.setStatus(Conversation.ConversationStatus.ACCEPTED);
+            conversationRepository.save(conversation);
+
+        }
+
+        HashMap<String,Object> res= new HashMap<>();
+        res.put("success", HttpStatus.OK.value());
+        res.put("message", "Conversation accepted");
+        return ResponseEntity.ok(res);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> getMessageRequests(Long userId) {
+        List<Conversation> requests = conversationRepository.findPendingRequests(userId);
+
+        List<ConversationDTO> dtos = requests.stream()
+                .filter(c -> !isUserInitiator(c.getId(), userId)) // See helper below
+                .map(c -> mapToConversationDTO(c, userId))
+                .collect(Collectors.toList());
+
+        HashMap<String,Object> res= new HashMap<>();
+        res.put("success", HttpStatus.OK.value());
+        res.put("message", "Fetched Success!");
+        res.put("requests", dtos);
+
+        return ResponseEntity.ok(res);
+    }
+
+    private boolean isUserInitiator(Long conversationId, Long userId) {
+        return messageRepository.findFirstByConversationIdOrderByCreatedAtAsc(conversationId)
+                .map(msg -> msg.getSender().getId().equals(userId))
+                .orElse(false); // If no messages, assume false
     }
 
     @Override
@@ -421,7 +473,7 @@ public class ChatServiceImpl implements ChatService {
         // Get last message
         var lastMessage = messageRepository.findLastMessageByConversationId(conversation.getId());
         lastMessage.ifPresent(msg -> dto.setLastMessage(mapToChatMessageDTO(msg)));
-        
+
         return dto;
     }
 

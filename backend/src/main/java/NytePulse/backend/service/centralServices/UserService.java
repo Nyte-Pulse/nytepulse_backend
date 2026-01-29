@@ -44,4 +44,6 @@ public interface UserService {
     ResponseEntity<?> getMostFollowersCountUsers();
 
     ResponseEntity<?> getBlockListByUserId(Long userId);
+
+    void updateUserStatus(Long userId, boolean isOnline);
 }
