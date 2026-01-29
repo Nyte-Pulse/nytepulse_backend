@@ -42,4 +42,6 @@ public interface UserService {
     boolean isBlocked(String userId, String targetUserId);
 
     ResponseEntity<?> getMostFollowersCountUsers();
+
+    ResponseEntity<?> getBlockListByUserId(Long userId);
 }
