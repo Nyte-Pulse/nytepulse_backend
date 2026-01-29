@@ -103,4 +103,15 @@ public class ChatController {
         ));
     }
 
+    @PostMapping("/conversations/{conversationId}/read")
+    public ResponseEntity<?> markConversationAsRead(@PathVariable Long conversationId,@RequestHeader("User-Id") Long userId){
+           return chatService.markConversationAsRead(conversationId, userId);
+    }
+
+    @GetMapping("/conversations/getUnreadConversations")
+    public ResponseEntity<?> getUnreadConversations(@RequestHeader("User-Id") Long userId) {
+           return chatService.getUnreadConversations(userId);
+
+    }
+
 }

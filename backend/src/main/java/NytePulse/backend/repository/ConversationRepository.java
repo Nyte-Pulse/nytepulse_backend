@@ -21,4 +21,19 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
             @Param("userId1") Long userId1,
             @Param("userId2") Long userId2
     );
+
+    @Query("SELECT DISTINCT c FROM Conversation c " +
+            "JOIN ChatMessage m ON c.id = m.conversationId " +
+            "JOIN MessageStatus ms ON m.id = ms.messageId " +
+            "WHERE ms.userId = :userId AND ms.status != 'READ' " +
+            "ORDER BY c.updatedAt DESC") // <--- FIX: Sort by Conversation time, not Message time
+    List<Conversation> findConversationsWithUnreadMessages(@Param("userId") Long userId);
+
+    @Query("SELECT COUNT(ms) FROM MessageStatus ms " +
+            "JOIN ChatMessage m ON ms.messageId = m.id " +
+            "WHERE m.conversationId = :conversationId " +
+            "AND ms.userId = :userId " +
+            "AND ms.status != 'READ'")
+    Long countUnreadForUser(@Param("conversationId") Long conversationId,
+                            @Param("userId") Long userId);
 }

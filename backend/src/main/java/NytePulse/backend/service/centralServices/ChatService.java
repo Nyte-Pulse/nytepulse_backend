@@ -18,9 +18,11 @@ public interface ChatService {
 
     ResponseEntity<?> getConversationMessages(Long conversationId, Long userId, int page, int size);
 
-    void markConversationAsRead(Long conversationId, Long userId);
+    ResponseEntity<?> markConversationAsRead(Long conversationId, Long userId);
 
     ResponseEntity<?> getUnreadCount(Long conversationId, Long userId);
 
     ResponseEntity<?> deleteMessage(Long messageId, Long userId);
+
+    ResponseEntity<?> getUnreadConversations(Long userId);
 }

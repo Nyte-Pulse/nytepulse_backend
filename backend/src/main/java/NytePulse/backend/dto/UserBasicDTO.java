@@ -17,6 +17,8 @@ public class UserBasicDTO {
     private String name;
     private String profilePicture;
 
+    private String userId;
+
     public Long getId() {
         return id;
     }
