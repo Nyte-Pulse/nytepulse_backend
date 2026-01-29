@@ -9,9 +9,11 @@ import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.UserSettingsService;
 import NytePulse.backend.service.centralServices.UserService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -30,40 +33,63 @@ import java.util.*;
 
 @Service
 public class UserServiceImpl implements UserService {
-    @Autowired
-    private UserRepository userRepository;
 
-    @Autowired
-    private UserDetailsRepository userDetailsRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private RoleRepository roleRepository;
 
-    @Autowired
-    private UserRelationshipRepository relationshipRepository;
+    private final UserDetailsRepository userDetailsRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private UserSettingsService userSettingsService;
+    private final RoleRepository roleRepository;
 
-    @Autowired
-    private NotificationService notificationService;
 
-    @Autowired
-    private PostRepository postRepository;
+    private final UserRelationshipRepository relationshipRepository;
 
-    @Autowired
+
+    private final PasswordEncoder passwordEncoder;
+
+
+    private final UserSettingsService userSettingsService;
+
+
+    private final NotificationService notificationService;
+
+
+    private final PostRepository postRepository;
+
+
     private ClubDetailsRepository clubDetailsRepository;
 
-    @Autowired
-    private BunnyNetService bunnyNetService;
+    private final BunnyNetService bunnyNetService;
 
 
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private static final ZoneId SRI_LANKA_ZONE = ZoneId.of("Asia/Colombo");
+
+    public UserServiceImpl(
+            UserRepository userRepository,
+            UserDetailsRepository userDetailsRepository,
+            RoleRepository roleRepository,
+            UserRelationshipRepository relationshipRepository,
+            PasswordEncoder passwordEncoder,
+            UserSettingsService userSettingsService,
+            PostRepository postRepository,
+            ClubDetailsRepository clubDetailsRepository,
+            BunnyNetService bunnyNetService,
+            @Lazy NotificationService notificationService
+    ) {
+        this.userRepository = userRepository;
+        this.userDetailsRepository = userDetailsRepository;
+        this.roleRepository = roleRepository;
+        this.relationshipRepository = relationshipRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.userSettingsService = userSettingsService;
+        this.postRepository = postRepository;
+        this.clubDetailsRepository = clubDetailsRepository;
+        this.bunnyNetService = bunnyNetService;
+        this.notificationService = notificationService;
+    }
 
     private String generateUserId(String accountType) {
         String prefix = "PS";
@@ -71,7 +97,6 @@ public class UserServiceImpl implements UserService {
             prefix = "BS";
         }
 
-        // Fetch last user by accountType ordered by userId descending
         User lastUser = userRepository.findTopByAccountTypeOrderByUserIdDesc(accountType);
         String lastUserId = (lastUser != null) ? lastUser.getUserId() : null;
 
@@ -85,7 +110,6 @@ public class UserServiceImpl implements UserService {
             number++;
             return String.format(prefix + "%07d", number);
         } catch (Exception e) {
-            // Fallback if parsing fails
             logger.warn("Failed to parse userId: {}, using default", lastUserId);
             return prefix + "0000001";
         }
@@ -1018,6 +1042,19 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred while retrieving the blocked users.");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void updateUserStatus(Long userId, boolean isOnline) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            user.setOnline(isOnline); // You need this field in User Entity
+            if (!isOnline) {
+                user.setLastSeen(LocalDateTime.now());
+            }
+            userRepository.save(user);
         }
     }
 
