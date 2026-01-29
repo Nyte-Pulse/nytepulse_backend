@@ -91,6 +91,11 @@ public class UserController {
         return userService.blockUser(userId, followingUserId);
     }
 
+    @GetMapping("/getBlockListByUserId/{userId}")
+    public ResponseEntity<?> getBlockListByUserId(@PathVariable Long userId) {
+        return userService.getBlockListByUserId(userId);
+    }
+
     @GetMapping("/{userId}/followers")
     public ResponseEntity<?> getFollowers(@PathVariable String userId,Authentication authentication,@RequestParam(defaultValue = "0") int page,@RequestParam(defaultValue = "10") int size) {
         String currentLoginUserId = null;
