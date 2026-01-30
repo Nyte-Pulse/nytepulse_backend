@@ -1028,17 +1028,17 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-//    @Transactional
-//    public void updateUserStatus(Long userId, boolean isOnline) {
-//        User user = userRepository.findById(userId).orElse(null);
-//        if (user != null) {
-//            user.setOnline(isOnline); // You need this field in User Entity
-//            if (!isOnline) {
-//                user.setLastSeen(LocalDateTime.now());
-//            }
-//            userRepository.save(user);
-//        }
-//    }
+    @Transactional
+    public void updateUserStatus(Long userId, boolean isOnline) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            user.setOnline(isOnline); // You need this field in User Entity
+            if (!isOnline) {
+                user.setLastSeen(LocalDateTime.now());
+            }
+            userRepository.save(user);
+        }
+    }
 
     @Override
     public ResponseEntity<?> saveFeedback(FeedbackRequest request) {
