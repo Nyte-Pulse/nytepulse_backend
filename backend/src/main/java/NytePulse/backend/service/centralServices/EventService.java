@@ -39,4 +39,8 @@ public interface EventService {
     ResponseEntity<?> generateEventShareLink(String eventId);
 
     ResponseEntity<?> updateEvent(EventDetailsDto eventDetailsDto,String eventId);
+
+    ResponseEntity<?> getEventsByUser(String clubId,int page,int size);
+
+    ResponseEntity<?> deleteEvent(String eventId);
 }
