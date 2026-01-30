@@ -94,4 +94,14 @@ public class EventController {
         return eventService.generateEventShareLink(eventId);
     }
 
+    @GetMapping("/getEventsByUser/{clubId}")
+    public ResponseEntity<?> getEventsByUser(@PathVariable String clubId,@RequestParam int page,@RequestParam int size) {
+        return eventService.getEventsByUser(clubId,page,size);
+    }
+
+    @DeleteMapping("/deleteEvent/{eventId}")
+    public ResponseEntity<?> deleteEvent(@PathVariable String eventId) {
+        return eventService.deleteEvent(eventId);
+    }
+
 }
