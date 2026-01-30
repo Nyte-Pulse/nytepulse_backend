@@ -45,5 +45,5 @@ public interface UserService {
 
     ResponseEntity<?> getBlockListByUserId(Long userId);
 
-    void updateUserStatus(Long userId, boolean isOnline);
+//    void updateUserStatus(Long userId, boolean isOnline);
 }

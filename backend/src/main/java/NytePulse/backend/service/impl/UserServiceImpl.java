@@ -9,11 +9,9 @@ import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.UserSettingsService;
 import NytePulse.backend.service.centralServices.UserService;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,63 +31,40 @@ import java.util.*;
 
 @Service
 public class UserServiceImpl implements UserService {
+    @Autowired
+    private UserRepository userRepository;
 
-    private final UserRepository userRepository;
+    @Autowired
+    private UserDetailsRepository userDetailsRepository;
 
+    @Autowired
+    private RoleRepository roleRepository;
 
-    private final UserDetailsRepository userDetailsRepository;
+    @Autowired
+    private UserRelationshipRepository relationshipRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-    private final RoleRepository roleRepository;
+    @Autowired
+    private UserSettingsService userSettingsService;
 
+    @Autowired
+    private NotificationService notificationService;
 
-    private final UserRelationshipRepository relationshipRepository;
+    @Autowired
+    private PostRepository postRepository;
 
-
-    private final PasswordEncoder passwordEncoder;
-
-
-    private final UserSettingsService userSettingsService;
-
-
-    private final NotificationService notificationService;
-
-
-    private final PostRepository postRepository;
-
-
+    @Autowired
     private ClubDetailsRepository clubDetailsRepository;
 
-    private final BunnyNetService bunnyNetService;
+    @Autowired
+    private BunnyNetService bunnyNetService;
 
 
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private static final ZoneId SRI_LANKA_ZONE = ZoneId.of("Asia/Colombo");
-
-    public UserServiceImpl(
-            UserRepository userRepository,
-            UserDetailsRepository userDetailsRepository,
-            RoleRepository roleRepository,
-            UserRelationshipRepository relationshipRepository,
-            PasswordEncoder passwordEncoder,
-            UserSettingsService userSettingsService,
-            PostRepository postRepository,
-            ClubDetailsRepository clubDetailsRepository,
-            BunnyNetService bunnyNetService,
-            @Lazy NotificationService notificationService
-    ) {
-        this.userRepository = userRepository;
-        this.userDetailsRepository = userDetailsRepository;
-        this.roleRepository = roleRepository;
-        this.relationshipRepository = relationshipRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.userSettingsService = userSettingsService;
-        this.postRepository = postRepository;
-        this.clubDetailsRepository = clubDetailsRepository;
-        this.bunnyNetService = bunnyNetService;
-        this.notificationService = notificationService;
-    }
 
     private String generateUserId(String accountType) {
         String prefix = "PS";
@@ -97,6 +72,7 @@ public class UserServiceImpl implements UserService {
             prefix = "BS";
         }
 
+        // Fetch last user by accountType ordered by userId descending
         User lastUser = userRepository.findTopByAccountTypeOrderByUserIdDesc(accountType);
         String lastUserId = (lastUser != null) ? lastUser.getUserId() : null;
 
@@ -110,6 +86,7 @@ public class UserServiceImpl implements UserService {
             number++;
             return String.format(prefix + "%07d", number);
         } catch (Exception e) {
+            // Fallback if parsing fails
             logger.warn("Failed to parse userId: {}, using default", lastUserId);
             return prefix + "0000001";
         }
@@ -1045,17 +1022,16 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    @Override
-    @Transactional
-    public void updateUserStatus(Long userId, boolean isOnline) {
-        User user = userRepository.findById(userId).orElse(null);
-        if (user != null) {
-            user.setOnline(isOnline); // You need this field in User Entity
-            if (!isOnline) {
-                user.setLastSeen(LocalDateTime.now());
-            }
-            userRepository.save(user);
-        }
-    }
+//    @Transactional
+//    public void updateUserStatus(Long userId, boolean isOnline) {
+//        User user = userRepository.findById(userId).orElse(null);
+//        if (user != null) {
+//            user.setOnline(isOnline); // You need this field in User Entity
+//            if (!isOnline) {
+//                user.setLastSeen(LocalDateTime.now());
+//            }
+//            userRepository.save(user);
+//        }
+//    }
 
 }
