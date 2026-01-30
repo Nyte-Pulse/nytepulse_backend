@@ -27,9 +27,9 @@ public class WebSocketService {
 
     private final SimpMessagingTemplate messagingTemplate;
 
-    private final UserService userService;
-
-    public static final Map<Long, String> ONLINE_USERS = new ConcurrentHashMap<>();
+//    private final UserService userService;
+//
+//    public static final Map<Long, String> ONLINE_USERS = new ConcurrentHashMap<>();
 
     public void sendNotificationToUser(Long userId, NotificationDTO notification) {
         try {
