@@ -180,6 +180,125 @@ public class EventServiceImpl implements EventService {
     }
 
 
+    @Override
+    public ResponseEntity<?> updateEvent(EventDetailsDto eventDetailsDto,String eventId) {
+        try {
+            if (eventDetailsDto == null || !StringUtils.hasText(eventId)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Invalid request");
+                errorResponse.put("message", "Request body cannot be null and eventId must be provided");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+
+            EventDetails existingEvent = eventDetailsRepository.findByEventId(eventId);
+
+            if (existingEvent == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Event not found");
+                errorResponse.put("eventId", eventId);
+                errorResponse.put("message", "No event found for the provided eventId");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+
+            if (eventDetailsDto.getOrganizerDetails() != null) {
+                if (existingEvent.getOrganizers() != null) {
+                    existingEvent.getOrganizers().clear();
+                } else {
+
+                    existingEvent.setOrganizers(new ArrayList<>());
+
+                }
+
+                for (OrganizerDetailDto orgDto : eventDetailsDto.getOrganizerDetails()) {
+                    EventOrganizer organizer = new EventOrganizer();
+                    organizer.setOrganizerName(orgDto.getOrganizerName());
+                    organizer.setOrganizerContact(orgDto.getOrganizerContact());
+                    organizer.setOrganizerEmail(orgDto.getOrganizerEmail());
+                    organizer.setWebsiteUrl(orgDto.getWebsiteUrl());
+
+                    if (orgDto.getUserId() != null) {
+                        if (clubDetailsRepository.existsById(orgDto.getUserId())) {
+                            organizer.setUserId(orgDto.getUserId());
+                        }
+                    }
+                    existingEvent.addOrganizer(organizer);
+                }
+            }
+
+            existingEvent.setName(eventDetailsDto.getName());
+            existingEvent.setDescription(eventDetailsDto.getDescription());
+            existingEvent.setCategory(eventDetailsDto.getCategory());
+            existingEvent.setStartDateTime(eventDetailsDto.getStartDateTime());
+            existingEvent.setEndDateTime(eventDetailsDto.getEndDateTime());
+            existingEvent.setAgeRestriction(eventDetailsDto.getAgeRestriction());
+            existingEvent.setDressCode(eventDetailsDto.getDressCode());
+            existingEvent.setTicketType(eventDetailsDto.getTicketType());
+            existingEvent.setClubName(eventDetailsDto.getClubName());
+
+            existingEvent.setStatus(eventDetailsDto.getStatus());
+            existingEvent.setHighlightTags(eventDetailsDto.getHighlightTags());
+
+            existingEvent.setWebsiteUrl(eventDetailsDto.getWebsiteUrl());
+            existingEvent.setEventPosterFileName(eventDetailsDto.getEventPosterFileName());
+            existingEvent.setEventPosterCdnUrl(eventDetailsDto.getEventPosterCdnUrl());
+            existingEvent.setPosterUrl(eventDetailsDto.getEventPosterCdnUrl());
+
+            existingEvent.setAddress(eventDetailsDto.getVenueAddress());
+            existingEvent.setLongitude(eventDetailsDto.getVenueLongitude());
+            existingEvent.setLatitude(eventDetailsDto.getVenueLatitude());
+            existingEvent.setCity(eventDetailsDto.getVenueCity());
+            existingEvent.setVenueName(eventDetailsDto.getVenueName());
+            existingEvent.setVenueAddress(eventDetailsDto.getVenueAddress());
+            existingEvent.setVenueCity(eventDetailsDto.getVenueCity());
+            existingEvent.setLocationName(eventDetailsDto.getLocationName());
+
+            existingEvent.setAmenities(eventDetailsDto.getAmenities());
+            existingEvent.setParking(eventDetailsDto.getParking());
+            existingEvent.setSpecialOffers(eventDetailsDto.getSpecialOffers());
+            existingEvent.setCurrency(eventDetailsDto.getCurrency());
+            existingEvent.setTicketLink(eventDetailsDto.getTicketLink());
+            existingEvent.setTicketPrice(eventDetailsDto.getTicketPrice());
+            existingEvent.setIsApprovedByOrganizer(eventDetailsDto.getIsApprovedByOrganizer());
+
+
+            existingEvent.setUpdatedAt(LocalDateTime.now(SRI_LANKA_ZONE));
+
+            EventDetails savedEventDetails = eventDetailsRepository.save(existingEvent);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Event updated successfully");
+            response.put("eventId", savedEventDetails.getEventId());
+            response.put("name", savedEventDetails.getName());
+            response.put("clubId", savedEventDetails.getClubId());
+            response.put("description", savedEventDetails.getDescription());
+            response.put("venueName", savedEventDetails.getVenueName());
+            response.put("venueAddress", savedEventDetails.getVenueAddress());
+            response.put("venueCity", savedEventDetails.getVenueCity());
+            response.put("category", savedEventDetails.getCategory());
+            response.put("startDateTime", savedEventDetails.getStartDateTime());
+            response.put("endDateTime", savedEventDetails.getEndDateTime());
+            response.put("ageRestriction", savedEventDetails.getAgeRestriction());
+            response.put("dressCode", savedEventDetails.getDressCode());
+            response.put("eventPosterUrl", savedEventDetails.getEventPosterCdnUrl());
+            // response.put("organizer", savedEventDetails.getOrganizer()); // Uncomment if needed
+            response.put("eventPosterFileName", savedEventDetails.getEventPosterFileName());
+            response.put("ticketType", savedEventDetails.getTicketType());
+            response.put("websiteUrl", savedEventDetails.getWebsiteUrl());
+            response.put("posterUrl", savedEventDetails.getPosterUrl());
+            response.put("status", savedEventDetails.getStatus());
+            response.put("highlightTags", savedEventDetails.getHighlightTags());
+            response.put("updated_at", savedEventDetails.getUpdatedAt());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error updating event details", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error updating event details");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
     public ResponseEntity<?> searchEvents(EventDetailsDto eventDetailsDto) {
         try {
             logger.info("Searching events with criteria: name={}, location={}, dateFilter={}, category={}, ticketType={}",

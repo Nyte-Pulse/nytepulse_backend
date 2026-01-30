@@ -2,6 +2,8 @@ package NytePulse.backend.service.impl;
 
 import NytePulse.backend.auth.RegisterRequest;
 import NytePulse.backend.dto.BunnyNetUploadResult;
+import NytePulse.backend.dto.FeedbackRequest;
+import NytePulse.backend.dto.FeedbackResponse;
 import NytePulse.backend.entity.*;
 import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.repository.*;
@@ -27,6 +29,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -54,6 +57,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private PostRepository postRepository;
+
+    @Autowired
+    private FeedbackRepository feedbackRepository;
 
     @Autowired
     private ClubDetailsRepository clubDetailsRepository;
@@ -1033,5 +1039,53 @@ public class UserServiceImpl implements UserService {
 //            userRepository.save(user);
 //        }
 //    }
+
+    @Override
+    public ResponseEntity<?> saveFeedback(FeedbackRequest request) {
+        UserDetails userDetails = userDetailsRepository.findByUserId(request.getUserId());
+
+        FeedBack feedback = new FeedBack();
+        feedback.setMessage(request.getMessage());
+        feedback.setRating(request.getRating());
+        feedback.setUserDetails(userDetails); // Link the user!
+
+        feedbackRepository.save(feedback);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.OK.value());
+        response.put("message", "Feedback submitted successfully");
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<?> getAllFeedback(int page,int size) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<FeedBack> feedbacks = feedbackRepository.findAllByOrderByCreatedAtDesc(pageable);
+
+        List<FeedbackResponse> feedbackResponses = feedbacks.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.OK.value());
+        response.put("feedbacks", feedbackResponses);
+        return ResponseEntity.ok(response);
+    }
+    private FeedbackResponse mapToResponse(FeedBack feedback) {
+        FeedbackResponse response = new FeedbackResponse();
+        response.setFeedbackId(feedback.getId());
+        response.setMessage(feedback.getMessage());
+        response.setRating(feedback.getRating());
+        response.setCreatedAt(feedback.getCreatedAt());
+
+        if (feedback.getUserDetails() != null) {
+            response.setUserId(feedback.getUserDetails().getUserId());
+            response.setUserName(feedback.getUserDetails().getUsername());
+            response.setName(feedback.getUserDetails().getName());
+            response.setUserEmail(feedback.getUserDetails().getEmail());
+        }
+
+        return response;
+    }
 
 }

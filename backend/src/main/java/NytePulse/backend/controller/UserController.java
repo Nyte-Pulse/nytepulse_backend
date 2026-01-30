@@ -1,6 +1,7 @@
 package NytePulse.backend.controller;
 
 import NytePulse.backend.dto.BunnyNetUploadResult;
+import NytePulse.backend.dto.FeedbackRequest;
 import NytePulse.backend.dto.UserDetailsDto;
 import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.UserDetailsService;
@@ -271,6 +272,16 @@ public class UserController {
     @GetMapping("/getMostFollowersCountUsers")
     public ResponseEntity<?> getMostFollowersCountUsers() {
         return userService.getMostFollowersCountUsers();
+    }
+
+    @PostMapping("/feedBack/add")
+    public ResponseEntity<?> addFeedback(@RequestBody FeedbackRequest request) {
+       return  userService.saveFeedback(request);
+    }
+
+    @GetMapping("/feedBack/all")
+    public ResponseEntity<?> getAllFeedback(@RequestParam int page,@RequestParam int size) {
+        return ResponseEntity.ok(userService.getAllFeedback(page, size));
     }
 
 }

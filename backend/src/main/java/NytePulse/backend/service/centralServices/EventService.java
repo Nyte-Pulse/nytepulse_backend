@@ -37,4 +37,6 @@ public interface EventService {
     ResponseEntity<?> approveOrDeclineByOrganizer(Long eventId,boolean isApproved);
 
     ResponseEntity<?> generateEventShareLink(String eventId);
+
+    ResponseEntity<?> updateEvent(EventDetailsDto eventDetailsDto,String eventId);
 }
