@@ -13,7 +13,7 @@ import NytePulse.backend.service.UserSettingsService;
 import NytePulse.backend.service.centralServices.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,50 +34,43 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
-    private final UserRepository userRepository;
-    private final UserDetailsRepository userDetailsRepository;
-    private final RoleRepository roleRepository;
-    private final UserRelationshipRepository relationshipRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final UserSettingsService userSettingsService;
+    @Autowired
+    private UserRepository userRepository;
 
-    private final FeedbackRepository feedbackRepository;
-    private final PostRepository postRepository;
-    private final ClubDetailsRepository clubDetailsRepository;
-    private final BunnyNetService bunnyNetService;
+    @Autowired
+    private UserDetailsRepository userDetailsRepository;
 
-    // This is the dependency causing the loop
-    private final NotificationService notificationService;
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private UserRelationshipRepository relationshipRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserSettingsService userSettingsService;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
+    private PostRepository postRepository;
+
+    @Autowired
+    private FeedbackRepository feedbackRepository;
+
+    @Autowired
+    private ClubDetailsRepository clubDetailsRepository;
+
+    @Autowired
+    private BunnyNetService bunnyNetService;
 
 
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private static final ZoneId SRI_LANKA_ZONE = ZoneId.of("Asia/Colombo");
-
-    public UserServiceImpl(
-            UserRepository userRepository,
-            UserDetailsRepository userDetailsRepository,
-            RoleRepository roleRepository,
-            UserRelationshipRepository relationshipRepository,
-            PasswordEncoder passwordEncoder,
-            UserSettingsService userSettingsService,
-            FeedbackRepository feedbackRepository, PostRepository postRepository,
-            ClubDetailsRepository clubDetailsRepository,
-            BunnyNetService bunnyNetService,
-            @Lazy NotificationService notificationService // <--- THE FIX IS HERE
-    ) {
-        this.userRepository = userRepository;
-        this.userDetailsRepository = userDetailsRepository;
-        this.roleRepository = roleRepository;
-        this.relationshipRepository = relationshipRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.userSettingsService = userSettingsService;
-        this.feedbackRepository = feedbackRepository;
-        this.postRepository = postRepository;
-        this.clubDetailsRepository = clubDetailsRepository;
-        this.bunnyNetService = bunnyNetService;
-        this.notificationService = notificationService;
-    }
 
     private String generateUserId(String accountType) {
         String prefix = "PS";
@@ -1035,17 +1028,17 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    @Transactional
-    public void updateUserStatus(Long userId, boolean isOnline) {
-        User user = userRepository.findById(userId).orElse(null);
-        if (user != null) {
-            user.setOnline(isOnline); // You need this field in User Entity
-            if (!isOnline) {
-                user.setLastSeen(LocalDateTime.now());
-            }
-            userRepository.save(user);
-        }
-    }
+//    @Transactional
+//    public void updateUserStatus(Long userId, boolean isOnline) {
+//        User user = userRepository.findById(userId).orElse(null);
+//        if (user != null) {
+//            user.setOnline(isOnline); // You need this field in User Entity
+//            if (!isOnline) {
+//                user.setLastSeen(LocalDateTime.now());
+//            }
+//            userRepository.save(user);
+//        }
+//    }
 
     @Override
     public ResponseEntity<?> saveFeedback(FeedbackRequest request) {
