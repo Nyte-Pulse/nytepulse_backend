@@ -1,6 +1,7 @@
 package NytePulse.backend.service.centralServices;
 
 import NytePulse.backend.auth.RegisterRequest;
+import NytePulse.backend.dto.FeedbackRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +45,10 @@ public interface UserService {
     ResponseEntity<?> getMostFollowersCountUsers();
 
     ResponseEntity<?> getBlockListByUserId(Long userId);
+
+    ResponseEntity<?> saveFeedback(FeedbackRequest request);
+
+    ResponseEntity<?>  getAllFeedback(int page,int size);
 
 //    void updateUserStatus(Long userId, boolean isOnline);
 }

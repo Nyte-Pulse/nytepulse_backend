@@ -99,6 +99,8 @@ public class EventDetails {
     @Column(name = "event_poster_cdn_url")
     private String eventPosterCdnUrl;
 
+    private LocalDateTime updatedAt;
+
     public void addOrganizer(EventOrganizer organizer) {
         this.organizers.add(organizer);
         organizer.setEvent(this);
@@ -400,5 +402,14 @@ public class EventDetails {
 
     public void setVenueCity(String venueCity) {
         this.venueCity = venueCity;
+    }
+
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

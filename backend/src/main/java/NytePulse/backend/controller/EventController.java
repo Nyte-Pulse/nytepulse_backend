@@ -24,6 +24,11 @@ public class EventController {
         return ResponseEntity.ok(eventService.saveEvent(eventDetailsDto));
     }
 
+    @PutMapping("/update/{eventId}")
+    public ResponseEntity<?> updateEvent(@RequestBody EventDetailsDto eventDetailsDto,@PathVariable String eventId){
+        return ResponseEntity.ok(eventService.updateEvent(eventDetailsDto,eventId));
+    }
+
     @PostMapping("/uploadEventPoster")
     public ResponseEntity<?> uploadEventPoster(@RequestParam("file") MultipartFile file, @RequestParam("eventId") String eventId) {
         return eventService.uploadEventPoster(file,eventId);
