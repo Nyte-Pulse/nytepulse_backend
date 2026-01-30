@@ -11,15 +11,11 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-
-import java.util.List;
 
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled = true)
@@ -51,52 +47,22 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // 1. CORS CONFIGURATION (CRITICAL for VPS/Flutter)
-                // This fixes the 403 error by telling the server to accept requests from any origin
-                .cors(cors -> cors.configurationSource(request -> {
-                    CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOriginPatterns(List.of("*")); // Allow all origins (Mobile/Web)
-                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-                    config.setAllowedHeaders(List.of("*"));
-                    config.setAllowCredentials(true);
-                    return config;
-                }))
-
-                // 2. Disable CSRF (Standard for Stateless JWT APIs)
-                .csrf(AbstractHttpConfigurer::disable)
-
-                // 3. Authorization Rules
-                .authorizeHttpRequests(auth -> auth
-                        // --- Public Endpoints ---
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/api/otp/email/**",
-                                "/ws/**",  // <--- WebSocket Handshake (Must be Public)
-                                "/api/user-details/checkUsernameAvailability/**",
-                                "/api/user-details/getAccountNameByEmail",
-                                "/error"   // Allow Spring Boot default error page
-                        ).permitAll()
-
-                        // --- Pre-flight Checks ---
-                        // Explicitly allow OPTIONS requests (Fixes some CORS issues on strict environments)
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // --- Role Based Access ---
-                        .requestMatchers(HttpMethod.GET, "/api/user").hasRole("USER")
-                        .requestMatchers(HttpMethod.GET, "/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/club").hasRole("BUSINESS")
-
-                        // --- Everything else needs a Token ---
-                        .anyRequest().authenticated()
-                )
-
-                // 4. Stateless Session (No Cookies)
+        http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth ->
+                        auth.requestMatchers("/api/auth/**","/api/auth/email/request-password-reset",
+                                        "/api/otp/email/sendOtp/**","/ws/**",
+                                        "/api/auth/refreshtoken", "/api/auth/logout","/api/user-details/checkUsernameAvailability/**","/api/user-details/getAccountNameByEmail",
+                                        "/api/auth/email/reset-password","/api/otp/email/**","/api/auth/register","/error").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/user").hasRole("USER")
+                                .requestMatchers(HttpMethod.GET, "/api/admin/**").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.GET, "/api/club").hasRole("BUSINESS")
+                                .anyRequest().authenticated()
+                );
 
-                // 5. Auth Provider & JWT Filter
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.authenticationProvider(authenticationProvider());
+
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
