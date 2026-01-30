@@ -9,6 +9,8 @@ import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -296,6 +298,29 @@ public class EventServiceImpl implements EventService {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error updating event details");
             errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getEventsByUser(String clubId,int page,int size) {
+        try {
+            Pageable pageable = Pageable.ofSize(size).withPage(page);
+            Page<EventDetails> events = eventDetailsRepository.findByClubId(clubId,pageable);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Events retrieved successfully");
+            response.put("events", events);
+            response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error retrieving events for clubId: {}", clubId, e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error retrieving events");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
@@ -947,6 +972,47 @@ public class EventServiceImpl implements EventService {
             logger.error("Error generating share link for eventId: {}", eventId, e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error generating share link");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+
+    @Override
+    public ResponseEntity<?> deleteEvent(String eventId){
+        try {
+            if (!StringUtils.hasText(eventId)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Invalid eventId");
+                errorResponse.put("message", "eventId cannot be null or empty");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+
+            EventDetails eventDetails = eventDetailsRepository.findByEventId(eventId);
+
+            if (eventDetails == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Event not found");
+                errorResponse.put("eventId", eventId);
+                errorResponse.put("message", "No event found for the provided eventId");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+
+            eventDetailsRepository.delete(eventDetails);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Event deleted successfully");
+            response.put("eventId", eventId);
+            response.put("status", HttpStatus.OK.value());
+            response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error deleting event for eventId: {}", eventId, e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error deleting event");
             errorResponse.put("message", e.getMessage());
             errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
