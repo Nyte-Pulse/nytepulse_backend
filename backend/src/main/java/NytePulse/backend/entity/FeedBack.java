@@ -22,6 +22,12 @@ public class FeedBack {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "userDetails_id", nullable = false)
+    @JoinColumn(name = "userDetails_id", nullable = true)
     private UserDetails userDetails;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "clubDetails_id", nullable = true)
+    private ClubDetails clubDetails;
+
+
 }
