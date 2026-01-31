@@ -50,5 +50,7 @@ public interface UserService {
 
     ResponseEntity<?>  getAllFeedback(int page,int size);
 
+    void setUserOnlineStatus(long parseLong, boolean b);
+
 //    void updateUserStatus(Long userId, boolean isOnline);
 }

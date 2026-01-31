@@ -1071,6 +1071,9 @@ public class UserServiceImpl implements UserService {
         response.put("feedbacks", feedbackResponses);
         return ResponseEntity.ok(response);
     }
+
+
+
     private FeedbackResponse mapToResponse(FeedBack feedback) {
         FeedbackResponse response = new FeedbackResponse();
         response.setFeedbackId(feedback.getId());
@@ -1088,4 +1091,24 @@ public class UserServiceImpl implements UserService {
         return response;
     }
 
+
+//    @Override
+//    public void setUserOnlineStatus(Long userId, boolean isOnline) {
+//        User user = userRepository.findById(userId).orElse(null);
+//        if (user != null) {
+//            user.setIsOnline(isOnline);
+//            user.setLastSeen(LocalDateTime.now());
+//            userRepository.save(user);
+//        }
+//    }
+
+    @Override
+    public void setUserOnlineStatus(long parseLong, boolean isOnline) {
+        User user = userRepository.findById(parseLong).orElse(null);
+        if (user != null) {
+            user.setIsOnline(isOnline);
+            user.setLastSeen(LocalDateTime.now());
+            userRepository.save(user);
+        }
+    }
 }
