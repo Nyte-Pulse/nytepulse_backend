@@ -1042,12 +1042,27 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ResponseEntity<?> saveFeedback(FeedbackRequest request) {
-        UserDetails userDetails = userDetailsRepository.findByUserId(request.getUserId());
+        
+        UserDetails userDetails = null;
+        ClubDetails clubDetails = null;
+
+        if (request.getUserId().startsWith("PS")) {
+            userDetails = userDetailsRepository.findByUserId(request.getUserId());
+        } else if (request.getUserId().startsWith("BS")) {
+            clubDetails = clubDetailsRepository.findByUserId(request.getUserId());
+        }
 
         FeedBack feedback = new FeedBack();
         feedback.setMessage(request.getMessage());
         feedback.setRating(request.getRating());
-        feedback.setUserDetails(userDetails); // Link the user!
+
+        if (userDetails != null) {
+            feedback.setUserDetails(userDetails);
+        } else if (clubDetails != null) {
+            feedback.setClubDetails(clubDetails);
+        } else {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Invalid User/Club ID"));
+        }
 
         feedbackRepository.save(feedback);
 
@@ -1056,7 +1071,6 @@ public class UserServiceImpl implements UserService {
         response.put("message", "Feedback submitted successfully");
         return ResponseEntity.ok(response);
     }
-
     @Override
     public ResponseEntity<?> getAllFeedback(int page,int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -1086,6 +1100,14 @@ public class UserServiceImpl implements UserService {
             response.setUserName(feedback.getUserDetails().getUsername());
             response.setName(feedback.getUserDetails().getName());
             response.setUserEmail(feedback.getUserDetails().getEmail());
+
+        }
+        else if (feedback.getClubDetails() != null) {
+            response.setUserId(feedback.getClubDetails().getUserId()); // Assuming Club has a similar ID field
+            response.setUserName(feedback.getClubDetails().getUsername()); // Map Club Name to Username/Name
+            response.setName(feedback.getClubDetails().getName());
+            response.setUserEmail(feedback.getClubDetails().getEmail());
+
         }
 
         return response;
