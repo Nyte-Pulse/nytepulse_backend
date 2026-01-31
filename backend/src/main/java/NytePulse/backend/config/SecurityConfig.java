@@ -57,6 +57,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("/api/auth/**","/api/auth/email/request-password-reset",
                                         "/api/otp/email/sendOtp/**","/ws/**","/ws-sockjs/**",
