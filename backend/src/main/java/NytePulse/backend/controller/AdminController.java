@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(originPatterns = "*")
 public class AdminController {
 
     @Autowired

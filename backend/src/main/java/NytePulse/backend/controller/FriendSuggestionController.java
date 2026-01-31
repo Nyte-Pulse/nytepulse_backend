@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/suggestions")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class FriendSuggestionController {
 
     @Autowired

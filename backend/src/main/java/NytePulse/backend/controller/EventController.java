@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/event")
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(originPatterns = "*")
 public class EventController {
 
     @Autowired
