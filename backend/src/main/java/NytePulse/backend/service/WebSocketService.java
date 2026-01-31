@@ -1,9 +1,12 @@
 package NytePulse.backend.service;
 
 import NytePulse.backend.dto.NotificationDTO;
+import NytePulse.backend.dto.SocketEvent;
 import NytePulse.backend.entity.Notification;
 import NytePulse.backend.entity.User;
 import NytePulse.backend.service.centralServices.UserService;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -74,6 +77,33 @@ public class WebSocketService {
             log.info("Unread count {} sent to user {}", unreadCount, userId);
         } catch (Exception e) {
             log.error("Error sending unread count to user {}: {}", userId, e.getMessage(), e);
+        }
+    }
+
+    // Add this DTO class inside or separately
+    @Data
+    @AllArgsConstructor
+    public class UserStatusDTO {
+        private Long userId;
+        private Boolean isOnline;
+        private String lastSeen; // Optional
+    }
+
+    // Add this method to WebSocketService class
+    public void broadcastUserStatus(Long userId, Boolean isOnline) {
+        try {
+            UserStatusDTO statusDTO = new UserStatusDTO(userId, isOnline, LocalDateTime.now().toString());
+
+            // We wrap it in your standard SocketEvent structure
+            SocketEvent event = new SocketEvent("USER_STATUS", statusDTO);
+
+            // Broadcast to a public topic that all clients listen to for status updates
+            // Alternatively, you could loop through the user's active conversations and send it there
+            messagingTemplate.convertAndSend("/topic/presence", event);
+
+            log.info("Broadcasted user {} status: {}", userId, isOnline ? "ONLINE" : "OFFLINE");
+        } catch (Exception e) {
+            log.error("Error broadcasting user status", e);
         }
     }
 

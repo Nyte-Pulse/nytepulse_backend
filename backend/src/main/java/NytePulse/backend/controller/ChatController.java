@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -92,9 +93,11 @@ public class ChatController {
                 conversationId, userId, content, "TEXT", null
         );
 
+        SocketEvent event = new SocketEvent("MESSAGE", message);
+
         messagingTemplate.convertAndSend(
                 "/topic/conversation/" + conversationId,
-                message
+                event
         );
 
         return ResponseEntity.ok(Map.of(
@@ -105,8 +108,21 @@ public class ChatController {
 
     @PostMapping("/conversations/{conversationId}/read")
     public ResponseEntity<?> markConversationAsRead(@PathVariable Long conversationId,@RequestHeader("User-Id") Long userId){
-           return chatService.markConversationAsRead(conversationId, userId);
+        ResponseEntity<?> response = chatService.markConversationAsRead(conversationId, userId);
+
+        // 2. Broadcast READ RECEIPT event
+        // This tells User B that User A has read the chat
+        ReadReceiptDTO receipt = new ReadReceiptDTO(conversationId, userId, LocalDateTime.now());
+        SocketEvent event = new SocketEvent("MESSAGE_READ", receipt);
+
+        messagingTemplate.convertAndSend(
+                "/topic/conversation/" + conversationId,
+                event
+        );
+
+        return response;
     }
+
 
     @GetMapping("/conversations/getUnreadConversations")
     public ResponseEntity<?> getUnreadConversations(@RequestHeader("User-Id") Long userId) {

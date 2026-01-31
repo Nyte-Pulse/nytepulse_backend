@@ -39,11 +39,11 @@ public class User {
 
     private boolean isDeleted;
 
-//    @Column(name = "is_online")
-//    private boolean isOnline = false;
-//
-//    @Column(name = "last_seen")
-//    private LocalDateTime lastSeen;
+    @Column(name = "is_online")
+    private boolean isOnline = false;
+
+    @Column(name = "last_seen")
+    private LocalDateTime lastSeen;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -142,17 +142,14 @@ public class User {
         isDeleted = deleted;
     }
 
-//    public void setOnline(boolean isOnline) {
-//    }
-//
-//    public boolean isOnline() {
-//        return isOnline;
-//    }
-//
-//    public LocalDateTime getLastSeen() {
-//        return lastSeen;
-//    }
-//
-//    public void setLastSeen(LocalDateTime now) {
-//    }
+
+    public LocalDateTime getLastSeen() {
+        return lastSeen;
+    }
+
+    public void setLastSeen(LocalDateTime now) {
+    }
+
+    public void setIsOnline(Boolean isOnline) {
+    }
 }
