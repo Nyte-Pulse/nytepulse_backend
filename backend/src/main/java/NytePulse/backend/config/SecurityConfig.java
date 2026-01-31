@@ -120,16 +120,16 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow all origins (localhost:3000, 8080, etc)
+        // ❌ WRONG: Do NOT use this with credentials=true
+        // configuration.setAllowedOrigins(List.of("*"));
+
+        // ✅ CORRECT: Use this instead
         configuration.setAllowedOriginPatterns(List.of("*"));
 
-        // Allow all methods
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-
-        // Allow all headers
         configuration.setAllowedHeaders(List.of("*"));
 
-        // Allow Credentials (cookies/tokens)
+        // Because this is true, you MUST use setAllowedOriginPatterns
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
