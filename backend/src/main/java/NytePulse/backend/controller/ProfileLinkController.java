@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/profile")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class ProfileLinkController {
 
     @Autowired

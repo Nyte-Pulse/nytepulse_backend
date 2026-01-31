@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Controller
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 @RequiredArgsConstructor
 public class WebSocketChatController {
 
