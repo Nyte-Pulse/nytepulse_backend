@@ -22,18 +22,81 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity; // Use this instead of EnableGlobalMethodSecurity
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
 @Configuration
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableWebSecurity
+@EnableMethodSecurity // Replaces the deprecated @EnableGlobalMethodSecurity
+@RequiredArgsConstructor // Uses Lombok to inject dependencies automatically
 public class SecurityConfig {
 
-    @Autowired
-    private CustomUserDetailsService userDetailsService;
+    private final CustomUserDetailsService userDetailsService;
+    private final JwtAuthenticationFilter jwtAuthFilter; // Only need one!
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                // 1. Disable CSRF (Stateless APIs don't need it)
+                .csrf(csrf -> csrf.disable())
 
-    @Autowired
-    private  JwtAuthenticationFilter jwtAuthFilter;
+                // 2. Enable CORS (Uses the bean defined below)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // 3. Define URL Rules
+                .authorizeHttpRequests(auth -> auth
+                        // Public Endpoints
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/otp/email/**",
+                                "/ws/**", "/ws-sockjs/**", // WebSocket
+                                "/error"
+                        ).permitAll()
+
+                        // Allow Pre-flight checks (Crucial for fixing 403 errors)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // Role-based Access (Optional examples)
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // Lock everything else
+                        .anyRequest().authenticated()
+                )
+
+                // 4. Stateless Session (No cookies)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // 5. Set the Auth Provider
+                .authenticationProvider(authenticationProvider())
+
+                // 6. Add the JWT Filter (ONLY ONCE)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -41,7 +104,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
+    public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
@@ -54,49 +117,19 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/api/auth/**","/api/auth/email/request-password-reset",
-                                        "/api/otp/email/sendOtp/**","/ws/**","/ws-sockjs/**",
-                                        "/api/auth/refreshtoken", "/api/auth/logout","/api/user-details/checkUsernameAvailability/**","/api/user-details/getAccountNameByEmail",
-                                        "/api/auth/email/reset-password","/api/otp/email/**","/api/auth/register","/error").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/user").hasRole("USER")
-                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/admin/**").hasRole("ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/api/club").hasRole("BUSINESS")
-                                .anyRequest().authenticated()
-                )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
-
-
-        http.authenticationProvider(authenticationProvider());
-
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
-    }
-
-    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow all origins (for testing)
+        // Allow all origins (localhost:3000, 8080, etc)
         configuration.setAllowedOriginPatterns(List.of("*"));
 
-        // Allow all methods including OPTIONS
+        // Allow all methods
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
-        // Allow all headers (Authorization, User-Id, etc.)
+        // Allow all headers
         configuration.setAllowedHeaders(List.of("*"));
 
-        // Allow credentials (needed for WebSocket/Tokens)
+        // Allow Credentials (cookies/tokens)
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
