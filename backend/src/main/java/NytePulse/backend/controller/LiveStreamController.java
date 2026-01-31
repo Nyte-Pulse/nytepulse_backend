@@ -1,12 +1,18 @@
 package NytePulse.backend.controller;
 
 import NytePulse.backend.dto.LiveStreamResponseDTO;
+import NytePulse.backend.dto.ReactionMessage;
 import NytePulse.backend.dto.StartStreamRequestDTO;
 import NytePulse.backend.dto.StreamAccessResponseDTO;
+import NytePulse.backend.entity.ChatMessage;
 import NytePulse.backend.service.centralServices.LiveStreamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -65,5 +71,18 @@ public class LiveStreamController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @MessageMapping("/chat/{streamId}")
+    @SendTo("/topic/stream/{streamId}")
+    public ChatMessage sendComment(@DestinationVariable String streamId, @Payload ChatMessage message) {
+        // We do NOT save to DB. We just return it, which broadcasts it to everyone.
+        return message;
+    }
+
+    @MessageMapping("/react/{streamId}")
+    @SendTo("/topic/stream/{streamId}/react")
+    public ReactionMessage sendReaction(@DestinationVariable String streamId, @Payload ReactionMessage reaction) {
+        return reaction;
     }
 }
