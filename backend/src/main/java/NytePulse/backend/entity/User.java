@@ -40,7 +40,7 @@ public class User {
     private boolean isDeleted;
 
     @Column(name = "is_online")
-    private boolean isOnline = false;
+    private Boolean isOnline = false;
 
     @Column(name = "last_seen")
     private LocalDateTime lastSeen;
@@ -142,14 +142,19 @@ public class User {
         isDeleted = deleted;
     }
 
+    public Boolean getOnline() {
+        return isOnline;
+    }
+
+    public void setOnline(Boolean online) {
+        isOnline = online;
+    }
 
     public LocalDateTime getLastSeen() {
         return lastSeen;
     }
 
-    public void setLastSeen(LocalDateTime now) {
-    }
-
-    public void setIsOnline(Boolean isOnline) {
+    public void setLastSeen(LocalDateTime lastSeen) {
+        this.lastSeen = lastSeen;
     }
 }

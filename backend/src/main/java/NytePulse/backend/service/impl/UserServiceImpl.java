@@ -1106,7 +1106,7 @@ public class UserServiceImpl implements UserService {
     public void setUserOnlineStatus(long parseLong, boolean isOnline) {
         User user = userRepository.findById(parseLong).orElse(null);
         if (user != null) {
-            user.setIsOnline(isOnline);
+            user.setOnline(isOnline);
             user.setLastSeen(LocalDateTime.now());
             userRepository.save(user);
         }
