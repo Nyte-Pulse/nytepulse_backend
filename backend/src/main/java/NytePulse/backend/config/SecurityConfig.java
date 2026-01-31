@@ -32,6 +32,9 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Autowired
+    private  JwtAuthenticationFilter jwtAuthFilter;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -64,7 +67,13 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.GET, "/api/admin/**").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.GET, "/api/club").hasRole("BUSINESS")
                                 .anyRequest().authenticated()
-                );
+                )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+
 
         http.authenticationProvider(authenticationProvider());
 
