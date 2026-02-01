@@ -291,7 +291,6 @@ public class UserServiceImpl implements UserService {
     }
 
 
-
     @Override
     public ResponseEntity<?> getFollowers(String profileOwnerId, String currentLoginUserId, int page, int size) {
         try {
@@ -421,7 +420,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public ResponseEntity<?> getFollowing(String profileOwnerId, String currentLoginUserId,int page,int size) {
+    public ResponseEntity<?> getFollowing(String profileOwnerId, String currentLoginUserId, int page, int size) {
         try {
 
             Pageable pageable = PageRequest.of(page, size);
@@ -632,6 +631,39 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public ResponseEntity<?> sendFollowRequest(String userId, String followingUserId) {
+
+        try {
+
+            if (relationshipRepository.isFollowing(userId, followingUserId)) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("Already following user: " + followingUserId);
+
+            }
+
+            User follower = userRepository.findByUserId(userId);
+
+            User following = userRepository.findByUserId(followingUserId);
+
+            UserRelationship relationship = new UserRelationship(follower, following);
+            relationship.setRelationshipType(RelationshipType.FOLLOW_REQUESTED);
+            relationshipRepository.save(relationship);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Follow request sent to user: " + followingUserId);
+            response.put("status", HttpStatus.OK.value());
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error while sending follow request: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to send follow request.");
+        }
+    }
+
+    @Override
     public ResponseEntity<?> getFollowingCount(String userId) {
         try {
             long count = relationshipRepository.countFollowing(userId);
@@ -681,6 +713,7 @@ public class UserServiceImpl implements UserService {
                 response.put("profileImage", userDetails.getProfilePicture());
                 response.put("profileImageFileName", userDetails.getProfilePictureFileName());
                 response.put("bio", userDetails.getBio());
+                response.put("isPrivate", userDetails.getIsPrivate());
             } else {
                 ClubDetails clubDetails = clubDetailsRepository.findByUsername(username);
                 response.put("profileImage", clubDetails.getProfilePicture());
