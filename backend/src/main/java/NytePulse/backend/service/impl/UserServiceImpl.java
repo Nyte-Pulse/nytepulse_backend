@@ -631,6 +631,55 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public ResponseEntity<?> acceptOrRejectedFollowRequest(String userId, String followingUserId,String status){
+
+        try {
+            Optional<UserRelationship> relationshipOpt = relationshipRepository.findByFollowerUserIdAndFollowingUserId(followingUserId, userId);
+            if (relationshipOpt.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("No follow request found from user: " + followingUserId);
+            }
+
+            UserRelationship relationship = relationshipOpt.get();
+
+            if (!relationship.getRelationshipType().equals(RelationshipType.FOLLOW_REQUESTED)) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("No pending follow request from user: " + followingUserId);
+            }
+
+            if(status.equalsIgnoreCase("ACCEPT")){
+                relationship.setRelationshipType(RelationshipType.FOLLOWING);
+                relationshipRepository.save(relationship);
+
+                Map<String, String> response = new HashMap<>();
+                response.put("message", "Follow request accepted from user: " + followingUserId);
+                return ResponseEntity.ok(response);
+
+            } else if(status.equalsIgnoreCase("REJECT")){
+                relationshipRepository.delete(relationship);
+
+                Map<String, String> response = new HashMap<>();
+                response.put("message", "Follow request rejected from user: " + followingUserId);
+                return ResponseEntity.ok(response);
+
+            } else {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("Invalid status. Use 'ACCEPT' or 'REJECT'.");
+            }
+
+        } catch (Exception e) {
+            logger.error("Error while processing follow request: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to process the follow request.");
+        }
+    }
+
+
+    @Override
     public ResponseEntity<?> sendFollowRequest(String userId, String followingUserId) {
 
         try {
@@ -642,6 +691,14 @@ public class UserServiceImpl implements UserService {
 
             }
 
+            if(userDetailsRepository.findByUserId(followingUserId).getIsPrivate() == false){
+                HashMap<String, Object> response = new HashMap<>();
+                response.put("status", HttpStatus.BAD_REQUEST.value());
+                response.put("message", "User account is not private, you can follow directly: " + followingUserId);
+                return ResponseEntity.ok(response);
+
+            }
+
             User follower = userRepository.findByUserId(userId);
 
             User following = userRepository.findByUserId(followingUserId);
@@ -649,6 +706,15 @@ public class UserServiceImpl implements UserService {
             UserRelationship relationship = new UserRelationship(follower, following);
             relationship.setRelationshipType(RelationshipType.FOLLOW_REQUESTED);
             relationshipRepository.save(relationship);
+
+            notificationService.createNotification(
+                    following.getId(),           // Recipient (the person being followed)
+                    follower.getId(),            // Actor (the person who followed)
+                    NotificationType.FOLLOW_REQUEST,
+                    "You have a new follow request",
+                    follower.getId(),            // Reference to follower
+                    "USER"                       // Reference type
+            );
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Follow request sent to user: " + followingUserId);

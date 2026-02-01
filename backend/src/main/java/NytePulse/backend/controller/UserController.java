@@ -92,6 +92,11 @@ public class UserController {
         return userService.sendFollowRequest(userId, followingUserId);
     }
 
+    @PutMapping("/acceptOrRejectedFollowRequest/{userId}/follow/{followingUserId}/{status}")
+    public ResponseEntity<?> acceptOrRejectedFollowRequest(@PathVariable String userId, @PathVariable String followingUserId, @PathVariable String status) {
+        return userService.acceptOrRejectedFollowRequest(userId, followingUserId,status);
+    }
+
     @PostMapping("/{userId}/block/{followingUserId}")
     public ResponseEntity<?> blockUser(@PathVariable String userId, @PathVariable String followingUserId) {
         return userService.blockUser(userId, followingUserId);
