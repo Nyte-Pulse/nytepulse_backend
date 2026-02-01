@@ -87,6 +87,11 @@ public class UserController {
         return userService.followUser(userId, followingUserId);
     }
 
+    @PostMapping("/followRequest/{userId}/follow/{followingUserId}")
+    public ResponseEntity<?> sendFollowRequest(@PathVariable String userId, @PathVariable String followingUserId) {
+        return userService.sendFollowRequest(userId, followingUserId);
+    }
+
     @PostMapping("/{userId}/block/{followingUserId}")
     public ResponseEntity<?> blockUser(@PathVariable String userId, @PathVariable String followingUserId) {
         return userService.blockUser(userId, followingUserId);
