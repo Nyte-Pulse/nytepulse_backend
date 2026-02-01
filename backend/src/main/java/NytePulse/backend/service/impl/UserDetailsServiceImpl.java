@@ -140,9 +140,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         userDetails.setIsPrivate(isPrivate);
         userDetailsRepository.save(userDetails);
 
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .body("Account status update success");
+        HashMap<String,Object> res= new HashMap<>();
+        res.put("message", "Account status update success");
+        res.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(res);
     } catch (Exception e) {
         logger.error("Error updating user details for userId: {}", userId, e);
         return ResponseEntity
