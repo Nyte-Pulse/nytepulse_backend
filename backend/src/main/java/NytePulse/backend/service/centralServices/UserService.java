@@ -52,5 +52,7 @@ public interface UserService {
 
     void setUserOnlineStatus(long parseLong, boolean b);
 
+    ResponseEntity<?> sendFollowRequest(String userId, String followingUserId);
+
 //    void updateUserStatus(Long userId, boolean isOnline);
 }
