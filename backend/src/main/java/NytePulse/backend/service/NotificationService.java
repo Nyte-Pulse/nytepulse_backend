@@ -13,9 +13,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.Optional;
 
 @Service
@@ -175,7 +178,7 @@ public class NotificationService {
     }
 
     @Transactional
-    public void markAsRead(Long notificationId, Long userId) {
+    public ResponseEntity<?> markAsRead(Long notificationId, Long userId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
@@ -189,18 +192,30 @@ public class NotificationService {
         // ✅ Send updated unread count via WebSocket
         Long unreadCount = getUnreadCount(userId);
         webSocketService.sendUnreadCountUpdate(userId, unreadCount);
+
+        HashMap<String,Object> res = new HashMap<>();
+        res.put("message", "Notification marked as read");
+        res.put("unreadCount", unreadCount);
+        res.put("status", HttpStatus.OK.value());
+        return ResponseEntity.ok(res);
     }
 
     @Transactional
-    public void markAllAsRead(Long userId) {
+    public ResponseEntity<?> markAllAsRead(Long userId) {
         notificationRepository.markAllAsReadByRecipientId(userId);
 
         // ✅ Send updated unread count (should be 0)
         webSocketService.sendUnreadCountUpdate(userId, 0L);
+
+        HashMap<String,Object> res = new HashMap<>();
+        res.put("message", "All notifications marked as read");
+        res.put("unreadCount", 0);
+        res.put("status", HttpStatus.OK.value());
+        return ResponseEntity.ok(res);
     }
 
     @Transactional
-    public void deleteNotification(Long notificationId, Long userId) {
+    public ResponseEntity<?> deleteNotification(Long notificationId, Long userId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
@@ -213,6 +228,12 @@ public class NotificationService {
         // ✅ Send updated unread count
         Long unreadCount = getUnreadCount(userId);
         webSocketService.sendUnreadCountUpdate(userId, unreadCount);
+
+        HashMap<String,Object> res = new HashMap<>();
+        res.put("message", "Notification deleted");
+        res.put("unreadCount", unreadCount);
+        res.put("status", HttpStatus.OK.value());
+        return ResponseEntity.ok(res);
     }
 
     private NotificationDTO convertToDTO(Notification notification) {
