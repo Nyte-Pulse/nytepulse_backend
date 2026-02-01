@@ -25,7 +25,7 @@ public class UserRelationship {
     private User following;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "relationship_type")
+    @Column(name = "relationship_type", length = 30)
     private RelationshipType relationshipType = RelationshipType.FOLLOWING;
 
     @Column(name = "created_at")

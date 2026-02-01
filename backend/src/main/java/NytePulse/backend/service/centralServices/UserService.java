@@ -54,5 +54,7 @@ public interface UserService {
 
     ResponseEntity<?> sendFollowRequest(String userId, String followingUserId);
 
+    ResponseEntity<?> acceptOrRejectedFollowRequest(String userId, String followingUserId,String status);
+
 //    void updateUserStatus(Long userId, boolean isOnline);
 }
