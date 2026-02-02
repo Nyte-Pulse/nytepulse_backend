@@ -22,4 +22,6 @@ public interface UserDetailsService {
     ResponseEntity<?> getMentionedAllowUserList(Long currentUserId);
 
     ResponseEntity<?> getTaggedAllowUserList(Long currentUserId);
+
+    ResponseEntity<?> checkEmailAvailability(String email);
 }

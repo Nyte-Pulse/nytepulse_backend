@@ -486,6 +486,31 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         }
     }
 
+    @Override
+    public ResponseEntity<?> checkEmailAvailability(String email) {
+        try {
+            UserDetails userDetails = userDetailsRepository.findByEmail(email);
+            boolean isAvailable = (userDetails == null);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("email", email);
+            response.put("isAvailable", isAvailable);
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error checking email availability for {}: {}", email, e.getMessage());
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to check email availability");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
 
     @Override
     public ResponseEntity<?> getTaggedAllowUserList(Long currentUserId) {
