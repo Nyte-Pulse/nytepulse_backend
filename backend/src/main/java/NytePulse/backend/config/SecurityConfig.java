@@ -45,6 +45,7 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/otp/email/**",
                                 "/api/user-details/checkUsernameAvailability/**", // Fixed syntax here
+                                "/api/user-details/checkEmailAvailability/**",
                                 "/api/user-details/getAccountNameByEmail",        // Fixed syntax here
                                 "/ws/**", "/ws-sockjs/**",                        // WebSocket
                                 "/error"
