@@ -31,7 +31,7 @@ public interface PostService {
 
     ResponseEntity<?> getMediasByMediaType(String userId, Media.MediaType mediaType);
 
-    ResponseEntity<?> createStory(String content, String userId, MultipartFile[] files,Boolean isCloseFriendsOnly);
+    ResponseEntity<?> createStory(String content, String userId, MultipartFile[] files,Boolean isCloseFriendsOnly,Long musicTrackId);
 
     ResponseEntity<?> getStoriesByUserId(String userId);
 

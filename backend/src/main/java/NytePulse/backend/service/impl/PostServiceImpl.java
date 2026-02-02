@@ -52,6 +52,9 @@ public class PostServiceImpl implements PostService {
     private SavedPostRepository savedPostRepository;
 
     @Autowired
+    private MusicTrackRepository musicTrackRepository;
+
+    @Autowired
     private StoryViewRepository storyViewRepository;
     @Autowired
     private BunnyNetService bunnyNetService;
@@ -96,10 +99,10 @@ public class PostServiceImpl implements PostService {
             String location,
             MultipartFile[] files) {
         try {
-            if (content == null || content.trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "Content is required"));
-            }
+//            if (content == null || content.trim().isEmpty()) {
+//                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+//                        .body(Map.of("error", "Content is required"));
+//            }
 
             User user = userRepository.findByUserId(userId);
             if (user == null) {
@@ -623,19 +626,20 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public ResponseEntity<?> createStory(String content, String userId, MultipartFile[] files,Boolean isCloseFriendsOnly) {
+    public ResponseEntity<?> createStory(String content, String userId, MultipartFile[] files,Boolean isCloseFriendsOnly,Long musicTrackId) {
         try {
-            if (content == null || content.trim().isEmpty()) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("error", "Content is required");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-            }
+//            if (content == null || content.trim().isEmpty()) {
+//                Map<String, Object> errorResponse = new HashMap<>();
+//                errorResponse.put("error", "Content is required");
+//                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+//            }
 
             User user = userRepository.findByUserId(userId);
 
             Story story = new Story();          // Use Story entity instead of Post
             story.setContent(content);
             story.setUser(user);
+            story.setMusicTrackId(musicTrackId);
             story.setIsCloseFriendsOnly(isCloseFriendsOnly != null ? isCloseFriendsOnly : false);
             Story savedStory = storyRepository.save(story);
 
@@ -1189,10 +1193,33 @@ public class PostServiceImpl implements PostService {
                         .build())
                 .collect(Collectors.toList());
 
+        // 2. Fetch Music Details (Single Object, not a List)
+        String musicTitle = null;
+        String musicAudioUrl = null;
+        String coverImage = null;
+
+        if (story.getMusicTrackId() != null) {
+            // Warning: This causes N+1 performance issues if used in a loop.
+            // See the optimization note below.
+            MusicTrack track = musicTrackRepository.findById(story.getMusicTrackId())
+                    .orElse(null);
+
+            if (track != null) {
+                musicTitle = track.getTitle();
+                musicAudioUrl = track.getAudioUrl();
+                coverImage=track.getCoverImageUrl();
+            }
+        }
+
         return StoryResponseDTO.builder()
                 .id(story.getId())
                 .content(story.getContent())
                 .media(mediaDTOs)
+                .musicTrackId(story.getMusicTrackId())
+                .title(musicTitle)
+                .audioUrl(musicAudioUrl)
+                .coverImageUrl(coverImage)
+                .musicTrackId(story.getMusicTrackId())
                 .createdAt(story.getCreatedAt())
                 .expiresAt(story.getExpiresAt())
                 .isCloseFriendsOnly(story.getIsCloseFriendsOnly())

@@ -5,22 +5,19 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StoryResponseDTO {
+public class MusicDTO {
+
     private Long id;
-    private String content;
-    private List<StoryMediaDTO> media;
-    private LocalDateTime createdAt;
-    private LocalDateTime expiresAt;
-    private Boolean isCloseFriendsOnly;
-    private Long musicTrackId;
+
     private String title;
+
     private String audioUrl;
+
     private String coverImageUrl;
+
+    private String storagePath;
 }
