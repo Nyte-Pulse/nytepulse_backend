@@ -1,5 +1,6 @@
 package NytePulse.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -15,7 +16,7 @@ public class Story {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 1000)
+    @Column(length = 1000,nullable = true)
     private String content;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -28,6 +29,13 @@ public class Story {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Transient
+    private MusicTrack musicTrackInfo;
+
+    @Column(length = 1000,nullable = true)
+    private Long musicTrackId;
+
 
 
     @Column(name = "expires_at")
@@ -98,5 +106,20 @@ public class Story {
         isCloseFriendsOnly = closeFriendsOnly;
     }
 
+    public Boolean getCloseFriendsOnly() {
+        return isCloseFriendsOnly;
+    }
+
+    public void setCloseFriendsOnly(Boolean closeFriendsOnly) {
+        isCloseFriendsOnly = closeFriendsOnly;
+    }
+
+    public MusicTrack getMusicTrackInfo() {
+        return musicTrackInfo;
+    }
+
+    public void setMusicTrackInfo(MusicTrack musicTrackInfo) {
+        this.musicTrackInfo = musicTrackInfo;
+    }
 
 }
