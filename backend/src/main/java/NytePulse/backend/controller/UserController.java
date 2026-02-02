@@ -181,6 +181,11 @@ public class UserController {
         return userService.checkUsernameAvailability(username);
     }
 
+    @GetMapping("/checkEmailAvailability/{email}")
+    public ResponseEntity<?> checkEmailAvailability(@PathVariable String email) {
+        return userDetailsService.checkEmailAvailability(email);
+    }
+
     @PostMapping("/profilePicture/upload")
     public ResponseEntity<?> uploadProfilePicture(@RequestParam("file") MultipartFile file, @RequestParam("userId") String userId) {
         return userService.uploadProfilePicture(file, userId);
