@@ -127,8 +127,9 @@ public class PostController {
     public ResponseEntity<?> createStory(
             @RequestParam("content") String content,
             @RequestParam("userId") String userId,
+            @RequestParam(value = "musicTrackId", required = false) Long musicTrackId,
             @RequestParam(value = "files", required = false) MultipartFile[] files,Boolean isCloseFriendsOnly) {
-        return postService.createStory(content, userId, files,isCloseFriendsOnly);
+        return postService.createStory(content, userId, files,isCloseFriendsOnly,musicTrackId);
     }
 
     @GetMapping("/getStories/{userId}")
