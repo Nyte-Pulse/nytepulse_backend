@@ -4,14 +4,18 @@ import NytePulse.backend.dto.ProfessionalCategoryDTO;
 import NytePulse.backend.dto.ProfessionalTypeDTO;
 import NytePulse.backend.entity.ProfessionalCategory;
 import NytePulse.backend.entity.ProfessionalType;
+import NytePulse.backend.entity.UserProfessionalCategories;
 import NytePulse.backend.repository.ProfessionalCategoryRepository;
 import NytePulse.backend.repository.ProfessionalTypeRepository;
+import NytePulse.backend.repository.UserProfessionalCategoriesRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,6 +25,7 @@ public class ProfessionalCategoryService {
 
     private final ProfessionalCategoryRepository categoryRepository;
     private final ProfessionalTypeRepository typeRepository;
+    private final UserProfessionalCategoriesRepository userProfessionalCategoriesRepository;
 
     @Transactional(readOnly = true)
     public List<ProfessionalCategoryDTO> getAllCategories() {
@@ -193,5 +198,53 @@ public class ProfessionalCategoryService {
                 .description(type.getDescription())
                 .displayOrder(type.getDisplayOrder())
                 .build();
+    }
+
+    public ResponseEntity<?> saveUserProfessionalCategories(Long userId, List<Long> professionalTypeIds, String otherProfessionalType) {
+
+        try {
+            if (professionalTypeIds == null) {
+                professionalTypeIds = new ArrayList<>();
+            }
+
+            Set<Long> uniqueInputIds = new HashSet<>(professionalTypeIds);
+
+            List<UserProfessionalCategories> existingRecords = userProfessionalCategoriesRepository.findByUserId(userId);
+
+            Set<Long> existingCategoryIds = existingRecords.stream()
+                    .map(UserProfessionalCategories::getCategoryId)
+                    .collect(Collectors.toSet());
+
+            List<UserProfessionalCategories> categoriesToSave = new ArrayList<>();
+
+            for (Long typeId : uniqueInputIds) {
+                if (!existingCategoryIds.contains(typeId)) {
+
+                    UserProfessionalCategories userCategory = new UserProfessionalCategories();
+                    userCategory.setUserId(userId);
+                    userCategory.setCategoryId(typeId);
+                    userCategory.setOtherCategory(otherProfessionalType);
+
+                    categoriesToSave.add(userCategory);
+                }
+            }
+
+            if (!categoriesToSave.isEmpty()) {
+                userProfessionalCategoriesRepository.saveAll(categoriesToSave);
+            }
+
+            HashMap<String, Object> response = new HashMap<>();
+            response.put("savedCategories", categoriesToSave); 
+            response.put("totalNewSaved", categoriesToSave.size());
+            response.put("status", HttpStatus.CREATED.value());
+            response.put("message", "Professional categories saved successfully (Duplicates skipped).");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error saving user professional categories", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while saving professional categories.");
+        }
     }
 }
