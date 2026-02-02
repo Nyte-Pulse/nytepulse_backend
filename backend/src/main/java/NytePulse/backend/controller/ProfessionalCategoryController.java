@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -51,5 +52,18 @@ public class ProfessionalCategoryController {
         return ResponseEntity.ok(Map.of(
                 "message", "Professional categories initialized successfully"
         ));
+    }
+
+    @PostMapping("/saveUserProfessionalCategories/{userId}")
+    public ResponseEntity<?> saveUserProfessionalCategories(
+            @PathVariable Long userId,
+            @RequestParam(value = "professionalTypeIds", required = false) List<Long> professionalTypeIds,
+            @RequestParam(value = "otherProfessionalType", required = false) String otherProfessionalType) {
+
+        if (professionalTypeIds == null) {
+            professionalTypeIds = new ArrayList<>();
+        }
+
+        return categoryService.saveUserProfessionalCategories(userId, professionalTypeIds, otherProfessionalType);
     }
 }
