@@ -234,7 +234,7 @@ public class ProfessionalCategoryService {
             }
 
             HashMap<String, Object> response = new HashMap<>();
-            response.put("savedCategories", categoriesToSave); 
+            response.put("savedCategories", categoriesToSave);
             response.put("totalNewSaved", categoriesToSave.size());
             response.put("status", HttpStatus.CREATED.value());
             response.put("message", "Professional categories saved successfully (Duplicates skipped).");
