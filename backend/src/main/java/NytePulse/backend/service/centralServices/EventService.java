@@ -30,7 +30,7 @@ public interface EventService {
 
     ResponseEntity<?> updateEventPoster(MultipartFile file, String eventId, String oldPosterUrl);
 
-    ResponseEntity<?> getAllEvents();
+    ResponseEntity<?> getAllEvents(int page,int size);
 
     ResponseEntity<?> getNotApprovedEvents();
 

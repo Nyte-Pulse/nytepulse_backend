@@ -846,14 +846,17 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public ResponseEntity<?> getAllEvents() {
+    public ResponseEntity<?> getAllEvents(int page,int size) {
         try {
-            List<EventDetails> allEvents = eventDetailsRepository.findAll();
+            Pageable pageable = Pageable.ofSize(size).withPage(page);
+            Page<EventDetails> pageResult = eventDetailsRepository.findAll(pageable);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "All events retrieved successfully");
-            response.put("totalCount", allEvents.size());
-            response.put("events", allEvents);
+            response.put("totalItems", pageResult.getTotalElements());
+            response.put("totalPages", pageResult.getTotalPages());
+            response.put("currentPage", pageResult.getNumber());
+            response.put("events",pageResult.getContent());
             response.put("status", HttpStatus.OK.value());
             response.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
 
