@@ -75,8 +75,8 @@ public class EventController {
     }
 
     @GetMapping("/getAllEvents")
-    public ResponseEntity<?> getAllEvents() {
-        return eventService.getAllEvents();
+    public ResponseEntity<?> getAllEvents(@RequestParam int page,@RequestParam int size) {
+        return eventService.getAllEvents(page,size);
     }
 
     @GetMapping("/getNotApprovedEvents")
