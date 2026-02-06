@@ -489,8 +489,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public ResponseEntity<?> checkEmailAvailability(String email) {
         try {
-            UserDetails userDetails = userDetailsRepository.findByEmail(email);
-            boolean isAvailable = (userDetails == null);
+            Optional<User> user = userRepository.findByEmail(email);
+            boolean isAvailable = user.isEmpty();
 
             Map<String, Object> response = new HashMap<>();
             response.put("email", email);
