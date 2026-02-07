@@ -23,6 +23,8 @@ public class EventDetailsDto {
     private String organizerwebsiteUrl;
 
     private String clubName;
+
+    private String city;
     private String posterUrl;
     private String status;
     private String highlightTags;
@@ -360,5 +362,13 @@ public class EventDetailsDto {
 
     public void setTicketLink(String ticketLink) {
         this.ticketLink = ticketLink;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 }
