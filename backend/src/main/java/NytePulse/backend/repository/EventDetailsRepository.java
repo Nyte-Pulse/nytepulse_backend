@@ -20,7 +20,7 @@ public interface EventDetailsRepository extends JpaRepository<EventDetails,Long>
 
     @Query("SELECT e FROM EventDetails e WHERE " +
             "(:name IS NULL OR :name = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
-            "(:locationName IS NULL OR :locationName = '' OR LOWER(e.locationName) LIKE LOWER(CONCAT('%', :locationName, '%'))) AND " +
+            "(:city IS NULL OR :city = '' OR LOWER(e.City) LIKE LOWER(CONCAT('%', :city, '%'))) AND " +
             "(:startDateTime IS NULL OR e.startDateTime >= :startDateTime) AND " +
             "(:endDateTime IS NULL OR e.endDateTime <= :endDateTime) AND " +
             "(:category IS NULL OR :category = '' OR LOWER(e.category) = LOWER(:category)) AND " +
@@ -31,7 +31,7 @@ public interface EventDetailsRepository extends JpaRepository<EventDetails,Long>
             "(:ageRestriction IS NULL OR :ageRestriction = '' OR LOWER(e.ageRestriction) LIKE LOWER(CONCAT('%', :ageRestriction, '%'))) " +
             "ORDER BY e.startDateTime ASC")
     List<EventDetails> searchEvents(@Param("name") String name,
-                                    @Param("locationName") String locationName,
+                                    @Param("city") String city,
                                     @Param("startDateTime") Date startDateTime,
                                     @Param("endDateTime") Date endDateTime,
                                     @Param("category") String category,

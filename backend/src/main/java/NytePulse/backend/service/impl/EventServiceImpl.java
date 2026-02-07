@@ -183,7 +183,7 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
-    public ResponseEntity<?> updateEvent(EventDetailsDto eventDetailsDto,String eventId) {
+    public ResponseEntity<?> updateEvent(EventDetailsDto eventDetailsDto, String eventId) {
         try {
             if (eventDetailsDto == null || !StringUtils.hasText(eventId)) {
                 Map<String, Object> errorResponse = new HashMap<>();
@@ -203,12 +203,12 @@ public class EventServiceImpl implements EventService {
             }
 
             if (eventDetailsDto.getOrganizerDetails() != null) {
-                if (existingEvent.getOrganizers() != null) {
-                    existingEvent.getOrganizers().clear();
-                } else {
 
+                // Initialize list if null, otherwise clear existing to replace them
+                if (existingEvent.getOrganizers() == null) {
                     existingEvent.setOrganizers(new ArrayList<>());
-
+                } else {
+                    existingEvent.getOrganizers().clear();
                 }
 
                 for (OrganizerDetailDto orgDto : eventDetailsDto.getOrganizerDetails()) {
@@ -218,11 +218,14 @@ public class EventServiceImpl implements EventService {
                     organizer.setOrganizerEmail(orgDto.getOrganizerEmail());
                     organizer.setWebsiteUrl(orgDto.getWebsiteUrl());
 
+                    // Validate User/Club ID existence
                     if (orgDto.getUserId() != null) {
                         if (clubDetailsRepository.existsById(orgDto.getUserId())) {
                             organizer.setUserId(orgDto.getUserId());
                         }
                     }
+
+                    // Add to parent entity
                     existingEvent.addOrganizer(organizer);
                 }
             }
@@ -235,20 +238,27 @@ public class EventServiceImpl implements EventService {
             existingEvent.setAgeRestriction(eventDetailsDto.getAgeRestriction());
             existingEvent.setDressCode(eventDetailsDto.getDressCode());
             existingEvent.setTicketType(eventDetailsDto.getTicketType());
+
+            if (eventDetailsDto.getUserId() != null) {
+                existingEvent.setClubId(eventDetailsDto.getUserId());
+            }
             existingEvent.setClubName(eventDetailsDto.getClubName());
 
             existingEvent.setStatus(eventDetailsDto.getStatus());
             existingEvent.setHighlightTags(eventDetailsDto.getHighlightTags());
-
             existingEvent.setWebsiteUrl(eventDetailsDto.getWebsiteUrl());
+
+
+            // Consistent with saveEvent: set CDN URL, Filename, and map PosterUrl to the CDN URL
             existingEvent.setEventPosterFileName(eventDetailsDto.getEventPosterFileName());
             existingEvent.setEventPosterCdnUrl(eventDetailsDto.getEventPosterCdnUrl());
+            // In saveEvent, you set PosterUrl to the CDN URL
             existingEvent.setPosterUrl(eventDetailsDto.getEventPosterCdnUrl());
 
             existingEvent.setAddress(eventDetailsDto.getVenueAddress());
             existingEvent.setLongitude(eventDetailsDto.getVenueLongitude());
             existingEvent.setLatitude(eventDetailsDto.getVenueLatitude());
-            existingEvent.setCity(eventDetailsDto.getVenueCity());
+            existingEvent.setCity(eventDetailsDto.getVenueCity());       // Maps VenueCity to City (as per saveEvent)
             existingEvent.setVenueName(eventDetailsDto.getVenueName());
             existingEvent.setVenueAddress(eventDetailsDto.getVenueAddress());
             existingEvent.setVenueCity(eventDetailsDto.getVenueCity());
@@ -261,7 +271,6 @@ public class EventServiceImpl implements EventService {
             existingEvent.setTicketLink(eventDetailsDto.getTicketLink());
             existingEvent.setTicketPrice(eventDetailsDto.getTicketPrice());
             existingEvent.setIsApprovedByOrganizer(eventDetailsDto.getIsApprovedByOrganizer());
-
 
             existingEvent.setUpdatedAt(LocalDateTime.now(SRI_LANKA_ZONE));
 
@@ -281,12 +290,16 @@ public class EventServiceImpl implements EventService {
             response.put("endDateTime", savedEventDetails.getEndDateTime());
             response.put("ageRestriction", savedEventDetails.getAgeRestriction());
             response.put("dressCode", savedEventDetails.getDressCode());
+
             response.put("eventPosterUrl", savedEventDetails.getEventPosterCdnUrl());
-            // response.put("organizer", savedEventDetails.getOrganizer()); // Uncomment if needed
             response.put("eventPosterFileName", savedEventDetails.getEventPosterFileName());
+            response.put("posterUrl", savedEventDetails.getPosterUrl());
+
+            response.put("organizerDetails", savedEventDetails.getOrganizers());
+
+
             response.put("ticketType", savedEventDetails.getTicketType());
             response.put("websiteUrl", savedEventDetails.getWebsiteUrl());
-            response.put("posterUrl", savedEventDetails.getPosterUrl());
             response.put("status", savedEventDetails.getStatus());
             response.put("highlightTags", savedEventDetails.getHighlightTags());
             response.put("updated_at", savedEventDetails.getUpdatedAt());
@@ -301,7 +314,6 @@ public class EventServiceImpl implements EventService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
-
     @Override
     public ResponseEntity<?> getEventsByUser(String clubId,int page,int size) {
         try {
@@ -332,14 +344,13 @@ public class EventServiceImpl implements EventService {
 
             // Normalize empty strings to null
             String name = StringUtils.hasText(eventDetailsDto.getName()) ? eventDetailsDto.getName().trim() : null;
-            String location = StringUtils.hasText(eventDetailsDto.getLocationName()) ? eventDetailsDto.getLocationName().trim() : null;
+            String city = StringUtils.hasText(eventDetailsDto.getCity()) ? eventDetailsDto.getCity().trim() : null;
             String category = StringUtils.hasText(eventDetailsDto.getCategory()) ? eventDetailsDto.getCategory().trim() : null;
             String ticketType = StringUtils.hasText(eventDetailsDto.getTicketType()) ? eventDetailsDto.getTicketType().trim() : null;
             String amenities = StringUtils.hasText(eventDetailsDto.getAmenities()) ? eventDetailsDto.getAmenities().trim() : null;
             String dressCode = StringUtils.hasText(eventDetailsDto.getDressCode()) ? eventDetailsDto.getDressCode().trim() : null;
             String ageRestriction = StringUtils.hasText(eventDetailsDto.getAgeRestriction()) ? eventDetailsDto.getAgeRestriction().trim() : null;
 
-            System.out.println("age: "+ageRestriction);
             // Calculate date range based on filter
             LocalDateTime startDate = null;
             LocalDateTime endDate = null;
@@ -395,7 +406,7 @@ public class EventServiceImpl implements EventService {
                     Date.from(endDate.atZone(ZoneId.systemDefault()).toInstant()) : null;
 
             List<EventDetails> events = eventDetailsRepository.searchEvents(
-                    name, location, startDateTime, endDateTime, category, ticketType,amenities,
+                    name, city, startDateTime, endDateTime, category, ticketType,amenities,
                     dressCode,
                     ageRestriction
             );
