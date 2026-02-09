@@ -874,7 +874,7 @@ public class PostServiceImpl implements PostService {
 
             List<Long> followingIds = postRepository.findFollowingIds(viewerId);
 
-            LocalDateTime oneMinuteAgo = LocalDateTime.now().minusMinutes(1);
+            LocalDateTime oneMinuteAgo = LocalDateTime.now().minusSeconds(3);
 
             Pageable pageable = PageRequest.of(page, size);
             Page<Post> postPage = postRepository.findSmartFeed(followingIds, viewerId, oneMinuteAgo, pageable);

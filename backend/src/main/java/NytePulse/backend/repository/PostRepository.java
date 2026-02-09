@@ -30,20 +30,18 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             "LEFT JOIN UserRelationship ur ON ur.following = p.user " +
             "LEFT JOIN PostLike pl ON pl.post = p AND pl.user.id IN :followingIds " +
             "LEFT JOIN Comment c ON c.post = p AND c.user.id IN :followingIds " +
-            // SECURITY: This WHERE clause must match your original 'findVisiblePostsForUser' logic
             "WHERE p.user.id IN :followingIds OR p.user.id = :viewerId " +
             "GROUP BY p " +
             "ORDER BY " +
-            // LEVEL 1: The "1 Minute" Rule (Newest posts strictly at top)
-            " (CASE WHEN p.createdAt >= :oneMinuteAgo THEN 1 ELSE 0 END) DESC, " +
-            // LEVEL 2: The Smart Algorithm (Engagement Score)
+            // CHANGED: Checks if post is newer than the 'latestTime' passed from Controller
+            " (CASE WHEN p.createdAt >= :latestTime THEN 1 ELSE 0 END) DESC, " +
             " (COUNT(DISTINCT c.id) * 5 + COUNT(DISTINCT pl.id) * 2 + (COUNT(DISTINCT ur.id) * 0.01)) DESC")
     Page<Post> findSmartFeed(
             @Param("followingIds") List<Long> followingIds,
             @Param("viewerId") Long viewerId,
-            @Param("oneMinuteAgo") LocalDateTime oneMinuteAgo,
+            @Param("latestTime") LocalDateTime latestTime,
             Pageable pageable
-    );;
+    );
 
     // Helper to get IDs of people the viewer follows
     @Query("SELECT r.following.id FROM UserRelationship r WHERE r.follower.id = :viewerId")
