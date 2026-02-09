@@ -1130,6 +1130,9 @@ public class PostServiceImpl implements PostService {
                             Collectors.toList()
                     ));
 
+
+
+
             // Convert to DTO format
             List<UserStoriesDTO> userStoriesList = storiesByUser.entrySet().stream()
                     .map(entry -> {
@@ -1137,11 +1140,15 @@ public class PostServiceImpl implements PostService {
                         User storyOwner = userStories.get(0).getUser();
 
                         UserDetails userDetails = userDetailsRepository.findByUserId(storyOwner.getUserId());
+
+                        String profilePicUrl = (userDetails != null) ? userDetails.getProfilePicture() : null;
+
+                        
                         // Map user info
                         StoryUserDTO userDTO = StoryUserDTO.builder()
                                 .id(storyOwner.getId())
                                 .userId(storyOwner.getUserId())
-                                .profilePicture(userDetails.getProfilePicture())
+                                .profilePicture(profilePicUrl)
                                 .username(storyOwner.getUsername())
                                 .accountType(storyOwner.getAccountType().toString())
                                 .build();

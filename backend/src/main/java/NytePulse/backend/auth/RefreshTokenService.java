@@ -21,7 +21,7 @@ public class RefreshTokenService {
     @Value("${app.jwt-refresh-expiration-milliseconds}")
     private Long refreshTokenDurationMs;
 
-    @Value("${app.max-refresh-tokens-per-user:5}")
+    @Value("${app.max-refresh-tokens-per-user}")
     private int maxRefreshTokensPerUser;
 
     @Autowired
