@@ -874,18 +874,32 @@ public class PostServiceImpl implements PostService {
 
             List<Long> followingIds = postRepository.findFollowingIds(viewerId);
 
-            followingIds.add(viewerId);
+            LocalDateTime oneMinuteAgo = LocalDateTime.now().minusMinutes(1);
 
             Pageable pageable = PageRequest.of(page, size);
-            Page<Post> postPage;
+            Page<Post> postPage = postRepository.findSmartFeed(followingIds, viewerId, oneMinuteAgo, pageable);
 
-            if (followingIds.isEmpty()) {
-                // Fallback if user follows no one: Show latest global posts
-                postPage = postRepository.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending()));
-            } else {
-                // Execute the Smart Ranking Algorithm
-                postPage = postRepository.findPersonalizedFeed(followingIds, pageable);
+            List<Post> rawPosts = new ArrayList<>(postPage.getContent());
+            List<Post> topPriorityPosts = new ArrayList<>();
+            List<Post> normalPosts = new ArrayList<>();
+
+            for (Post p : rawPosts) {
+                // Check if the post is within the "1 Minute" window
+                if (p.getCreatedAt().isAfter(oneMinuteAgo)) {
+                    topPriorityPosts.add(p);
+                } else {
+                    normalPosts.add(p);
+                }
             }
+
+            // SHUFFLE only the normal posts.
+            // This ensures the "1 Minute" posts stay at the top, but the rest feel dynamic.
+            Collections.shuffle(normalPosts);
+
+            // Recombine the list
+            List<Post> finalSortedList = new ArrayList<>();
+            finalSortedList.addAll(topPriorityPosts); // Newest always first
+            finalSortedList.addAll(normalPosts);
 
             Set<String> allUserIds = new HashSet<>();
             Set<String> personalUserIds = new HashSet<>();
