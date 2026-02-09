@@ -872,8 +872,20 @@ public class PostServiceImpl implements PostService {
             User viewer = userRepository.findById(viewerId)
                     .orElseThrow(() -> new ResourceNotFoundException("Viewer not found"));
 
-            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-            Page<Post> postPage = postRepository.findVisiblePostsForUser(viewerId, pageable);
+            List<Long> followingIds = postRepository.findFollowingIds(viewerId);
+
+            followingIds.add(viewerId);
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Post> postPage;
+
+            if (followingIds.isEmpty()) {
+                // Fallback if user follows no one: Show latest global posts
+                postPage = postRepository.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending()));
+            } else {
+                // Execute the Smart Ranking Algorithm
+                postPage = postRepository.findPersonalizedFeed(followingIds, pageable);
+            }
 
             Set<String> allUserIds = new HashSet<>();
             Set<String> personalUserIds = new HashSet<>();
@@ -937,8 +949,8 @@ public class PostServiceImpl implements PostService {
                         postData.put("shareCount", post.getShareCount());
                         postData.put("media", post.getMedia());
 
-                        postData.put("likesCount", post.getLikes().size());
-                        postData.put("commentsCount", post.getComments().size());
+                        postData.put("likesCount", post.getLikes() != null ? post.getLikes().size() : 0);
+                        postData.put("commentsCount", post.getComments() != null ? post.getComments().size() : 0);
 
                         User user = post.getUser();
                         Map<String, Object> userInfo = buildUserInfo(
@@ -1143,7 +1155,7 @@ public class PostServiceImpl implements PostService {
 
                         String profilePicUrl = (userDetails != null) ? userDetails.getProfilePicture() : null;
 
-                        
+
                         // Map user info
                         StoryUserDTO userDTO = StoryUserDTO.builder()
                                 .id(storyOwner.getId())
