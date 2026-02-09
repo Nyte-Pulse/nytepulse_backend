@@ -874,31 +874,38 @@ public class PostServiceImpl implements PostService {
 
             List<Long> followingIds = postRepository.findFollowingIds(viewerId);
 
-            LocalDateTime oneMinuteAgo = LocalDateTime.now().minusSeconds(3);
+            LocalDateTime latestTime = LocalDateTime.now().minusSeconds(3);
 
             Pageable pageable = PageRequest.of(page, size);
-            Page<Post> postPage = postRepository.findSmartFeed(followingIds, viewerId, oneMinuteAgo, pageable);
+            Page<Post> postPage = postRepository.findSmartFeed(followingIds, viewerId, latestTime, pageable);
 
             List<Post> rawPosts = new ArrayList<>(postPage.getContent());
-            List<Post> topPriorityPosts = new ArrayList<>();
+            List<Post> priorityPosts = new ArrayList<>();
             List<Post> normalPosts = new ArrayList<>();
 
+            Set<Long> uniqueIds = new HashSet<>();
+            List<Post> cleanPosts = new ArrayList<>();
+
             for (Post p : rawPosts) {
-                // Check if the post is within the "1 Minute" window
-                if (p.getCreatedAt().isAfter(oneMinuteAgo)) {
-                    topPriorityPosts.add(p);
+                if (uniqueIds.add(p.getId())) { // Returns false if ID already exists
+                    cleanPosts.add(p);
+                }
+            }
+
+            for (Post p : cleanPosts) {
+                if (p.getCreatedAt().isAfter(latestTime)) {
+                    priorityPosts.add(p);
                 } else {
                     normalPosts.add(p);
                 }
             }
-
             // SHUFFLE only the normal posts.
             // This ensures the "1 Minute" posts stay at the top, but the rest feel dynamic.
             Collections.shuffle(normalPosts);
 
             // Recombine the list
             List<Post> finalSortedList = new ArrayList<>();
-            finalSortedList.addAll(topPriorityPosts); // Newest always first
+            finalSortedList.addAll(priorityPosts); // Newest always first
             finalSortedList.addAll(normalPosts);
 
             Set<String> allUserIds = new HashSet<>();
