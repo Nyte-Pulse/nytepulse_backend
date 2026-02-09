@@ -25,14 +25,25 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByTagFriendIdOrderByCreatedAtDesc(String userId);
 
-    @Query("""
-        SELECT DISTINCT p FROM Post p
-        LEFT JOIN UserSettings us ON us.user.id = p.user.id
-        LEFT JOIN UserRelationship ur ON ur.following.id = p.user.id AND ur.follower.id = :viewerId
-        WHERE us.postVisibility = 'EVERYONE'
-           OR (us.postVisibility = 'FOLLOWERS' AND ur.id IS NOT NULL)
-           OR (p.user.id = :viewerId)
-           OR (us IS NULL AND ur.id IS NOT NULL)
-    """)
-    Page<Post> findVisiblePostsForUser(@Param("viewerId") Long viewerId, Pageable pageable);
+    @Query("SELECT p FROM Post p " +
+            // Join to calculate Author's total followers (Popularity)
+            "LEFT JOIN UserRelationship ur_auth ON ur_auth.following = p.user " +
+            // Join to check if Friends (people viewer follows) Liked the post
+            "LEFT JOIN PostLike pl ON pl.post = p AND pl.user.id IN :followingIds " +
+            // Join to check if Friends Commented on the post
+            "LEFT JOIN Comment c ON c.post = p AND c.user.id IN :followingIds " +
+            // Filter: Only show posts from people the viewer follows (Standard Feed)
+            // OR remove this WHERE clause if you want a global "Discovery" feed
+            "WHERE p.user.id IN :followingIds " +
+            "GROUP BY p " +
+            "ORDER BY " +
+            // THE ALGORITHM:
+            // (Friend Comments * 5) + (Friend Likes * 2) + (Author Followers * 0.01)
+            " (COUNT(DISTINCT c.id) * 5 + COUNT(DISTINCT pl.id) * 2 + (COUNT(DISTINCT ur_auth.id) * 0.01)) DESC, " +
+            " p.createdAt DESC")
+    Page<Post> findPersonalizedFeed(@Param("followingIds") List<Long> followingIds, Pageable pageable);
+
+    // Helper to get IDs of people the viewer follows
+    @Query("SELECT r.following.id FROM UserRelationship r WHERE r.follower.id = :viewerId")
+    List<Long> findFollowingIds(@Param("viewerId") Long viewerId);
 }
