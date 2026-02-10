@@ -876,31 +876,33 @@ public class PostServiceImpl implements PostService {
 
             LocalDateTime latestTime = LocalDateTime.now().minusSeconds(3);
 
-            Page<Post> postPage;
             Pageable pageable = PageRequest.of(page, size);
+
+            Page<Post> postPage;
             if (followingIds.isEmpty()) {
-                // CASE A: NEW USER (No friends) -> Show Global Popular Posts
+                // NEW USER (No friends) -> Show Global Popular Posts
+                // This prevents the "Blank Screen" for new members
                 postPage = postRepository.findGlobalDiscoveryFeed(latestTime, pageable);
             } else {
-                // CASE B: EXISTING USER -> Show Friends' Content
+                // EXISTING USER -> Show Smart Friend Feed (Your original logic)
                 postPage = postRepository.findSmartFeed(followingIds, viewerId, latestTime, pageable);
             }
 
             List<Post> rawPosts = postPage.getContent();
+            List<Post> priorityPosts = new ArrayList<>(); // Posts < 3 seconds old
+            List<Post> normalPosts = new ArrayList<>();   // Older posts
             Set<Long> uniqueIds = new HashSet<>();
-            List<Post> priorityPosts = new ArrayList<>(); // < 3 Seconds old
-            List<Post> normalPosts = new ArrayList<>();
 
 
             for (Post p : rawPosts) {
-                // Filter duplicates logic
+                // Deduplicate safety check
                 if (!uniqueIds.add(p.getId())) continue;
 
-                // Sort logic
+                // 3-Second Rule Check
                 if (p.getCreatedAt().isAfter(latestTime)) {
-                    priorityPosts.add(p); // Stick to top
+                    priorityPosts.add(p); // Stay at top
                 } else {
-                    normalPosts.add(p);   // Shuffle these
+                    normalPosts.add(p);   // Get shuffled
                 }
             }
             // SHUFFLE only the normal posts.
