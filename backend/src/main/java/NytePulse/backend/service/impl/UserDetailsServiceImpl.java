@@ -37,6 +37,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private UserRepository userRepository;
 
     @Autowired
+    private PostRepository postRepository;
+
+    @Autowired
     private UserSettingsRepository userSettingsRepository;
 
     @Autowired
@@ -511,6 +514,97 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> searchPostByPublishedUsesName(String searchTerm, Pageable pageable) {
+        try {
+            String trimmedSearch = searchTerm != null ? searchTerm.trim() : "";
+
+            if (trimmedSearch.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Search term cannot be empty"));
+            }
+
+            List<String> stringUserIds = userDetailsRepository.findUserIdsBySearchTerm(trimmedSearch);
+
+            if (stringUserIds.isEmpty()) {
+                return ResponseEntity.ok(Map.of("results", Collections.emptyList(), "totalItems", 0));
+            }
+
+            List<Long> numericUserIds = userRepository.findIdsByStringUserIds(stringUserIds);
+
+            if (numericUserIds.isEmpty()) {
+                return ResponseEntity.ok(Map.of("results", Collections.emptyList(), "totalItems", 0));
+            }
+
+            Page<Post> postPage = postRepository.findByUserIdIn(numericUserIds, pageable);
+            List<String> authorIds = postPage.getContent().stream()
+                    .map(p -> p.getUser().getUserId())
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            Map<String, UserDetails> authorMap = userDetailsRepository.findByUserIdIn(authorIds)
+                    .stream()
+                    .collect(Collectors.toMap(UserDetails::getUserId, ud -> ud));
+
+            List<Map<String, Object>> postResults = postPage.getContent().stream()
+                    .map(post -> {
+                        Map<String, Object> postData = new HashMap<>();
+                        postData.put("id", post.getId());
+                        postData.put("content", post.getContent());
+                        postData.put("location", post.getLocation());
+                        postData.put("createdAt", post.getCreatedAt());
+
+                        List<Map<String, Object>> mediaList = new ArrayList<>();
+                        if (post.getMedia() != null) {
+                            mediaList = post.getMedia().stream()
+                                    .map(media -> {
+                                        Map<String, Object> m = new HashMap<>();
+                                        m.put("id", media.getId());
+                                        m.put("url", media.getBunnyUrl());          // Main URL
+                                        m.put("thumbnail", media.getThumbnailUrl()); // Thumbnail
+                                        m.put("type", media.getMediaType());        // IMAGE, VIDEO
+                                        m.put("mimeType", media.getFileType());     // image/jpeg
+                                        m.put("videoId", media.getBunnyVideoId());  // ID for streaming
+                                        m.put("aspectRatio", media.getFileSize());  // Or other meta
+                                        return m;
+                                    })
+                                    .collect(Collectors.toList());
+                        }
+                        postData.put("media", mediaList);
+
+                        postData.put("likesCount", post.getLikes() != null ? post.getLikes().size() : 0);
+                        postData.put("commentsCount", post.getComments() != null ? post.getComments().size() : 0);
+                        postData.put("shareCount", post.getShareCount());
+
+
+                        UserDetails author = authorMap.get(post.getUser().getUserId());
+                        Map<String, Object> authorData = new HashMap<>();
+                        if (author != null) {
+                            authorData.put("userId", author.getUserId());
+                            authorData.put("username", author.getUsername());
+                            authorData.put("name", author.getName());
+                            authorData.put("profilePicture", author.getProfilePicture());
+                        }
+                        postData.put("author", authorData);
+
+                        return postData;
+                    })
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("results", postResults);
+            response.put("totalItems", postPage.getTotalElements());
+            response.put("totalPages", postPage.getTotalPages());
+            response.put("currentPage", postPage.getNumber());
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Search failed", "message", e.getMessage()));
+        }
+    }
 
     @Override
     public ResponseEntity<?> getTaggedAllowUserList(Long currentUserId) {

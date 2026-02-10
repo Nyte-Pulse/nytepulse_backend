@@ -62,4 +62,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             @Param("latestTime") LocalDateTime latestTime,
             Pageable pageable
     );
+
+    Page<Post> findByUserIdIn(List<Long> userIds, Pageable pageable);
 }

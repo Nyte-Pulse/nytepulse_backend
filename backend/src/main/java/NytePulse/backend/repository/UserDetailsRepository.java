@@ -40,5 +40,8 @@ public interface UserDetailsRepository extends JpaRepository<UserDetails, Long> 
     List<UserDetails> findByUserIdIn(List<String> userIds);
 
 
-
+    @Query("SELECT u.userId FROM UserDetails u " +
+            "WHERE LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+            "OR LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+    List<String> findUserIdsBySearchTerm(@Param("searchTerm") String searchTerm);
 }

@@ -24,4 +24,6 @@ public interface UserDetailsService {
     ResponseEntity<?> getTaggedAllowUserList(Long currentUserId);
 
     ResponseEntity<?> checkEmailAvailability(String email);
+
+    ResponseEntity<?> searchPostByPublishedUsesName(String trim, Pageable pageable);
 }
