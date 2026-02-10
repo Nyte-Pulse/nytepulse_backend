@@ -876,27 +876,31 @@ public class PostServiceImpl implements PostService {
 
             LocalDateTime latestTime = LocalDateTime.now().minusSeconds(3);
 
+            Page<Post> postPage;
             Pageable pageable = PageRequest.of(page, size);
-            Page<Post> postPage = postRepository.findSmartFeed(followingIds, viewerId, latestTime, pageable);
-
-            List<Post> rawPosts = new ArrayList<>(postPage.getContent());
-            List<Post> priorityPosts = new ArrayList<>();
-            List<Post> normalPosts = new ArrayList<>();
-
-            Set<Long> uniqueIds = new HashSet<>();
-            List<Post> cleanPosts = new ArrayList<>();
-
-            for (Post p : rawPosts) {
-                if (uniqueIds.add(p.getId())) { // Returns false if ID already exists
-                    cleanPosts.add(p);
-                }
+            if (followingIds.isEmpty()) {
+                // CASE A: NEW USER (No friends) -> Show Global Popular Posts
+                postPage = postRepository.findGlobalDiscoveryFeed(latestTime, pageable);
+            } else {
+                // CASE B: EXISTING USER -> Show Friends' Content
+                postPage = postRepository.findSmartFeed(followingIds, viewerId, latestTime, pageable);
             }
 
-            for (Post p : cleanPosts) {
+            List<Post> rawPosts = postPage.getContent();
+            Set<Long> uniqueIds = new HashSet<>();
+            List<Post> priorityPosts = new ArrayList<>(); // < 3 Seconds old
+            List<Post> normalPosts = new ArrayList<>();
+
+
+            for (Post p : rawPosts) {
+                // Filter duplicates logic
+                if (!uniqueIds.add(p.getId())) continue;
+
+                // Sort logic
                 if (p.getCreatedAt().isAfter(latestTime)) {
-                    priorityPosts.add(p);
+                    priorityPosts.add(p); // Stick to top
                 } else {
-                    normalPosts.add(p);
+                    normalPosts.add(p);   // Shuffle these
                 }
             }
             // SHUFFLE only the normal posts.
