@@ -880,11 +880,9 @@ public class PostServiceImpl implements PostService {
 
             Page<Post> postPage;
             if (followingIds.isEmpty()) {
-                // NEW USER (No friends) -> Show Global Popular Posts
-                // This prevents the "Blank Screen" for new members
+
                 postPage = postRepository.findGlobalDiscoveryFeed(latestTime, pageable);
             } else {
-                // EXISTING USER -> Show Smart Friend Feed (Your original logic)
                 postPage = postRepository.findSmartFeed(followingIds, viewerId, latestTime, pageable);
             }
 
@@ -895,21 +893,17 @@ public class PostServiceImpl implements PostService {
 
 
             for (Post p : rawPosts) {
-                // Deduplicate safety check
                 if (!uniqueIds.add(p.getId())) continue;
 
-                // 3-Second Rule Check
                 if (p.getCreatedAt().isAfter(latestTime)) {
                     priorityPosts.add(p); // Stay at top
                 } else {
                     normalPosts.add(p);   // Get shuffled
                 }
             }
-            // SHUFFLE only the normal posts.
-            // This ensures the "1 Minute" posts stay at the top, but the rest feel dynamic.
+
             Collections.shuffle(normalPosts);
 
-            // Recombine the list
             List<Post> finalSortedList = new ArrayList<>();
             finalSortedList.addAll(priorityPosts); // Newest always first
             finalSortedList.addAll(normalPosts);

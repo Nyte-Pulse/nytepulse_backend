@@ -247,6 +247,22 @@ public class UserController {
         return userDetailsService.searchAccountByName(name.trim(), pageable);
     }
 
+    @GetMapping("/searchPostByPublishedUser/{name}")
+    public ResponseEntity<?> searchPostByPublishedUser(
+            @PathVariable String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+
+        if (name == null || name.trim().length() < 1) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("Please enter at least 1 characters to search");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        return userDetailsService.searchPostByPublishedUsesName(name.trim(), pageable);
+    }
+
     @GetMapping("/searchFollowerAccountByName/{name}")
     public ResponseEntity<?> searchFollowerAccountByName(
             @RequestParam Long userId,
