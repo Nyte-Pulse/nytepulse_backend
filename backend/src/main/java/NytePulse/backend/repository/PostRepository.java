@@ -26,22 +26,33 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByTagFriendIdOrderByCreatedAtDesc(String userId);
 
-    @Query("SELECT DISTINCT p FROM Post p " + // Added DISTINCT
+    @Query("SELECT p FROM Post p " +
             "LEFT JOIN UserRelationship ur ON ur.following = p.user " +
             "LEFT JOIN PostLike pl ON pl.post = p AND pl.user.id IN :followingIds " +
             "LEFT JOIN Comment c ON c.post = p AND c.user.id IN :followingIds " +
             "WHERE p.user.id IN :followingIds OR p.user.id = :viewerId " +
-            "GROUP BY p.id " + // Group by ID to collapse duplicates from Joins
+            "GROUP BY p.id " +
             "ORDER BY " +
-            // 1. FRESHNESS: 3 Second Rule
-            " (CASE WHEN p.createdAt >= :latestTime THEN 1 ELSE 0 END) DESC, " +
-            // 2. ALGORITHM: Engagement Score
-            " (COUNT(DISTINCT c.id) * 5 + COUNT(DISTINCT pl.id) * 2 + (COUNT(DISTINCT ur.id) * 0.01)) DESC, " +
-            // 3. STABILITY: Tie-Breaker (Crucial for preventing duplicates across pages)
-            " p.createdAt DESC")
+            " (CASE WHEN p.createdAt >= :latestTime THEN 1 ELSE 0 END) DESC, " + // 3-Sec Rule
+            " (COUNT(DISTINCT c.id) * 5 + COUNT(DISTINCT pl.id) * 2) DESC, " +   // Friend Engagement
+            " p.createdAt DESC") // Stability
     Page<Post> findSmartFeed(
             @Param("followingIds") List<Long> followingIds,
             @Param("viewerId") Long viewerId,
+            @Param("latestTime") LocalDateTime latestTime,
+            Pageable pageable
+    );
+
+    @Query("SELECT p FROM Post p " +
+            "LEFT JOIN p.likes pl " +
+            "LEFT JOIN p.comments c " +
+            // No WHERE clause restricts users -> Shows everyone's posts
+            "GROUP BY p.id " +
+            "ORDER BY " +
+            " (CASE WHEN p.createdAt >= :latestTime THEN 1 ELSE 0 END) DESC, " + // 3-Sec Rule
+            " (SIZE(p.likes) + SIZE(p.comments)) DESC, " + // Global Popularity
+            " p.createdAt DESC")
+    Page<Post> findGlobalDiscoveryFeed(
             @Param("latestTime") LocalDateTime latestTime,
             Pageable pageable
     );
