@@ -5,6 +5,8 @@ package NytePulse.backend.repository;
 import NytePulse.backend.entity.User;
 import NytePulse.backend.entity.UserDetails;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,4 +27,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
  List<UserDetails> findByIdIn(List<Long> userIds);
 
  List<User> findByUserIdIn(ArrayList<String> strings);
+
+ @Query("SELECT u.id FROM User u WHERE u.userId IN :userIds")
+ List<Long> findIdsByStringUserIds(@Param("userIds") List<String> userIds);
 }

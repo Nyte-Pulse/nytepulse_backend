@@ -47,4 +47,6 @@ public interface EventDetailsRepository extends JpaRepository<EventDetails,Long>
     List<EventDetails> findByIsApprovedByOrganizer(int i);
 
     Page<EventDetails> findByClubId(String clubId, Pageable pageable);
+
+    void deleteByEndDateTimeBefore(Date currentTime);
 }

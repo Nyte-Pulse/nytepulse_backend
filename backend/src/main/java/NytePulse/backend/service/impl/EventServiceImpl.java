@@ -13,7 +13,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -1031,6 +1033,15 @@ public class EventServiceImpl implements EventService {
             errorResponse.put("timestamp", LocalDateTime.now(SRI_LANKA_ZONE));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
+    }
+
+    @Scheduled(cron = "0 0 * * * *")
+    @Transactional
+    public void deleteExpiredEvents() {
+        Date now = new Date();
+        eventDetailsRepository.deleteByEndDateTimeBefore(now);
+
+        System.out.println("Cleanup Task: Expired events deleted at " + now);
     }
 
 }
