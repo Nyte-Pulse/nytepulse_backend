@@ -26,18 +26,20 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByTagFriendIdOrderByCreatedAtDesc(String userId);
 
-    @Query("SELECT DISTINCT p FROM Post p " + // Added DISTINCT
+    @Query("SELECT r.following.id FROM UserRelationship r WHERE r.follower.id = :viewerId")
+    List<Long> findFollowingIds(@Param("viewerId") Long viewerId);
+
+    // 2. YOUR EXISTING SMART FEED (For users with friends)
+    // Keep this exactly as is
+    @Query("SELECT DISTINCT p FROM Post p " +
             "LEFT JOIN UserRelationship ur ON ur.following = p.user " +
             "LEFT JOIN PostLike pl ON pl.post = p AND pl.user.id IN :followingIds " +
             "LEFT JOIN Comment c ON c.post = p AND c.user.id IN :followingIds " +
             "WHERE p.user.id IN :followingIds OR p.user.id = :viewerId " +
-            "GROUP BY p.id " + // Group by ID to collapse duplicates from Joins
+            "GROUP BY p.id " +
             "ORDER BY " +
-            // 1. FRESHNESS: 3 Second Rule
             " (CASE WHEN p.createdAt >= :latestTime THEN 1 ELSE 0 END) DESC, " +
-            // 2. ALGORITHM: Engagement Score
             " (COUNT(DISTINCT c.id) * 5 + COUNT(DISTINCT pl.id) * 2 + (COUNT(DISTINCT ur.id) * 0.01)) DESC, " +
-            // 3. STABILITY: Tie-Breaker (Crucial for preventing duplicates across pages)
             " p.createdAt DESC")
     Page<Post> findSmartFeed(
             @Param("followingIds") List<Long> followingIds,
@@ -46,10 +48,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             Pageable pageable
     );
 
+    // 3. NEW: GLOBAL DISCOVERY FEED (For new users with 0 friends)
+    // Uses the SAME 3-second rule, but orders by TOTAL likes/comments
     @Query("SELECT p FROM Post p " +
             "LEFT JOIN p.likes pl " +
             "LEFT JOIN p.comments c " +
-            // No WHERE clause restricts users -> Shows everyone's posts
             "GROUP BY p.id " +
             "ORDER BY " +
             " (CASE WHEN p.createdAt >= :latestTime THEN 1 ELSE 0 END) DESC, " + // 3-Sec Rule
@@ -59,8 +62,4 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             @Param("latestTime") LocalDateTime latestTime,
             Pageable pageable
     );
-
-    // Helper to get IDs of people the viewer follows
-    @Query("SELECT r.following.id FROM UserRelationship r WHERE r.follower.id = :viewerId")
-    List<Long> findFollowingIds(@Param("viewerId") Long viewerId);
 }
