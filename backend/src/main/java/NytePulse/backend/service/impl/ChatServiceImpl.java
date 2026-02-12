@@ -44,6 +44,9 @@ public class ChatServiceImpl implements ChatService {
     private UserDetailsRepository userDetailsRepository;
 
     @Autowired
+    private ClubDetailsRepository clubDetailsRepository;
+
+    @Autowired
     private UserRelationshipRepository userRelationshipRepository;
 
     @Autowired
@@ -256,15 +259,29 @@ public class ChatServiceImpl implements ChatService {
                 status.setStatus(MessageStatus.Status.SENT);
                 messageStatusRepository.save(status);
 
-                UserDetails userDetails = userDetailsRepository.findByUsername(sender.getUsername());
+                Optional<User> userOptional=userRepository.findByUsername(sender.getUsername());
+                User user = userOptional.get();
+                String userId = user.getUserId();
+                String notificationMessage= sender.getUsername() + " sent you a message";
 
-                String notificationMessage = userDetails.getName() + " sent you a message";
-                if (content != null && !content.isEmpty()) {
-                    // Truncate long messages
-                    String preview = content.length() > 50 ? content.substring(0, 50) + "..." : content;
-                    notificationMessage = userDetails.getName() + " sent you a message : " + preview + " profilePicture :" + userDetails.getProfilePicture() ;
+                if (userId.startsWith("PS")) {
+                    UserDetails userDetails = userDetailsRepository.findByUsername(sender.getUsername());
+                    notificationMessage = userDetails.getName() + " sent you a message";
+                    if (content != null && !content.isEmpty()) {
+                        String preview = content.length() > 50 ? content.substring(0, 50) + "..." : content;
+                        notificationMessage = userDetails.getName() + " sent you a message : " + preview + " profilePicture :" + userDetails.getProfilePicture() ;
+                    } else if (userId.startsWith("BS")) {
+                        ClubDetails  clubDetails=clubDetailsRepository.findByUsername(sender.getUsername());
+                        if (content != null && !content.isEmpty()) {
+                            String preview = content.length() > 50 ? content.substring(0, 50) + "..." : content;
+                            notificationMessage = clubDetails.getName() + " sent you a message : " + preview + " profilePicture :" + clubDetails.getProfilePicture() ;
+
+                    }
+                        
+                    }
+
                 }
-
+              
                 notificationService.createNotification(
                         recipientId,              // ✅ Recipient (the other person)
                         senderId,                 // ✅ Actor (the sender)
@@ -437,15 +454,36 @@ public class ChatServiceImpl implements ChatService {
                     userDTO.setUsername(p.getUser().getUsername());
 
                     try {
-                        UserDetails userDetails = userDetailsRepository.findByUsername(p.getUser().getUsername());
-                        if (userDetails != null) {
-                            userDTO.setName(userDetails.getName());
-                            userDTO.setProfilePicture(userDetails.getProfilePicture());
-                            userDTO.setUserId(userDetails.getUserId());
+                        String username = p.getUser().getUsername();
+
+                        Optional<User> userOptional = userRepository.findByUsername(username);
+
+                        if (userOptional.isPresent()) {
+                            User user = userOptional.get();
+                            String userId = user.getUserId();
+
+                            if (userId.startsWith("PS")) {
+                                UserDetails userDetails = userDetailsRepository.findByUsername(username);
+
+                                if (userDetails != null) {
+                                    userDTO.setName(userDetails.getName());
+                                    userDTO.setProfilePicture(userDetails.getProfilePicture());
+                                    userDTO.setUserId(userDetails.getUserId());
+                                }
+
+                            } else if (userId.startsWith("BS")) {
+                                ClubDetails club = clubDetailsRepository.findByUsername(username);
+
+                                if (club != null) {
+                                    userDTO.setName(club.getName());
+                                    userDTO.setProfilePicture(club.getProfilePicture());
+                                    userDTO.setUserId(club.getUserId());
+                                }
+                            }
                         }
                     } catch (Exception e) {
-
-                        logger.error("Error fetching user details for user: " + p.getUser().getUsername(), e);
+                        String safeUsername = (p != null && p.getUser() != null) ? p.getUser().getUsername() : "Unknown";
+                        logger.error("Error fetching user details for user: " + safeUsername, e);
                     }
 
                     return userDTO;
