@@ -765,6 +765,7 @@ public class UserServiceImpl implements UserService {
             Map<String, Object> response = new HashMap<>();
             response.put("followingCount", String.valueOf(countFollowing));
             response.put("followersCount", String.valueOf(countFollowers));
+            response.put("id",user.getId());
             response.put("userId", userId);
             response.put("username", user.getUsername());
             response.put("email", user.getEmail());
