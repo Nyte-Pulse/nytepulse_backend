@@ -38,6 +38,9 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
 
     @Autowired
+    private ReservedUserRepository reservedUserRepository;
+
+    @Autowired
     private UserDetailsRepository userDetailsRepository;
 
     @Autowired
@@ -817,12 +820,26 @@ public class UserServiceImpl implements UserService {
 
     public ResponseEntity<?> checkUsernameAvailability(String username) {
         try {
-            boolean exists = userRepository.existsByUsername(username);
+            boolean existsInUsers = userRepository.existsByUsername(username);
+
+            boolean isReserved = reservedUserRepository.existsByUsername(username);
+
+            boolean isAvailable = !existsInUsers && !isReserved;
+
             Map<String, Object> response = new HashMap<>();
-            response.put("available", !exists);
+            response.put("available", isAvailable);
             response.put("status", HttpStatus.OK.value());
-            response.put("message", !exists ? "Username is available" : "Username already exists");
+            
+            if (existsInUsers) {
+                response.put("message", "Username already exists");
+            } else if (isReserved) {
+                response.put("message", "This username is reserved and cannot be used");
+            } else {
+                response.put("message", "Username is available");
+            }
+
             return ResponseEntity.ok(response);
+
         } catch (Exception e) {
             logger.error("Error while checking username availability: {}", e.getMessage());
             return ResponseEntity
@@ -830,7 +847,6 @@ public class UserServiceImpl implements UserService {
                     .body("An error occurred while trying to check username availability.");
         }
     }
-
     @Override
     public ResponseEntity<?> uploadProfilePicture(MultipartFile file, String userId){
 
