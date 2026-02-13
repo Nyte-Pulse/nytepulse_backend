@@ -234,4 +234,21 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
 
     @Query("SELECT ur FROM UserRelationship ur WHERE ur.follower.id = :blockerId AND ur.relationshipType = 'BLOCKED'")
     List<UserRelationship> findBlockedUsersByBlockerId(@Param("blockerId") Long blockerId);
+
+
+    boolean existsByFollower_IdAndFollowing_IdAndRelationshipType(
+            Long followerId,
+            Long followingId,
+            RelationshipType type
+    );
+
+    // Efficiently check if ANY block exists between two users (either direction)
+    @Query("SELECT COUNT(r) > 0 FROM UserRelationship r " +
+            "WHERE r.relationshipType = 'BLOCKED' " +
+            "AND ( " +
+            "  (r.follower.id = :userId1 AND r.following.id = :userId2) " +
+            "  OR " +
+            "  (r.follower.id = :userId2 AND r.following.id = :userId1) " +
+            ")")
+    boolean hasBlockedRelationship(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
 }

@@ -880,7 +880,7 @@ public class PostServiceImpl implements PostService {
 
             Page<Post> postPage;
             if (followingIds.isEmpty()) {
-
+                System.out.println("Viewer " + viewerId + " is not following anyone. Fetching global discovery feed.");
                 postPage = postRepository.findGlobalDiscoveryFeed(latestTime, pageable);
             } else {
                 postPage = postRepository.findSmartFeed(followingIds, viewerId, latestTime, pageable);
@@ -901,6 +901,8 @@ public class PostServiceImpl implements PostService {
                     normalPosts.add(p);   // Get shuffled
                 }
             }
+
+            System.out.println("Priority Posts Count: " +priorityPosts.size() + ", Normal Posts Count: " + normalPosts.size());
 
             Collections.shuffle(normalPosts);
 
@@ -1063,13 +1065,18 @@ public class PostServiceImpl implements PostService {
             return true;
         }
 
+        boolean isBlocked = userRelationshipRepository.hasBlockedRelationship(viewerId, postOwnerId);
+        if (isBlocked) {
+            return false;
+        }
+
         UserSettings postOwnerSettings = userSettingsRepository
                 .findByUserId(post.getUser().getId())
                 .orElse(null);
 
         if (postOwnerSettings == null) {
-            return userRelationshipRepository.existsByFollower_IdAndFollowing_Id(
-                    viewerId, postOwnerId);
+            return userRelationshipRepository.existsByFollower_IdAndFollowing_IdAndRelationshipType(
+                    viewerId, postOwnerId, RelationshipType.FOLLOWING);
         }
 
         PostVisibility visibility = postOwnerSettings.getPostVisibility();
@@ -1088,20 +1095,17 @@ public class PostServiceImpl implements PostService {
     }
 
 
-    // Helper method to build user info from either UserDetails or ClubDetails
     private Map<String, Object> buildUserInfo(User user, UserDetails userDetails, ClubDetails clubDetails) {
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("userId", user.getUserId());
         userInfo.put("username", user.getUsername());
 
-        // Check if it's a business account (userId starts with BS)
         if (user.getUserId().startsWith("BS") && clubDetails != null) {
             userInfo.put("name", clubDetails.getName());
             userInfo.put("profilePicture", clubDetails.getProfilePicture());
             userInfo.put("profilePictureFileName", clubDetails.getProfilePictureFileName());
             userInfo.put("accountType", "BUSINESS");
         }
-        // Personal account
         else if (userDetails != null) {
             userInfo.put("name", userDetails.getName());
             userInfo.put("profilePicture", userDetails.getProfilePicture());
