@@ -200,6 +200,15 @@ public class UserServiceImpl implements UserService {
                 throw new IllegalArgumentException("User cannot follow themselves");
             }
 
+            User follower = userRepository.findByUserId(followerUserId);
+
+            User following = userRepository.findByUserId(followingUserId);
+
+            if (follower == null || following == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("message", "One or both users not found"));
+            }
+
             if (relationshipRepository.isFollowing(followerUserId, followingUserId)) {
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
@@ -207,38 +216,37 @@ public class UserServiceImpl implements UserService {
 
             }
 
-            User follower = userRepository.findByUserId(followerUserId);
-
-            User following = userRepository.findByUserId(followingUserId);
 
             UserRelationship relationship = new UserRelationship(follower, following);
             relationshipRepository.save(relationship);
 
-          if(followerUserId.startsWith("BS")){
-                ClubDetails followerDetails = clubDetailsRepository.findByUserId(followerUserId);
+            String actorName = "Someone";
+            String actorPic = "";
 
-                String message = followerDetails.getName() + " started following you" + " profilePicture :" + followerDetails.getProfilePicture();
-                notificationService.createNotification(
-                        following.getId(),           // Recipient (the person being followed)
-                        follower.getId(),            // Actor (the person who followed)
-                        NotificationType.NEW_FOLLOWER,
-                        message,
-                        follower.getId(),            // Reference to follower
-                        "USER"                       // Reference type
-                );
+            if (followerUserId.startsWith("BS") || followerUserId.startsWith("CL")) {
+                ClubDetails club = clubDetailsRepository.findByUserId(followerUserId);
+                if (club != null) {
+                    actorName = club.getName();
+                    actorPic = club.getProfilePicture();
+                }
             } else {
-                UserDetails followerDetails = userDetailsRepository.findByUserId(followerUserId);
+                UserDetails details = userDetailsRepository.findByUserId(followerUserId);
+                if (details != null) {
+                    actorName = details.getName();
+                    actorPic = details.getProfilePicture();
+                }
+            }
 
-                String message = followerDetails.getName() + " started following you" + " profilePicture :" + followerDetails.getProfilePicture();
-                notificationService.createNotification(
-                        following.getId(),           // Recipient (the person being followed)
-                        follower.getId(),            // Actor (the person who followed)
-                        NotificationType.NEW_FOLLOWER,
-                        message,
-                        follower.getId(),            // Reference to follower
-                        "USER"                       // Reference type
-                );
-          }
+            String message = actorName + " started following you."+ " profilePicture :" + actorPic;
+
+            notificationService.createNotification(
+                    following.getId(),           // Recipient
+                    follower.getId(),            // Actor
+                    NotificationType.NEW_FOLLOWER,
+                    message,
+                    follower.getId(),            // Reference ID
+                    "USER"                       // Reference Type
+            );
 
 
             Map<String, Object> response = new HashMap<>();
@@ -829,7 +837,7 @@ public class UserServiceImpl implements UserService {
             Map<String, Object> response = new HashMap<>();
             response.put("available", isAvailable);
             response.put("status", HttpStatus.OK.value());
-            
+
             if (existsInUsers) {
                 response.put("message", "Username already exists");
             } else if (isReserved) {
