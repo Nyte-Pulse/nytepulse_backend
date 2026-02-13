@@ -211,17 +211,32 @@ public class UserServiceImpl implements UserService {
             UserRelationship relationship = new UserRelationship(follower, following);
             relationshipRepository.save(relationship);
 
-            UserDetails followerDetails = userDetailsRepository.findByUserId(followerUserId);
+          if(followerUserId.startsWith("BS")){
+                ClubDetails followerDetails = clubDetailsRepository.findByUserId(followerUserId);
 
-            String message = followerDetails.getName() + " started following you" + " profilePicture :" + followerDetails.getProfilePicture();
-            notificationService.createNotification(
-                    following.getId(),           // Recipient (the person being followed)
-                    follower.getId(),            // Actor (the person who followed)
-                    NotificationType.NEW_FOLLOWER,
-                    message,
-                    follower.getId(),            // Reference to follower
-                    "USER"                       // Reference type
-            );
+                String message = followerDetails.getName() + " started following you" + " profilePicture :" + followerDetails.getProfilePicture();
+                notificationService.createNotification(
+                        following.getId(),           // Recipient (the person being followed)
+                        follower.getId(),            // Actor (the person who followed)
+                        NotificationType.NEW_FOLLOWER,
+                        message,
+                        follower.getId(),            // Reference to follower
+                        "USER"                       // Reference type
+                );
+            } else {
+                UserDetails followerDetails = userDetailsRepository.findByUserId(followerUserId);
+
+                String message = followerDetails.getName() + " started following you" + " profilePicture :" + followerDetails.getProfilePicture();
+                notificationService.createNotification(
+                        following.getId(),           // Recipient (the person being followed)
+                        follower.getId(),            // Actor (the person who followed)
+                        NotificationType.NEW_FOLLOWER,
+                        message,
+                        follower.getId(),            // Reference to follower
+                        "USER"                       // Reference type
+                );
+          }
+
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Successfully followed user: " + followingUserId);
