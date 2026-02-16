@@ -64,4 +64,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     );
 
     Page<Post> findByUserIdIn(List<Long> userIds, Pageable pageable);
+
+    List<Post> findByIdIn(List<Long> ids);
+
+//    @Query("SELECT DISTINCT p FROM Post p " +
+//            "LEFT JOIN FETCH p.media " +
+//            "WHERE p.id IN :postIds " +
+//            "ORDER BY p.createdAt DESC")
+//    List<Post> findPostsWithMediaByIds(@Param("postIds") List<Long> postIds);
 }

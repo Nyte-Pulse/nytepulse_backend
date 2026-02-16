@@ -1,11 +1,9 @@
 package NytePulse.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -26,8 +24,9 @@ public class PostMention {
     @JsonIgnore
     private Post post;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "mentioned_user_id", nullable = false)
+    @JsonIgnore
     private User mentionedUser;
 
     @Column(name = "mentioned_user_id_string")

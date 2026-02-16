@@ -1117,7 +1117,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public ResponseEntity<?> getTaggedPosts(String userId){
+    public ResponseEntity<?> getTaggedPosts(String userId) {
         try {
             User user = userRepository.findByUserId(userId);
             if (user == null) {
@@ -1126,7 +1126,23 @@ public class PostServiceImpl implements PostService {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
 
-            List<Post> taggedPosts = postRepository.findByTagFriendIdOrderByCreatedAtDesc(userId);
+            List<PostTag> tags = postTagRepository.findByTaggedUser_Id(user.getId());
+
+            if (tags.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("userId", userId);
+                response.put("taggedPosts", Collections.emptyList());
+                response.put("taggedPostCount", 0);
+                return ResponseEntity.ok(response);
+            }
+
+            List<Long> postIds = tags.stream()
+                    .map(tag -> tag.getPost().getId())
+                    .collect(Collectors.toList());
+
+            List<Post> taggedPosts = postRepository.findByIdIn(postIds);
+
+
             Map<String, Object> response = new HashMap<>();
             response.put("userId", userId);
             response.put("taggedPosts", taggedPosts);
@@ -1135,13 +1151,13 @@ public class PostServiceImpl implements PostService {
             return ResponseEntity.status(HttpStatus.OK).body(response);
 
         } catch (Exception e) {
+            e.printStackTrace();
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to retrieve tagged posts");
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
-
     @Override
     public ResponseEntity<?> getStoriesBySettings(Long viewerId) {
         try {

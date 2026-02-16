@@ -223,7 +223,7 @@ public class UserServiceImpl implements UserService {
             String actorName = "Someone";
             String actorPic = "";
 
-            if (followerUserId.startsWith("BS") || followerUserId.startsWith("CL")) {
+            if (followerUserId.startsWith("BS")) {
                 ClubDetails club = clubDetailsRepository.findByUserId(followerUserId);
                 if (club != null) {
                     actorName = club.getName();
