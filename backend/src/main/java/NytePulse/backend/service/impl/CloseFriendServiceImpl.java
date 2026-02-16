@@ -93,6 +93,7 @@ public class CloseFriendServiceImpl implements CloseFriendService {
         }
     }
 
+    
     public ResponseEntity<?> getCloseFriends(String userId) {
         try {
             List<CloseFriend> closeFriends = closeFriendRepository.findByUserId(userId);
@@ -100,6 +101,11 @@ public class CloseFriendServiceImpl implements CloseFriendService {
             List<Map<String, Object>> friendsList = closeFriends.stream()
                     .map(cf -> {
                         UserDetails user = userDetailsRepository.findByUserId(cf.getCloseFriendUserId());
+
+                        if (user == null) {
+                            return null;
+                        }
+
                         Map<String, Object> friendData = new HashMap<>();
                         friendData.put("userId", user.getUserId());
                         friendData.put("username", user.getUsername());
@@ -108,6 +114,7 @@ public class CloseFriendServiceImpl implements CloseFriendService {
                         friendData.put("addedAt", cf.getAddedAt());
                         return friendData;
                     })
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             Map<String, Object> response = new HashMap<>();
