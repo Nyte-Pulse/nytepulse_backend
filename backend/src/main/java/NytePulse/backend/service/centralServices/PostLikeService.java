@@ -5,7 +5,7 @@ import org.springframework.http.ResponseEntity;
 
 public interface PostLikeService {
 
-    ResponseEntity<?> toggleLike(Long postId, Long userId);
+    ResponseEntity<?> toggleLike(Long postId, Long userId,String reactType);
 
     ResponseEntity<?> getLikeCount(Long postId,String token);
 

@@ -93,7 +93,7 @@ public class CloseFriendServiceImpl implements CloseFriendService {
         }
     }
 
-    
+
     public ResponseEntity<?> getCloseFriends(String userId) {
         try {
             List<CloseFriend> closeFriends = closeFriendRepository.findByUserId(userId);

@@ -19,4 +19,7 @@ public interface ConversationParticipantRepository extends JpaRepository<Convers
     @Query("SELECT COUNT(cp) FROM ConversationParticipant cp WHERE cp.conversation.id = :conversationId")
     Long countByConversationId(@Param("conversationId") Long conversationId);
 
+    boolean existsByConversationIdAndUserId(Long conversationId, Long userId);
+
+    List<ConversationParticipant> findByConversationIdAndIsDeletedFalse(Long id);
 }

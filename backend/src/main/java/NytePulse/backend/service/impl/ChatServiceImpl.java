@@ -154,6 +154,38 @@ public class ChatServiceImpl implements ChatService {
         return ResponseEntity.ok(res);
     }
 
+    @Override
+    public ResponseEntity<?> deleteConversation(Long conversationId, Long userId) {
+        try {
+            Conversation conversation = conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> new RuntimeException("Conversation not found"));
+
+            boolean isParticipant = participantRepository.existsByConversationIdAndUserId(conversationId, userId);
+            if (!isParticipant) {
+                throw new RuntimeException("Not authorized to delete this conversation");
+            }
+
+            Optional<ConversationParticipant> participants = participantRepository
+                    .findByConversationIdAndUserId(conversationId, userId);
+
+            if (participants.isPresent()) {
+                ConversationParticipant participant = participants.get();
+                participant.setDeleted(true);
+                participantRepository.save(participant);
+            }
+
+            HashMap<String,Object> res= new HashMap<>();
+            res.put("success", HttpStatus.OK.value());
+            res.put("message", "Conversation deleted successfully");
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to delete Conversation");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
     private boolean isUserInitiator(Long conversationId, Long userId) {
         return messageRepository.findFirstByConversationIdOrderByCreatedAtAsc(conversationId)
                 .map(msg -> msg.getSender().getId().equals(userId))
@@ -201,29 +233,32 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional(readOnly = true)
     public ResponseEntity<?> getUserConversations(Long userId) {
-
         try {
             List<Conversation> conversations = conversationRepository.findByUserId(userId);
 
-
             List<ConversationDTO> conversationDTOs = new ArrayList<>();
+
             for (Conversation conversation : conversations) {
-                conversationDTOs.add(mapToConversationDTO(conversation, userId));
+                ConversationDTO dto = mapToConversationDTO(conversation, userId);
+
+                // [CRITICAL CHECK] Only add to list if NOT null
+                if (dto != null) {
+                    conversationDTOs.add(dto);
+                }
             }
+
             Map<String, Object> response = new HashMap<>();
             response.put("status", HttpStatus.OK.value());
             response.put("message", "Successfully fetched user conversations");
             response.put("conversations", conversationDTOs);
+
             return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Failed to get User Conversations");
-            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-            errorResponse.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            // ... error handling ...
+            return ResponseEntity.status(500).build();
         }
     }
-
     @Override
     @Transactional
     public ChatMessageDTO sendMessage(Long conversationId, Long senderId, String content,
@@ -427,10 +462,22 @@ public class ChatServiceImpl implements ChatService {
     }
     }
 
-    // Helper methods
+
     private ConversationDTO mapToConversationDTO(Conversation conversation, Long currentUserId) {
 
+
+        List<ConversationParticipant> participants = participantRepository
+                .findByConversationIdAndIsDeletedFalse(conversation.getId());
+
+        boolean isCurrentUserActive = participants.stream()
+                .anyMatch(p -> p.getUser().getId().equals(currentUserId));
+
+        if (!isCurrentUserActive) {
+            return null;
+        }
+
         Long messageCount=chatMessageRepository.countByConversationId(conversation.getId());
+
 
         ConversationDTO dto = new ConversationDTO();
         dto.setId(conversation.getId());
@@ -440,12 +487,6 @@ public class ChatServiceImpl implements ChatService {
 
         Long unreadCount = messageStatusRepository.countUnreadMessages(conversation.getId(), currentUserId);
         dto.setUnreadCount(unreadCount != null ? unreadCount.intValue() : 0);
-
-        System.out.println("Unread count for conversation " + conversation.getId() + ": " + unreadCount);
-
-        // Get participants
-        List<ConversationParticipant> participants = participantRepository
-                .findByConversationId(conversation.getId());
 
         List<UserBasicDTO> participantDTOs = participants.stream()
                 .map(p -> {

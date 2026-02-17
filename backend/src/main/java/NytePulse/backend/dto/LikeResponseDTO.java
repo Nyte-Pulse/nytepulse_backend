@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 public class LikeResponseDTO {
 
     private boolean liked;
+
+    private String currentReaction;
     private Long totalLikes;
     private String message;
 
