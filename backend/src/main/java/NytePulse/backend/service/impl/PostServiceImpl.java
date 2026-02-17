@@ -880,7 +880,6 @@ public class PostServiceImpl implements PostService {
 
             Page<Post> postPage;
             if (followingIds.isEmpty()) {
-                System.out.println("Viewer " + viewerId + " is not following anyone. Fetching global discovery feed.");
                 postPage = postRepository.findGlobalDiscoveryFeed(latestTime, pageable);
             } else {
                 postPage = postRepository.findSmartFeed(followingIds, viewerId, latestTime, pageable);

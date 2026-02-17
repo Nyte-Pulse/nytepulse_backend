@@ -15,9 +15,9 @@ public class PostLikeController {
     private PostLikeService postLikeService;
 
     @PostMapping("/like")
-    public ResponseEntity<?> toggleLike(@PathVariable Long postId, @RequestHeader("User-Id") Long userId) {
+    public ResponseEntity<?> toggleLike(@PathVariable Long postId, @RequestHeader("User-Id") Long userId,@RequestParam(name = "type") String reactType) {
 
-        return postLikeService.toggleLike(postId, userId);
+        return postLikeService.toggleLike(postId, userId,reactType);
     }
 
     @GetMapping("/likes/count")
