@@ -1,11 +1,13 @@
 package NytePulse.backend.service.impl;
 
 import NytePulse.backend.dto.LikeResponseDTO;
+import NytePulse.backend.dto.LikedUserDTO;
 import NytePulse.backend.dto.PostStatsDTO;
 import NytePulse.backend.entity.Post;
 import NytePulse.backend.entity.PostLike;
 import NytePulse.backend.entity.User;
 import NytePulse.backend.entity.UserDetails;
+import NytePulse.backend.enums.ReactionType;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.centralServices.PostLikeService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,37 +43,62 @@ public class PostLikeServiceImpl implements PostLikeService {
 
     @Override
     @Transactional
-    public ResponseEntity<?> toggleLike(Long postId, Long userId) {
+    public ResponseEntity<?> toggleLike(Long postId, Long userId,String reactionTypeString) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        Optional<PostLike> existingLike = postLikeRepository.findByPostIdAndUserId(postId, userId);
+        ReactionType incomingReaction;
+        try {
+            incomingReaction = ReactionType.valueOf(reactionTypeString.toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new RuntimeException("Invalid reaction type: " + reactionTypeString);
+        }
 
-        boolean liked;
+        Optional<PostLike> existingLikeOpt = postLikeRepository.findByPostIdAndUserId(postId, userId);
+
+        boolean isReacted;
+        String currentReactionName = null;
         String message;
 
-        if (existingLike.isPresent()) {
-            // Unlike the post
-            postLikeRepository.delete(existingLike.get());
-            liked = false;
-            message = "Post unliked successfully";
+        if (existingLikeOpt.isPresent()) {
+            PostLike existingLike = existingLikeOpt.get();
+
+            if (existingLike.getReactionType() == incomingReaction) {
+                // SCENARIO A: Same reaction clicked again -> Remove it (Toggle OFF)
+                postLikeRepository.delete(existingLike);
+                isReacted = false;
+                message = "Reaction removed successfully";
+            } else {
+                // SCENARIO B: Different reaction clicked -> Update it
+                existingLike.setReactionType(incomingReaction);
+                postLikeRepository.save(existingLike);
+
+                isReacted = true;
+                currentReactionName = incomingReaction.name();
+                message = "Reaction updated to " + incomingReaction.name();
+            }
         } else {
-            // Like the post
-            PostLike postLike = new PostLike();
-            postLike.setPost(post);
-            postLike.setUser(user);
-            postLikeRepository.save(postLike);
-            liked = true;
-            message = "Post liked successfully";
+            // SCENARIO C: No reaction exists -> Create new one
+            PostLike newLike = new PostLike();
+            newLike.setPost(post);
+            newLike.setUser(user);
+            newLike.setReactionType(incomingReaction);
+
+            postLikeRepository.save(newLike);
+
+            isReacted = true;
+            currentReactionName = incomingReaction.name();
+            message = "Reacted with " + incomingReaction.name() + " successfully";
         }
 
         Long totalLikes = postLikeRepository.countByPostId(postId);
 
         LikeResponseDTO response = new LikeResponseDTO();
-        response.setLiked(liked);
+        response.setLiked(isReacted);
+        response.setCurrentReaction(currentReactionName);
         response.setTotalLikes(totalLikes);
         response.setMessage(message);
 
@@ -191,8 +219,8 @@ public class PostLikeServiceImpl implements PostLikeService {
     }
 
     @Override
-    public ResponseEntity<?> getLikedUsersByPostId(Long postId,int page,int size) {
-        try{
+    public ResponseEntity<?> getLikedUsersByPostId(Long postId, int page, int size) {
+        try {
             Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
             Page<PostLike> likesPage = postLikeRepository.findByPostId(postId, pageable);
@@ -203,8 +231,32 @@ public class PostLikeServiceImpl implements PostLikeService {
 
             List<UserDetails> userDetailsList = userDetailsRepository.findByUserIdIn(userIds);
 
-            Page<UserDetails> resultPage = new PageImpl<>(
-                    userDetailsList,
+            Map<String, UserDetails> userDetailsMap = userDetailsList.stream()
+                    .collect(Collectors.toMap(UserDetails::getUserId, Function.identity()));
+
+            List<LikedUserDTO> dtos = likesPage.getContent().stream().map(like -> {
+                LikedUserDTO dto = new LikedUserDTO();
+
+                UserDetails details = userDetailsMap.get(like.getUser().getUserId());
+
+                if (details != null) {
+                    dto.setUserDetailsId(details.getUserDetailsId());
+                    dto.setUserId(details.getUserId());
+                    dto.setUsername(details.getUsername());
+                    dto.setName(details.getName());
+                    dto.setProfilePicture(details.getProfilePicture());
+                    dto.setBio(details.getBio());
+                }
+
+                if (like.getReactionType() != null) {
+                    dto.setReactionType(like.getReactionType().name());
+                }
+
+                return dto;
+            }).collect(Collectors.toList());
+
+            Page<LikedUserDTO> resultPage = new PageImpl<>(
+                    dtos,
                     pageable,
                     likesPage.getTotalElements()
             );
@@ -215,7 +267,8 @@ public class PostLikeServiceImpl implements PostLikeService {
             response.put("result", resultPage);
 
             return ResponseEntity.ok(response);
-        }catch (Exception e) {
+
+        } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to get Liked Users By Post Id");
             errorResponse.put("message", e.getMessage());

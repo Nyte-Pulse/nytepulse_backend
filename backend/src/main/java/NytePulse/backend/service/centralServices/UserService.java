@@ -1,6 +1,7 @@
 package NytePulse.backend.service.centralServices;
 
 import NytePulse.backend.auth.RegisterRequest;
+import NytePulse.backend.auth.ResetPasswordByConfirmingOldRequest;
 import NytePulse.backend.dto.FeedbackRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -56,5 +57,7 @@ public interface UserService {
 
     ResponseEntity<?> acceptOrRejectedFollowRequest(String userId, String followingUserId,String status);
 
-//    void updateUserStatus(Long userId, boolean isOnline);
+    ResponseEntity<?> resetPasswordByConfirmingOld(ResetPasswordByConfirmingOldRequest request,Long userId);
+
+//  void updateUserStatus(Long userId, boolean isOnline);
 }

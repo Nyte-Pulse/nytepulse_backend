@@ -39,6 +39,13 @@ public class ChatController {
 
     }
 
+    @DeleteMapping("/conversations/{conversationId}")
+    public ResponseEntity<?> deleteConversation(@PathVariable Long conversationId, @RequestHeader("User-Id") Long userId) {
+
+            return chatService.deleteConversation(conversationId, userId);
+
+    }
+
     @PostMapping("/conversations/group")
     public ResponseEntity<?> createGroupConversation(@RequestBody Map<String, Object> payload, @RequestHeader("User-Id") Long userId) {
 

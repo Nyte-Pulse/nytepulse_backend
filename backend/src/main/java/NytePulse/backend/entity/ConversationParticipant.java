@@ -30,6 +30,8 @@ public class ConversationParticipant {
     @Column(name = "last_read_at")
     private LocalDateTime lastReadAt;
 
+    private boolean isDeleted = false; // For soft delete
+
     @PrePersist
     protected void onCreate() {
         joinedAt = LocalDateTime.now();
@@ -74,4 +76,5 @@ public class ConversationParticipant {
     public void setLastReadAt(LocalDateTime lastReadAt) {
         this.lastReadAt = lastReadAt;
     }
+
 }

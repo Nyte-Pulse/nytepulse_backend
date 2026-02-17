@@ -1,9 +1,11 @@
 package NytePulse.backend.service.impl;
 
 import NytePulse.backend.auth.RegisterRequest;
+import NytePulse.backend.auth.ResetPasswordByConfirmingOldRequest;
 import NytePulse.backend.dto.BunnyNetUploadResult;
 import NytePulse.backend.dto.FeedbackRequest;
 import NytePulse.backend.dto.FeedbackResponse;
+import NytePulse.backend.dto.ResetPasswordRequest;
 import NytePulse.backend.entity.*;
 import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.repository.*;
@@ -1270,6 +1272,42 @@ public class UserServiceImpl implements UserService {
             user.setOnline(isOnline);
             user.setLastSeen(LocalDateTime.now());
             userRepository.save(user);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> resetPasswordByConfirmingOld(ResetPasswordByConfirmingOldRequest request, Long userId) {
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+
+            if (userOpt.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body("User not found with ID: " + userId);
+            }
+
+            User user = userOpt.get();
+
+            if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Old password is incorrect");
+                response.put("status", HttpStatus.BAD_REQUEST.value());
+                return ResponseEntity.ok(response);
+            }
+
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Password reset successfully");
+            response.put("status", HttpStatus.OK.value());
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error while resetting password: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to reset the password.");
         }
     }
 }
