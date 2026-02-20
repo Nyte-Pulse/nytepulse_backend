@@ -1183,21 +1183,17 @@ public class PostServiceImpl implements PostService {
     @Override
     public ResponseEntity<?> getStoriesBySettings(Long viewerId) {
         try {
-            // Fetch viewer
             User viewer = userRepository.findById(viewerId)
                     .orElseThrow(() -> new ResourceNotFoundException("Viewer not found"));
 
             LocalDateTime now = LocalDateTime.now();
 
-            // Fetch all non-expired stories from all users
             List<Story> allStories = storyRepository.findByExpiresAtAfterOrderByCreatedAtDesc(now);
 
-            // Filter stories based on each owner's settings and viewer's permissions
             List<Story> visibleStories = allStories.stream()
                     .filter(story -> canViewStory(story, viewerId))
                     .collect(Collectors.toList());
 
-            // Group stories by user
             Map<String, List<Story>> storiesByUser = visibleStories.stream()
                     .collect(Collectors.groupingBy(
                             story -> story.getUser().getUserId(),
@@ -1205,21 +1201,34 @@ public class PostServiceImpl implements PostService {
                             Collectors.toList()
                     ));
 
+            List<String> activeStoryUserIds = new ArrayList<>(storiesByUser.keySet());
+
+            Map<String, UserDetails> userDetailsMap = activeStoryUserIds.isEmpty() ?
+                    new HashMap<>() :
+                    userDetailsRepository.findByUserIdIn(activeStoryUserIds).stream()
+                            .collect(Collectors.toMap(UserDetails::getUserId, ud -> ud));
+
+            Map<String, ClubDetails> clubDetailsMap = activeStoryUserIds.isEmpty() ?
+                    new HashMap<>() :
+                    clubDetailsRepository.findByUserIdIn(activeStoryUserIds).stream()
+                            .collect(Collectors.toMap(ClubDetails::getUserId, cd -> cd));
 
 
-
-            // Convert to DTO format
             List<UserStoriesDTO> userStoriesList = storiesByUser.entrySet().stream()
                     .map(entry -> {
                         List<Story> userStories = entry.getValue();
                         User storyOwner = userStories.get(0).getUser();
+                        String ownerUserId = storyOwner.getUserId();
 
-                        UserDetails userDetails = userDetailsRepository.findByUserId(storyOwner.getUserId());
+                        String profilePicUrl = null;
 
-                        String profilePicUrl = (userDetails != null) ? userDetails.getProfilePicture() : null;
+                        if (clubDetailsMap.containsKey(ownerUserId)) {
+                            profilePicUrl = clubDetailsMap.get(ownerUserId).getProfilePicture();
+                        } else if (userDetailsMap.containsKey(ownerUserId)) {
+                            profilePicUrl = userDetailsMap.get(ownerUserId).getProfilePicture();
+                        }
 
 
-                        // Map user info
                         StoryUserDTO userDTO = StoryUserDTO.builder()
                                 .id(storyOwner.getId())
                                 .userId(storyOwner.getUserId())
@@ -1228,7 +1237,6 @@ public class PostServiceImpl implements PostService {
                                 .accountType(storyOwner.getAccountType().toString())
                                 .build();
 
-                        // Map stories
                         List<StoryResponseDTO> storyDTOs = userStories.stream()
                                 .map(this::mapToStoryDTO)
                                 .collect(Collectors.toList());
