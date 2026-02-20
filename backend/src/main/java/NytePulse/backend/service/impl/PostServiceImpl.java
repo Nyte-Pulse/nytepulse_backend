@@ -1406,14 +1406,12 @@ public class PostServiceImpl implements PostService {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
 
-            // Check if view already exists (to avoid duplicates)
             if (storyViewRepository.existsByStoryIdAndUserId(storyId, userId)) {
                 response.put("success", true);
                 response.put("message", "Story already viewed");
                 return ResponseEntity.ok(response);
             }
 
-            // Save new view
             StoryView view = new StoryView();
             view.setStoryId(storyId);
             view.setUserId(userId);

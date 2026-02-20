@@ -1,12 +1,16 @@
 package NytePulse.backend.config;
 
 
+import NytePulse.backend.entity.User;
 import NytePulse.backend.exception.AppException;
+import NytePulse.backend.repository.UserRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
@@ -23,6 +27,9 @@ public class JwtTokenProvider {
 
     @Value("${app.jwt-expiration-milliseconds}")
     private long jwtExpirationDate;
+
+    @Autowired
+    private UserRepository userRepository;
 
     public String generateToken(Authentication authentication, Long userId,String username) {
         String email = authentication.getName();
@@ -108,11 +115,18 @@ public class JwtTokenProvider {
     }
 
     public String generateTokenFromEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+
         Date currentDate = new Date();
         Date expireDate = new Date(currentDate.getTime() + jwtExpirationDate);
 
         return Jwts.builder()
                 .setSubject(email)
+                .claim("roles", user.getAccountType())
+                .claim("User-Id", user.getId())
+                .claim("username", user.getUsername())
                 .setIssuedAt(currentDate)
                 .setExpiration(expireDate)
                 .signWith(key())
