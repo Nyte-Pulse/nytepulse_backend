@@ -81,6 +81,9 @@ public class PostServiceImpl implements PostService {
     private PostTagRepository postTagRepository;
 
     @Autowired
+    private StoryLikeRepository storyLikeRepository;
+
+    @Autowired
     private PostMentionRepository postMentionRepository;
 
     @Autowired
@@ -1451,32 +1454,51 @@ public class PostServiceImpl implements PostService {
         Map<String, Object> response = new HashMap<>();
 
         try {
+
             List<StoryView> views = storyViewRepository.findByStoryId(storyId);
             long viewCount = views.size();
 
-            List<UserDetails> viewerProfiles = new ArrayList<>();
+            List<Map<String, Object>> enrichedViewers = new ArrayList<>();
 
             if (!views.isEmpty()) {
-                List<Long> dbIds = views.stream()
+                List<Long> viewerDbIds = views.stream()
                         .map(StoryView::getUserId)
-                        .distinct() // Remove duplicates just in case
+                        .distinct()
                         .collect(Collectors.toList());
 
-                List<User> users = userRepository.findAllById(dbIds);
+                Set<Long> likedUserDbIds = storyLikeRepository.findByStoryId(storyId).stream()
+                        .map(StoryLike::getUserId)
+                        .collect(Collectors.toSet());
 
-                List<String> customUserIds = users.stream()
-                        .map(User::getUserId)
-                        .collect(Collectors.toList());
+                List<User> users = userRepository.findAllById(viewerDbIds);
+
+                Map<String, Long> customIdToDbIdMap = users.stream()
+                        .collect(Collectors.toMap(User::getUserId, User::getId));
+
+                List<String> customUserIds = new ArrayList<>(customIdToDbIdMap.keySet());
 
                 if (!customUserIds.isEmpty()) {
-                    viewerProfiles = userDetailsRepository.findByUserIdIn(customUserIds);
+                    List<UserDetails> viewerProfiles = userDetailsRepository.findByUserIdIn(customUserIds);
+
+                    enrichedViewers = viewerProfiles.stream()
+                            .map(profile -> {
+                                Map<String, Object> viewerData = new HashMap<>();
+
+                                Long dbId = customIdToDbIdMap.get(profile.getUserId());
+                                boolean isLiked = dbId != null && likedUserDbIds.contains(dbId);
+
+                                viewerData.put("profile", profile);
+                                viewerData.put("isLiked", isLiked);
+                                return viewerData;
+                            })
+                            .sorted((v1, v2) -> Boolean.compare((Boolean) v2.get("isLiked"), (Boolean) v1.get("isLiked")))
+                            .collect(Collectors.toList());
                 }
             }
 
             response.put("success", HttpStatus.OK.value());
             response.put("total_views", viewCount);
-            response.put("viewers", viewerProfiles);
-
+            response.put("viewers", enrichedViewers);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -1486,7 +1508,6 @@ public class PostServiceImpl implements PostService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
 
     @Override
     public ResponseEntity<?> savePost(String currentUserId, Long postId) {
