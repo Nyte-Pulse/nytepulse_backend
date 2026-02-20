@@ -977,15 +977,19 @@ public class PostServiceImpl implements PostService {
                         postData.put("likesCount", post.getLikes() != null ? post.getLikes().size() : 0);
                         postData.put("commentsCount", post.getComments() != null ? post.getComments().size() : 0);
 
+
                         Long totalLikes = postLikeRepository.countByPostId(post.getId());
+
                         postData.put("totalLikes", totalLikes);
 
                         Optional<PostLike> userLikeOpt = postLikeRepository.findByPostIdAndUserId(post.getId(), viewerId);
 
                         if (userLikeOpt.isPresent()) {
+                            postData.put("reactionType", userLikeOpt.get().getReactionType());
                             postData.put("isLiked", true);
                             postData.put("currentReaction", userLikeOpt.get().getReactionType().name());
                         } else {
+                            postData.put("reactionType", null);
                             postData.put("isLiked", false);
                             postData.put("currentReaction", null);
                         }
