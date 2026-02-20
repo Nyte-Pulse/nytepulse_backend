@@ -43,6 +43,9 @@ public class PostServiceImpl implements PostService {
 
     @Autowired
     private PostRepository postRepository;
+
+    @Autowired
+    private  PostLikeRepository postLikeRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -973,6 +976,19 @@ public class PostServiceImpl implements PostService {
 
                         postData.put("likesCount", post.getLikes() != null ? post.getLikes().size() : 0);
                         postData.put("commentsCount", post.getComments() != null ? post.getComments().size() : 0);
+
+                        Long totalLikes = postLikeRepository.countByPostId(post.getId());
+                        postData.put("totalLikes", totalLikes);
+
+                        Optional<PostLike> userLikeOpt = postLikeRepository.findByPostIdAndUserId(post.getId(), viewerId);
+
+                        if (userLikeOpt.isPresent()) {
+                            postData.put("isLiked", true);
+                            postData.put("currentReaction", userLikeOpt.get().getReactionType().name());
+                        } else {
+                            postData.put("isLiked", false);
+                            postData.put("currentReaction", null);
+                        }
 
                         User user = post.getUser();
                         Map<String, Object> userInfo = buildUserInfo(
