@@ -83,7 +83,6 @@ public class AuthController {
 
             String jwt = tokenProvider.generateToken(authentication,user.getId(),user.getUsername());
 
-            // Get device info from request headers
             String deviceInfo = httpRequest.getHeader("User-Agent");
             String ipAddress = httpRequest.getRemoteAddr();
 
@@ -123,9 +122,8 @@ public class AuthController {
 
     @PostMapping("/refreshtoken")
     public ResponseEntity<?> refreshtoken(@RequestBody TokenRefreshRequest request) {
-        String requestRefreshToken = request.getRefreshToken();
 
-        System.out.println("Received refresh token: " + requestRefreshToken);
+        String requestRefreshToken = request.getRefreshToken();
         return refreshTokenService.findByToken(requestRefreshToken)
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUser)
