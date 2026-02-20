@@ -1478,24 +1478,34 @@ public class PostServiceImpl implements PostService {
                 List<String> customUserIds = new ArrayList<>(customIdToDbIdMap.keySet());
 
                 if (!customUserIds.isEmpty()) {
-                    List<UserDetails> viewerProfiles = userDetailsRepository.findByUserIdIn(customUserIds);
+                    List<UserDetails> userProfiles = userDetailsRepository.findByUserIdIn(customUserIds);
+                    List<ClubDetails> clubProfiles = clubDetailsRepository.findByUserIdIn(customUserIds);
 
-                    enrichedViewers = viewerProfiles.stream()
-                            .map(profile -> {
-                                Map<String, Object> viewerData = new HashMap<>();
+                    userProfiles.forEach(profile -> {
+                        Map<String, Object> viewerData = new HashMap<>();
+                        Long dbId = customIdToDbIdMap.get(profile.getUserId());
+                        boolean isLiked = dbId != null && likedUserDbIds.contains(dbId);
 
-                                Long dbId = customIdToDbIdMap.get(profile.getUserId());
-                                boolean isLiked = dbId != null && likedUserDbIds.contains(dbId);
+                        viewerData.put("profile", profile);
+                        viewerData.put("isLiked", isLiked);
+                        viewerData.put("profileType", "USER");
+                        enrichedViewers.add(viewerData);
+                    });
 
-                                viewerData.put("profile", profile);
-                                viewerData.put("isLiked", isLiked);
-                                return viewerData;
-                            })
-                            .sorted((v1, v2) -> Boolean.compare((Boolean) v2.get("isLiked"), (Boolean) v1.get("isLiked")))
-                            .collect(Collectors.toList());
+                    clubProfiles.forEach(profile -> {
+                        Map<String, Object> viewerData = new HashMap<>();
+                        Long dbId = customIdToDbIdMap.get(profile.getUserId());
+                        boolean isLiked = dbId != null && likedUserDbIds.contains(dbId);
+
+                        viewerData.put("profile", profile);
+                        viewerData.put("isLiked", isLiked);
+                        viewerData.put("profileType", "BUSINESS");
+                        enrichedViewers.add(viewerData);
+                    });
+
+                    enrichedViewers.sort((v1, v2) -> Boolean.compare((Boolean) v2.get("isLiked"), (Boolean) v1.get("isLiked")));
                 }
             }
-
             response.put("success", HttpStatus.OK.value());
             response.put("total_views", viewCount);
             response.put("viewers", enrichedViewers);
