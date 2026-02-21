@@ -67,7 +67,6 @@ public class ChatServiceImpl implements ChatService {
     @Transactional
     public ResponseEntity<?> createOrGetPrivateConversation(Long userId1, Long userId2) {
         try {
-            // Check if conversation already exists
             var existingConversation = conversationRepository
                     .findPrivateConversationBetweenUsers(userId1, userId2);
 
@@ -81,13 +80,11 @@ public class ChatServiceImpl implements ChatService {
                     ? Conversation.ConversationStatus.ACCEPTED
                     : Conversation.ConversationStatus.PENDING;
 
-            // Create new conversation
             Conversation conversation = new Conversation();
             conversation.setType(Conversation.ConversationType.PRIVATE);
             conversation.setStatus(initialStatus);
             conversation = conversationRepository.save(conversation);
 
-            // Add participants
             User user1 = userRepository.findById(userId1)
                     .orElseThrow(() -> new RuntimeException("User not found"));
             User user2 = userRepository.findById(userId2)
