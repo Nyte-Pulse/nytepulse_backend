@@ -3,9 +3,11 @@ package NytePulse.backend.service.centralServices;
 import NytePulse.backend.auth.RegisterRequest;
 import NytePulse.backend.auth.ResetPasswordByConfirmingOldRequest;
 import NytePulse.backend.dto.FeedbackRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public interface UserService {
 
@@ -19,7 +21,7 @@ public interface UserService {
 
     ResponseEntity<?> unfollowUser(String userId, String followingUserId);
 
-    Boolean isFollowing(String userId, String targetUserId);
+    Map<String,Object> isFollowing(String userId, String targetUserId);
 
     ResponseEntity<?> getFollowersCount(String userId);
 
