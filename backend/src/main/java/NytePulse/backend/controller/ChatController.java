@@ -117,8 +117,6 @@ public class ChatController {
     public ResponseEntity<?> markConversationAsRead(@PathVariable Long conversationId,@RequestHeader("User-Id") Long userId){
         ResponseEntity<?> response = chatService.markConversationAsRead(conversationId, userId);
 
-        // 2. Broadcast READ RECEIPT event
-        // This tells User B that User A has read the chat
         ReadReceiptDTO receipt = new ReadReceiptDTO(conversationId, userId, LocalDateTime.now());
         SocketEvent event = new SocketEvent("MESSAGE_READ", receipt);
 

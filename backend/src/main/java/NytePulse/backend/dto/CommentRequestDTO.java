@@ -19,6 +19,8 @@ public class CommentRequestDTO {
 
     private List<String> mentionedUserIds;
 
+    private String mediaUrl;
+
     public String getContent() {
         return content;
     }

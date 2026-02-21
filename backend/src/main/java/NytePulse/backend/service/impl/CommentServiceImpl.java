@@ -41,7 +41,12 @@ public class CommentServiceImpl implements CommentService {
     private PostRepository postRepository;
 
     @Autowired
+    private ConversationRepository conversationRepository;
+    @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ChatServiceImpl chatService;
 
     @Autowired
     private CommentMentionRepository commentMentionRepository;
@@ -471,7 +476,6 @@ public class CommentServiceImpl implements CommentService {
                         userDto.setProfilePicture(userDetails != null ? userDetails.getProfilePicture() : null);
                     }
                 } catch (Exception e) {
-                    // Log error but don't fail the whole mapping
                     System.err.println("Error fetching user details: " + e.getMessage());
                 }
 
@@ -553,13 +557,12 @@ public class CommentServiceImpl implements CommentService {
         }
 
         try {
-            // Then fetch and recursively map all replies
             List<Comment> replies = commentRepository.findByParentCommentIdOrderByCreatedAtAsc(comment.getId());
 
             if (replies != null && !replies.isEmpty()) {
                 List<CommentResponseDTO> replyDTOs = replies.stream()
                         .map(reply -> mapToCommentResponseDTOWithReplies(reply, currentUserId))
-                        .filter(replyDto -> replyDto != null) // Filter out null results
+                        .filter(replyDto -> replyDto != null)
                         .collect(Collectors.toList());
 
                 dto.setReplies(replyDTOs);
@@ -607,6 +610,23 @@ public class CommentServiceImpl implements CommentService {
                     .build();
 
             Comment savedComment = commentRepository.save(comment);
+            chatService.createOrGetPrivateConversation(
+                    userId,
+                    story.getUser().getId()
+            );
+
+            conversationRepository.findPrivateConversationBetweenUsers(userId, story.getUser().getId())
+                    .ifPresent(conversation -> {
+                        chatService.sendMessage(
+                                conversation.getId(),
+                                userId,
+                                commentRequestDTO.getContent(),
+                                "TEXT",
+                                commentRequestDTO.getMediaUrl()
+                        );
+                    });
+
+             // Send notification to story owner about new comment
             CommentResponseDTO responseDTO = mapToCommentResponseDTO(savedComment, userId);
 
             return ResponseEntity.ok(responseDTO);
