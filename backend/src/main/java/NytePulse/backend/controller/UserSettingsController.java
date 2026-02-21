@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -32,8 +33,7 @@ public class UserSettingsController {
 
     @GetMapping("/{userId}")
     public ResponseEntity<?> getSettings(@PathVariable Long userId) {
-        System.out.println("Fetching settings for userId: " + userId);
-        UserSettingsDTO settings = settingsService.getSettings(userId);
+        HashMap<String, Object> settings = settingsService.getSettings(userId);
         return ResponseEntity.ok(Map.of("settings", settings));
     }
 

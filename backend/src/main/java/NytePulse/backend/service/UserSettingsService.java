@@ -1,12 +1,13 @@
 package NytePulse.backend.service;
 
-import NytePulse.backend.dto.NotificationSettingsDTO;
 import NytePulse.backend.dto.UpdateSettingsRequest;
 import NytePulse.backend.dto.UserSettingsDTO;
 import NytePulse.backend.entity.User;
+import NytePulse.backend.entity.UserDetails;
 import NytePulse.backend.entity.UserSettings;
 import NytePulse.backend.enums.*;
 import NytePulse.backend.exception.ResourceNotFoundException;
+import NytePulse.backend.repository.UserDetailsRepository;
 import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.repository.UserSettingsRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,9 @@ public class UserSettingsService {
 
     private final UserSettingsRepository settingsRepository;
     private final UserRepository userRepository;
+
+    private final UserDetailsRepository userDetailsRepository;
+
 
     @Transactional
     public UserSettingsDTO createDefaultSettings(Long userId) {
@@ -61,11 +65,28 @@ public class UserSettingsService {
     }
 
     @Transactional(readOnly = true)
-    public UserSettingsDTO getSettings(Long userId) {
+    public HashMap<String, Object> getSettings(Long userId) {
         UserSettings settings = settingsRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Settings not found"));
-        System.out.println("Retrieved settings: " + settings);
-        return convertToDTO(settings);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        boolean isPrivate = false;
+
+        if(user.getUserId().startsWith("PS")){
+            log.debug("User ID {} starts with PS, applying business account defaults", userId);
+            UserDetails details = userDetailsRepository.findByUserId(user.getUserId());
+            isPrivate = details.getIsPrivate();
+        }
+
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("message", "Settings retrieved successfully");
+        response.put("settings", convertToDTO(settings));
+        response.put("isPrivate", isPrivate);
+
+
+        return response;
     }
 
     @Transactional
