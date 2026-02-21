@@ -140,20 +140,25 @@ public class UserController {
     @GetMapping("/{userId}/follow-status/{targetUserId}")
     public ResponseEntity<?> getFollowStatus(@PathVariable String userId, @PathVariable String targetUserId) {
 
-        boolean isFollowing = userService.isFollowing(userId, targetUserId);
-        boolean isFollowedBy = userService.isFollowing(targetUserId, userId);
+        Map<String, Object> followingData = userService.isFollowing(userId, targetUserId);
+        Map<String, Object> followedByData = userService.isFollowing(targetUserId, userId);
+
         boolean isBlockedBy = userService.isBlocked(userId, targetUserId);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("isFollowing", isFollowing);
-        response.put("isFollowedBy", isFollowedBy);
+
+
+        response.put("isFollowing", followingData.get("isFollowing"));
+        response.put("isFollowedBy", followedByData.get("isFollowing"));
+
+        response.put("relationShipType", followingData.get("relationShipType"));
+
         response.put("isBlockedBy", isBlockedBy);
         response.put("userId", userId);
         response.put("targetUserId", targetUserId);
         response.put("status", HttpStatus.OK.value());
 
         return ResponseEntity.ok(response);
-
     }
 
     @GetMapping("FollowersCount/{userId}")
