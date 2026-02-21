@@ -5,7 +5,6 @@ import NytePulse.backend.auth.ResetPasswordByConfirmingOldRequest;
 import NytePulse.backend.dto.BunnyNetUploadResult;
 import NytePulse.backend.dto.FeedbackRequest;
 import NytePulse.backend.dto.FeedbackResponse;
-import NytePulse.backend.dto.ResetPasswordRequest;
 import NytePulse.backend.entity.*;
 import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.repository.*;
@@ -23,7 +22,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -630,8 +628,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Boolean isFollowing(String followerUserId, String followingUserId) {
-        return relationshipRepository.isFollowing(followerUserId, followingUserId);
+    public Map<String,Object> isFollowing(String followerUserId, String followingUserId) {
+        UserRelationship relationship = relationshipRepository
+                .findByFollowerUserIdAndFollowingUserId(followerUserId, followingUserId)
+                .orElse(null);
+
+        Map<String, Object> logData = new HashMap<>();
+
+        logData.put("relationShipType", relationship != null ? relationship.getRelationshipType() : "No Relationship");
+        logData.put("isFollowing", relationshipRepository.isFollowing(followerUserId, followingUserId));
+
+        return ResponseEntity.ok(logData).getBody();
     }
 
     @Override
