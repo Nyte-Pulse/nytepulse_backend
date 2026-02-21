@@ -646,7 +646,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public ResponseEntity<?> getFollowersCount(String userId) {
         try {
-            long count = relationshipRepository.countFollowers(userId);
+            User user = userRepository.findByUserId(userId);
+            long count = relationshipRepository.countFollowers(user.getId());
             Map<String, Long> response = new HashMap<>();
             response.put("followersCount", count);
             return ResponseEntity.ok(response);
@@ -760,7 +761,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public ResponseEntity<?> getFollowingCount(String userId) {
         try {
-            long count = relationshipRepository.countFollowing(userId);
+            User user = userRepository.findByUserId(userId);
+            long count = relationshipRepository.countFollowing(user.getId());
             Map<String, Long> response = new HashMap<>();
             response.put("followingCount", count);
             return ResponseEntity.ok(response);
@@ -784,10 +786,11 @@ public class UserServiceImpl implements UserService {
             }
 
             User user = userOpt.get();
+            Long Id = user.getId();
             String userId = user.getUserId();
 
-            long countFollowing = relationshipRepository.countFollowing(userId);
-            long countFollowers = relationshipRepository.countFollowers(userId);
+            long countFollowing = relationshipRepository.countFollowing(Id);
+            long countFollowers = relationshipRepository.countFollowers(Id);
             List<Post> posts = postRepository.findByUserOrderByCreatedAtDesc(user);
 
             Map<String, Object> response = new HashMap<>();

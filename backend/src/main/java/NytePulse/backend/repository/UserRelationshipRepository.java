@@ -47,13 +47,13 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
     @Query("SELECT COUNT(ur) FROM UserRelationship ur " +
             "WHERE ur.following.userId = :userId " +
             "AND ur.relationshipType = 'FOLLOWING'")
-    long countFollowers(@Param("userId") String userId);
+    long countFollowers(@Param("userId") Long userId);
 
     // Count following
     @Query("SELECT COUNT(ur) FROM UserRelationship ur " +
             "WHERE ur.follower.userId = :userId " +
             "AND ur.relationshipType = 'FOLLOWING'")
-    long countFollowing(@Param("userId") String userId);
+    long countFollowing(@Param("userId") Long userId);
 
     // Find relationship between two users using userId (String)
     @Query("SELECT ur FROM UserRelationship ur " +
