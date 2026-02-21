@@ -34,6 +34,10 @@ public class JwtTokenProvider {
     public String generateToken(Authentication authentication, Long userId,String username) {
         String email = authentication.getName();
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+
         String roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
@@ -46,6 +50,7 @@ public class JwtTokenProvider {
                 .setSubject(email)
                 .claim("roles", roles)
                 .claim("User-Id", userId)
+                .claim("UserId", user.getUserId())
                 .claim("username", username)
                 .setIssuedAt(new Date())
                 .setExpiration(expireDate)
@@ -126,6 +131,7 @@ public class JwtTokenProvider {
                 .setSubject(email)
                 .claim("roles", user.getAccountType())
                 .claim("User-Id", user.getId())
+                .claim("UserId", user.getUserId())
                 .claim("username", user.getUsername())
                 .setIssuedAt(currentDate)
                 .setExpiration(expireDate)
