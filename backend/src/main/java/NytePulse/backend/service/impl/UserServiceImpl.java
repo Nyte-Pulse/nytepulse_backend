@@ -62,6 +62,9 @@ public class UserServiceImpl implements UserService {
     private PostRepository postRepository;
 
     @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
     private FeedbackRepository feedbackRepository;
 
     @Autowired
@@ -95,7 +98,6 @@ public class UserServiceImpl implements UserService {
             number++;
             return String.format(prefix + "%07d", number);
         } catch (Exception e) {
-            // Fallback if parsing fails
             logger.warn("Failed to parse userId: {}, using default", lastUserId);
             return prefix + "0000001";
         }
@@ -270,7 +272,6 @@ public class UserServiceImpl implements UserService {
                 throw new IllegalArgumentException("User cannot block themselves");
             }
 
-            // 1. Fetch Users (Assuming your repo returns User or null)
             User blocker = userRepository.findByUserId(blockerUserId);
             User blocked = userRepository.findByUserId(blockedUserId);
 
@@ -278,7 +279,6 @@ public class UserServiceImpl implements UserService {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
             }
 
-            // 2. Check if a relationship already exists (to avoid unique constraint errors)
             Optional<UserRelationship> existingRelationship = relationshipRepository
                     .findByFollowerAndFollowing(blocker, blocked);
 
@@ -290,15 +290,12 @@ public class UserServiceImpl implements UserService {
                 relationship.setRelationshipType(RelationshipType.BLOCKED);
                 relationship.setCreatedAt(LocalDateTime.now()); // Update timestamp
             } else {
-                // CASE B: Create new relationship
                 relationship = new UserRelationship(blocker, blocked);
-                relationship.setRelationshipType(RelationshipType.BLOCKED); // <--- IMPORTANT
+                relationship.setRelationshipType(RelationshipType.BLOCKED);
             }
 
             relationshipRepository.save(relationship);
 
-            // 3. (Optional but Recommended) Force unfollow in the reverse direction
-            // If I block you, you shouldn't be following me anymore.
             Optional<UserRelationship> reverseRelationship = relationshipRepository
                     .findByFollowerAndFollowing(blocked, blocker);
 
@@ -348,7 +345,6 @@ public class UserServiceImpl implements UserService {
                     personalUserIds.add(user.getUserId());
                 }
 
-                // B. Collect Long IDs for "Am I Following?" check
                 if (user.getId() != null) {
                     targetLongIds.add(user.getId());
                 }
@@ -512,7 +508,7 @@ public class UserServiceImpl implements UserService {
 
             for (User followee : followingList) {
                 Map<String, Object> followeeInfo = new HashMap<>();
-                followeeInfo.put("userId", followee.getUserId()); // String ID (e.g., "BS101")
+                followeeInfo.put("userId", followee.getUserId());
                 followeeInfo.put("username", followee.getUsername());
                 followeeInfo.put("email", followee.getEmail());
 
@@ -578,8 +574,16 @@ public class UserServiceImpl implements UserService {
 
             relationshipRepository.delete(relationshipOpt.get());
 
-            Map<String, String> response = new HashMap<>();
+            Optional<Notification> notificationOpt = notificationRepository.findByRecipientIdAndActorId(
+                    relationshipOpt.get().getFollowing().getId(),
+                    relationshipOpt.get().getFollower().getId()
+            );
+
+            notificationOpt.ifPresent(notification -> notificationRepository.delete(notification));
+
+            Map<String, Object> response = new HashMap<>();
             response.put("message", "Successfully unfollowed user: " + followingUserId);
+            response.put("status",HttpStatus.OK.value());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error while unfollowing user: {}", e.getMessage());
@@ -742,6 +746,8 @@ public class UserServiceImpl implements UserService {
             UserRelationship relationship = new UserRelationship(follower, following);
             relationship.setRelationshipType(RelationshipType.FOLLOW_REQUESTED);
             relationshipRepository.save(relationship);
+
+            System.out.println("Follow request sent from " + following.getId() + " to " + follower.getId());
 
             notificationService.createNotification(
                     following.getId(),           // Recipient (the person being followed)
