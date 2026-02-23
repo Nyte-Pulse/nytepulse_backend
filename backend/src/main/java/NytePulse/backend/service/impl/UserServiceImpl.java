@@ -40,8 +40,18 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private ReservedUserRepository reservedUserRepository;
 
+
+    @Autowired
+    private ReportRepository reportRepository;
+
     @Autowired
     private UserDetailsRepository userDetailsRepository;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    private SavedPostRepository savedPostRepository;
 
     @Autowired
     private RoleRepository roleRepository;
@@ -69,6 +79,39 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private ClubDetailsRepository clubDetailsRepository;
+
+    @Autowired
+    private EventDetailsRepository eventRepository;
+
+    @Autowired
+    private UserSettingsRepository userSettingsRepository;
+
+    @Autowired
+    private MediaRepository mediaRepository;
+
+    @Autowired
+    private LiveStreamRepository liveStreamRepository;
+
+    @Autowired
+    private ConversationRepository conversationRepository;
+
+    @Autowired
+    private ConversationParticipantRepository conversationParticipantRepository;
+
+    @Autowired
+    private StoryLikeRepository storyLikeRepository;
+
+    @Autowired
+    private StoryRepository storyRepository;
+
+    @Autowired
+    private ChatMessageRepository chatMessageRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
+
+    @Autowired
+    private PostLikeRepository postLikeRepository;
 
     @Autowired
     private BunnyNetService bunnyNetService;
@@ -1324,6 +1367,45 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred while trying to reset the password.");
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> resetFullDataForTestingPurpose(){
+        try {
+            relationshipRepository.deleteAll();
+            notificationRepository.deleteAll();
+
+            feedbackRepository.deleteAll();
+            eventRepository.deleteAll();
+            userSettingsRepository.deleteAll();
+            refreshTokenRepository.deleteAll();
+            mediaRepository.deleteAll();
+            liveStreamRepository.deleteAll();
+            conversationParticipantRepository.deleteAll();
+            chatMessageRepository.deleteAll();
+            storyLikeRepository.deleteAll();
+            storyRepository.deleteAll();
+            conversationRepository.deleteAll();
+            reportRepository.deleteAll();
+            commentRepository.deleteAll();
+            postLikeRepository.deleteAll();
+            savedPostRepository.deleteAll();
+            postRepository.deleteAll();
+            userDetailsRepository.deleteAll();
+            clubDetailsRepository.deleteAll();
+            userRepository.deleteAll();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "All data reset successfully for testing purposes");
+            response.put("status", HttpStatus.OK.value());
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error while resetting data: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while trying to reset the data.");
         }
     }
 }

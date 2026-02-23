@@ -320,4 +320,12 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllFeedback(page, size));
     }
 
+
+    @PostMapping("/resetFullDataForTestingPurpose")
+    public ResponseEntity<?> resetFullDataForTestingPurpose() {
+        userService.resetFullDataForTestingPurpose();
+        return ResponseEntity.ok("All data reset successfully");
+    }
+
+
 }
