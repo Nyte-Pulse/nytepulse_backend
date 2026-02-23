@@ -4,6 +4,7 @@ import NytePulse.backend.dto.*;
 import NytePulse.backend.service.centralServices.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -93,25 +94,34 @@ public class ChatController {
             @PathVariable Long conversationId,
             @RequestBody Map<String, String> payload,
             @RequestHeader("User-Id") Long userId) {
+        try {
+            String content = payload.get("content");
 
-        String content = payload.get("content");
+            ChatMessageDTO message = chatService.sendMessage(
+                    conversationId, userId, content, "TEXT", null
+            );
 
-        ChatMessageDTO message = chatService.sendMessage(
-                conversationId, userId, content, "TEXT", null
-        );
+            SocketEvent event = new SocketEvent("MESSAGE", message);
 
-        SocketEvent event = new SocketEvent("MESSAGE", message);
+            messagingTemplate.convertAndSend(
+                    "/topic/conversation/" + conversationId,
+                    event
+            );
 
-        messagingTemplate.convertAndSend(
-                "/topic/conversation/" + conversationId,
-                event
-        );
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", message
+            ));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", HttpStatus.BAD_REQUEST.value(),
+                    "error", e.getMessage()
+            ));
+        }
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "data", message
-        ));
     }
+
 
     @PostMapping("/conversations/{conversationId}/read")
     public ResponseEntity<?> markConversationAsRead(@PathVariable Long conversationId,@RequestHeader("User-Id") Long userId){
