@@ -57,6 +57,9 @@ public class UserServiceImpl implements UserService {
     private RoleRepository roleRepository;
 
     @Autowired
+    private CommentLikeRepository commentLikeRepository;
+
+    @Autowired
     private UserRelationshipRepository relationshipRepository;
 
     @Autowired
@@ -1382,13 +1385,15 @@ public class UserServiceImpl implements UserService {
             refreshTokenRepository.deleteAll();
             mediaRepository.deleteAll();
             liveStreamRepository.deleteAll();
+            commentLikeRepository.deleteAll();
+            commentRepository.deleteAll();
             conversationParticipantRepository.deleteAll();
             chatMessageRepository.deleteAll();
             storyLikeRepository.deleteAll();
             storyRepository.deleteAll();
             conversationRepository.deleteAll();
             reportRepository.deleteAll();
-            commentRepository.deleteAll();
+
             postLikeRepository.deleteAll();
             savedPostRepository.deleteAll();
             postRepository.deleteAll();
