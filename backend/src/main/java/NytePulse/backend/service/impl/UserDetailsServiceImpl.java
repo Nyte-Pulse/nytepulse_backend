@@ -187,10 +187,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public ResponseEntity<?> searchAccountByName(String name, Pageable pageable) {
         try {
             Page<UserDetails> userDetailsPage = userDetailsRepository
-                    .findByNameContainingIgnoreCase(name, pageable);
+                    .findActiveByName(name, pageable);
 
             Page<ClubDetails> clubDetailsPage = clubDetailsRepository
-                    .findByNameContainingIgnoreCase(name, pageable);
+                    .findActiveByName(name, pageable);
 
             List<Map<String, Object>> userResults = userDetailsPage.getContent()
                     .stream()

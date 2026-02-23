@@ -32,9 +32,6 @@ public class NotificationService {
 
     private final UserSettingsRepository userSettingsRepository;
 
-    /**
-     * Create and save a new notification with WebSocket push
-     */
     @Transactional
     public Notification createNotification(
             Long recipientId,

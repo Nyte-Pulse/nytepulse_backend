@@ -359,7 +359,7 @@ public class ChatServiceImpl implements ChatService {
         try{
             User currentUser = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
-            
+
             List<ConversationParticipant> participants = participantRepository.findByConversationId(conversationId);
 
             boolean blockedByMe = false;

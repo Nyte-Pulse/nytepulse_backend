@@ -44,4 +44,9 @@ public interface UserDetailsRepository extends JpaRepository<UserDetails, Long> 
             "WHERE LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
             "OR LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     List<String> findUserIdsBySearchTerm(@Param("searchTerm") String searchTerm);
+
+    @Query("SELECT ud FROM UserDetails ud JOIN User u ON ud.username = u.username " +
+            "WHERE LOWER(ud.name) LIKE LOWER(CONCAT('%', :name, '%')) " +
+            "AND u.isDeleted = false AND u.isDeactivated = false")
+    Page<UserDetails> findActiveByName(@Param("name") String name, Pageable pageable);
 }
