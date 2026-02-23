@@ -61,5 +61,7 @@ public interface UserService {
 
     ResponseEntity<?> resetPasswordByConfirmingOld(ResetPasswordByConfirmingOldRequest request,Long userId);
 
+    ResponseEntity<?> resetFullDataForTestingPurpose();
+
 //  void updateUserStatus(Long userId, boolean isOnline);
 }
