@@ -40,6 +40,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Autowired
     private UserSettingsRepository userSettingsRepository;
+
     @Autowired
     private UserDetailsRepository userDetailsRepository;
 
@@ -266,6 +267,28 @@ public class ChatServiceImpl implements ChatService {
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new RuntimeException("Sender not found"));
 
+        List<ConversationParticipant> participants = participantRepository
+                .findByConversationId(conversationId);
+
+        for (ConversationParticipant participant : participants) {
+            if (participant.getUser().getUserId().equals(sender.getUserId())) {
+                continue;
+            }
+
+            String participantUserId = participant.getUser().getUserId();
+            Optional<UserRelationship> userRelationshipOpt = userRelationshipRepository
+                    .findByFollowerIdAndFollowingId(sender.getId(), participant.getUser().getId());
+
+            if (userRelationshipOpt.isPresent()) {
+                if (userRelationshipOpt.get().getRelationshipType() == RelationshipType.BLOCKED) {
+                    throw new RuntimeException("Cannot send message. You have blocked " + participantUserId);
+                }
+
+            } else {
+                System.out.println("No relationship exists with: " + participantUserId);
+            }
+        }
+
         ChatMessage message = new ChatMessage();
         message.setConversationId(conversationId);
         message.setSender(sender);
@@ -278,8 +301,9 @@ public class ChatServiceImpl implements ChatService {
         conversation.setUpdatedAt(LocalDateTime.now());
         conversationRepository.save(conversation);
 
-        List<ConversationParticipant> participants = participantRepository
-                .findByConversationId(conversationId);
+
+
+
 
         for (ConversationParticipant participant : participants) {
 
@@ -333,6 +357,34 @@ public class ChatServiceImpl implements ChatService {
     @Transactional(readOnly = true)
     public ResponseEntity<?> getConversationMessages(Long conversationId, Long userId, int page, int size) {
         try{
+            User currentUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            List<ConversationParticipant> participants = participantRepository.findByConversationId(conversationId);
+
+            boolean blockedByMe = false;
+            boolean blockedByThem = false;
+
+            for (ConversationParticipant participant : participants) {
+                if (participant.getUser().getId().equals(userId)) {
+                    continue;
+                }
+
+                Long otherUserId = participant.getUser().getId();
+                Optional<UserRelationship> relationship1 = userRelationshipRepository
+                        .findByFollowerIdAndFollowingId(currentUser.getId(), otherUserId);
+
+                if (relationship1.isPresent() && relationship1.get().getRelationshipType() == RelationshipType.BLOCKED) {
+                    blockedByMe = true;
+                }
+                Optional<UserRelationship> relationship2 = userRelationshipRepository
+                        .findByFollowerIdAndFollowingId(otherUserId, currentUser.getId());
+
+                if (relationship2.isPresent() && relationship2.get().getRelationshipType() == RelationshipType.BLOCKED) {
+                    blockedByThem = true;
+                }
+            }
+
         Pageable pageable = PageRequest.of(page, size);
         Page<ChatMessage> messages = messageRepository
                 .findByConversationIdAndIsDeletedFalseOrderByCreatedAtDesc(conversationId, pageable);
@@ -346,6 +398,9 @@ public class ChatServiceImpl implements ChatService {
         response.put("totalItems", messages.getTotalElements());
         response.put("status", HttpStatus.OK.value());
         response.put("totalPages", messages.getTotalPages());
+
+            response.put("blockedByMe", blockedByMe);
+            response.put("blockedByThem", blockedByThem);
         return ResponseEntity.ok(response);
     } catch (Exception e) {
         Map<String, Object> errorResponse = new HashMap<>();
