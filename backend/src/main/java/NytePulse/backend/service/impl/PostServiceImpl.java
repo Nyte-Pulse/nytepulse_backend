@@ -1081,6 +1081,11 @@ public class PostServiceImpl implements PostService {
         }
     }
     private boolean canViewPost(Post post, Long viewerId) {
+        User postOwner = post.getUser();
+        
+        if (postOwner.isDeleted() || postOwner.isDeactivated()) {
+            return false;
+        }
         Long postOwnerId = post.getUser().getId();
 
         if (postOwnerId.equals(viewerId)) {
