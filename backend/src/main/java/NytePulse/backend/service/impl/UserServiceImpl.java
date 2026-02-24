@@ -685,7 +685,7 @@ public class UserServiceImpl implements UserService {
 
         Map<String, Object> logData = new HashMap<>();
 
-        logData.put("relationShipType", relationship != null ? relationship.getRelationshipType() : "No Relationship");
+        logData.put("relationShipType", relationship != null ? relationship.getRelationshipType() : "NO_RELATIONSHIP");
         logData.put("isFollowing", relationshipRepository.isFollowing(followerUserId, followingUserId));
 
         return ResponseEntity.ok(logData).getBody();
