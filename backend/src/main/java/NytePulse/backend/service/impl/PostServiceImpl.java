@@ -1199,6 +1199,14 @@ public class PostServiceImpl implements PostService {
                     .filter(story -> canViewStory(story, viewerId))
                     .collect(Collectors.toList());
 
+            List<Long> visibleStoryIds = visibleStories.stream()
+                    .map(Story::getId)
+                    .collect(Collectors.toList());
+
+            Set<Long> viewedStoryIds = visibleStoryIds.isEmpty() ?
+                    new HashSet<>() :
+                    storyViewRepository.findStoryIdsByUserIdAndStoryIdIn(viewerId, visibleStoryIds);
+
             Map<String, List<Story>> storiesByUser = visibleStories.stream()
                     .collect(Collectors.groupingBy(
                             story -> story.getUser().getUserId(),
@@ -1243,7 +1251,7 @@ public class PostServiceImpl implements PostService {
                                 .build();
 
                         List<StoryResponseDTO> storyDTOs = userStories.stream()
-                                .map(this::mapToStoryDTO)
+                                .map(story -> mapToStoryDTO(story, viewedStoryIds.contains(story.getId())))
                                 .collect(Collectors.toList());
 
                         return UserStoriesDTO.builder()
@@ -1278,7 +1286,7 @@ public class PostServiceImpl implements PostService {
         }
     }
 
-    private StoryResponseDTO mapToStoryDTO(Story story) {
+    private StoryResponseDTO mapToStoryDTO(Story story,boolean isViewed) {
         List<StoryMediaDTO> mediaDTOs = story.getMedia().stream()
                 .map(media -> StoryMediaDTO.builder()
                         .id(media.getId())
@@ -1288,14 +1296,11 @@ public class PostServiceImpl implements PostService {
                         .build())
                 .collect(Collectors.toList());
 
-        // 2. Fetch Music Details (Single Object, not a List)
         String musicTitle = null;
         String musicAudioUrl = null;
         String coverImage = null;
 
         if (story.getMusicTrackId() != null) {
-            // Warning: This causes N+1 performance issues if used in a loop.
-            // See the optimization note below.
             MusicTrack track = musicTrackRepository.findById(story.getMusicTrackId())
                     .orElse(null);
 
@@ -1318,6 +1323,7 @@ public class PostServiceImpl implements PostService {
                 .createdAt(story.getCreatedAt())
                 .expiresAt(story.getExpiresAt())
                 .isCloseFriendsOnly(story.getIsCloseFriendsOnly())
+                .isViewed(isViewed)
                 .build();
     }
 

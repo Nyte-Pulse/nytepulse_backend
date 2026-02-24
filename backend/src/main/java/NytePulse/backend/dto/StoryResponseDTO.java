@@ -20,6 +20,7 @@ public class StoryResponseDTO {
     private LocalDateTime expiresAt;
     private Boolean isCloseFriendsOnly;
     private Long musicTrackId;
+    private boolean isViewed;
     private String title;
     private String audioUrl;
     private String coverImageUrl;
