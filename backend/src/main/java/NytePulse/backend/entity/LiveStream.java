@@ -29,6 +29,8 @@ public class LiveStream {
     @Column(nullable = false, unique = true)
     private String streamKey;
 
+    private String title;
+
     @Column(nullable = false)
     private String ingestUrl; // RTMP URL for broadcaster
 

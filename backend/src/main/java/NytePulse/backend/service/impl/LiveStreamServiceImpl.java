@@ -65,6 +65,7 @@ public class LiveStreamServiceImpl implements LiveStreamService {
         LiveStream stream = LiveStream.builder()
                 .user(user)
                 .streamKey(streamKey)
+                .title(request.getTitle())
                 .ingestUrl(ingestUrl)
                 .playbackUrl(playbackUrl)
                 .visibility(visibility)
@@ -75,6 +76,7 @@ public class LiveStreamServiceImpl implements LiveStreamService {
         LiveStreamResponseDTO response = LiveStreamResponseDTO.builder()
                 .streamKey(streamKey)
                 .ingestUrl(ingestUrl)
+                .title(request.getTitle())
                 .playbackUrl(playbackUrl)
                 .visibility(visibility.name())
                 .build();
@@ -146,6 +148,7 @@ public class LiveStreamServiceImpl implements LiveStreamService {
                                 .streamKey(stream.getStreamKey())
                                 .playbackUrl(stream.getPlaybackUrl())
                                 .broadcasterId(bId)
+                                .title(stream.getTitle())
                                 .broadcasterName(broadcasterName)
                                 .broadcasterUsername(broadcaster.getUsername())
                                 .broadcasterProfileUrl(profileUrl)

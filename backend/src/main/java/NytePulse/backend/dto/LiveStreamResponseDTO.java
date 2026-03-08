@@ -7,6 +7,7 @@ import lombok.Data;
 @Builder
 public class LiveStreamResponseDTO {
     private String streamKey;
+    private String title;
     private String ingestUrl;
     private String playbackUrl;
     private String visibility;
