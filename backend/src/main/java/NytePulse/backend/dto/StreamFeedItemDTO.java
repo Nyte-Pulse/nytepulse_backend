@@ -8,6 +8,7 @@ import lombok.Data;
 public class StreamFeedItemDTO {
     private String streamKey;
     private String playbackUrl;
+    private String title;
     private String broadcasterId;
     private String broadcasterName;
     private String broadcasterProfileUrl;

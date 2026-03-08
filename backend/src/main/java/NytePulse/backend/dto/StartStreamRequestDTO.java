@@ -7,4 +7,6 @@ import lombok.Data;
 public class StartStreamRequestDTO {
     // User chooses this in the app before going live
     private StreamVisibility visibility;
+
+    private String title;
 }
