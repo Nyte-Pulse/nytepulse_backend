@@ -55,6 +55,9 @@ public class User {
     @JsonIgnore
     private Set<Role> roles = new HashSet<>();
 
+    @Column(name = "fcm_token", length = 512)
+    private String fcmToken;
+
     public User() {}
 
     public User(String username, String email, String password) {
@@ -157,5 +160,13 @@ public class User {
 
     public void setLastSeen(LocalDateTime lastSeen) {
         this.lastSeen = lastSeen;
+    }
+
+    public String getFcmToken() {
+        return fcmToken;
+    }
+
+    public void setFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 }

@@ -9,6 +9,7 @@ import NytePulse.backend.entity.*;
 import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
+import NytePulse.backend.service.FcmService;
 import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.UserSettingsService;
 import NytePulse.backend.service.centralServices.UserService;
@@ -43,6 +44,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private ReportRepository reportRepository;
+
+    @Autowired
+    private FcmService fcmService;
 
     @Autowired
     private UserDetailsRepository userDetailsRepository;
@@ -295,6 +299,19 @@ public class UserServiceImpl implements UserService {
                     follower.getId(),            // Reference ID
                     "USER"                       // Reference Type
             );
+
+            String targetFcmToken = following.getFcmToken();
+
+            if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+                // Run this asynchronously if you don't want it to block the HTTP response
+                fcmService.sendPushNotification(
+                        targetFcmToken,
+                        "New Follower!",
+                        message
+                );
+            } else {
+                logger.warn("No FCM token found for user: {}", followingUserId);
+            }
 
 
             Map<String, Object> response = new HashMap<>();
