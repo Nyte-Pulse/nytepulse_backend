@@ -1,8 +1,11 @@
 package NytePulse.backend.controller;
 
 import NytePulse.backend.dto.BunnyNetUploadResult;
+import NytePulse.backend.dto.FcmTokenRequest;
 import NytePulse.backend.dto.FeedbackRequest;
 import NytePulse.backend.dto.UserDetailsDto;
+import NytePulse.backend.entity.User;
+import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.UserDetailsService;
 import NytePulse.backend.service.centralServices.UserService;
@@ -33,6 +36,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserRepository userRepository;
 
 
     @Autowired
@@ -325,6 +331,28 @@ public class UserController {
     public ResponseEntity<?> resetFullDataForTestingPurpose() {
         userService.resetFullDataForTestingPurpose();
         return ResponseEntity.ok("All data reset successfully");
+    }
+
+    @PostMapping("/update-fcm-token")
+    public ResponseEntity<?> updateFcmToken(@RequestBody FcmTokenRequest request) {
+        try {
+            User user = userRepository.findByUserId(request.getUserId());
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+
+            user.setFcmToken(request.getFcmToken());
+            userRepository.save(user); // Update the user with the new token
+
+            HashMap<String,Object> response = new HashMap<>();
+            response.put("message", "FCM token updated successfully");
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error updating token"));
+        }
     }
 
 
