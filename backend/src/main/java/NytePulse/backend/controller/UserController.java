@@ -344,7 +344,11 @@ public class UserController {
             user.setFcmToken(request.getFcmToken());
             userRepository.save(user); // Update the user with the new token
 
-            return ResponseEntity.ok(Map.of("message", "FCM token updated successfully"));
+            HashMap<String,Object> response = new HashMap<>();
+            response.put("message", "FCM token updated successfully");
+            response.put("status", HttpStatus.OK.value());
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Error updating token"));
