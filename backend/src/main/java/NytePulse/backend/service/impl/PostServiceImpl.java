@@ -9,6 +9,7 @@ import NytePulse.backend.enums.StoryVisibility;
 import NytePulse.backend.exception.ResourceNotFoundException;
 import NytePulse.backend.repository.*;
 import NytePulse.backend.service.BunnyNetService;
+import NytePulse.backend.service.FcmService;
 import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.PostService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -91,6 +92,10 @@ public class PostServiceImpl implements PostService {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+
+    private FcmService fcmService;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -222,6 +227,32 @@ public class PostServiceImpl implements PostService {
                     .mentionedUsers(mentionedUserDTOs)
                     .media(mediaDTOs)
                     .build();
+
+
+//            String tagMessagePushNotification = user.getUsername() + " tagged you in a post: \"" + (content.length() > 50 ? content.substring(0, 50) + "..." : content) + "\"";
+//
+//            User following = userRepository.findByUserId(post.getUser().getUserId());
+//            String targetFcmToken = following.getFcmToken();
+//
+//            if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+//
+//                // Run this asynchronously if you don't want it to block the HTTP response
+//
+//                fcmService.sendPushNotification(
+//
+//                        targetFcmToken,
+//
+//                        "New Follower!",
+//
+//                        messagePushNotification
+//
+//                );
+//
+//            } else {
+//
+//                logger.warn("No FCM token found for user: {}", followingUserId);
+//
+//            }
 
             return ResponseEntity.ok(response);
 
