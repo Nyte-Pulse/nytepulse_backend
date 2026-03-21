@@ -10,6 +10,7 @@ import NytePulse.backend.enums.StoryCommentVisibility;
 import NytePulse.backend.exception.PermissionDeniedException;
 import NytePulse.backend.exception.ResourceNotFoundException;
 import NytePulse.backend.repository.*;
+import NytePulse.backend.service.FcmService;
 import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.CommentService;
 import jakarta.validation.ValidationException;
@@ -47,6 +48,10 @@ public class CommentServiceImpl implements CommentService {
 
     @Autowired
     private ChatServiceImpl chatService;
+
+    @Autowired
+
+    private FcmService fcmService;
 
     @Autowired
     private CommentMentionRepository commentMentionRepository;
@@ -162,6 +167,32 @@ public class CommentServiceImpl implements CommentService {
                 }
             }
             CommentResponseDTO responseDTO = mapToCommentResponseDTO(savedComment, userId);
+
+            String messagePushNotification = commenter.getUsername() + " commented on your post: \"" + savedComment.getContent() + "\"";
+
+             User following = userRepository.findByUserId(post.getUser().getUserId());
+
+            String targetFcmToken = following.getFcmToken();
+
+
+
+            if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+
+                fcmService.sendPushNotification(
+
+                        targetFcmToken,
+
+                        "New Comment!",
+
+                        messagePushNotification
+
+                );
+
+            } else {
+
+                log.warn("No FCM token found for user: {}", post.getUser().getUserId());
+
+            }
 
             return ResponseEntity.ok(responseDTO);
 
