@@ -300,6 +300,7 @@ public class UserServiceImpl implements UserService {
                     "USER"                       // Reference Type
             );
 
+            String messagePushNotification = actorName + " started following you.";
             String targetFcmToken = following.getFcmToken();
 
             if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
@@ -307,7 +308,7 @@ public class UserServiceImpl implements UserService {
                 fcmService.sendPushNotification(
                         targetFcmToken,
                         "New Follower!",
-                        message
+                        messagePushNotification
                 );
             } else {
                 logger.warn("No FCM token found for user: {}", followingUserId);

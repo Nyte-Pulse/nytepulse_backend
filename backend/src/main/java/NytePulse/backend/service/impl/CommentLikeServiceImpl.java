@@ -10,6 +10,7 @@ import NytePulse.backend.repository.CommentLikeRepository;
 import NytePulse.backend.repository.CommentRepository;
 import NytePulse.backend.repository.UserDetailsRepository;
 import NytePulse.backend.repository.UserRepository;
+import NytePulse.backend.service.FcmService;
 import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.CommentLikeService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,6 +48,10 @@ public class CommentLikeServiceImpl implements CommentLikeService {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+
+    private FcmService fcmService;
 
     @Override
     @Transactional
@@ -98,6 +103,33 @@ public class CommentLikeServiceImpl implements CommentLikeService {
         response.setLiked(liked);
         response.setTotalLikes(totalLikes);
         response.setMessage(message);
+
+        User following = userRepository.findByUserId(comment.getUser().getUserId());
+
+
+        String messagePushNotification = user.getUsername() + " liked your comment: \"" + comment.getContent() + "\"";
+
+        String targetFcmToken = following.getFcmToken();
+
+
+
+        if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+
+            fcmService.sendPushNotification(
+
+                    targetFcmToken,
+
+                    "New Reaction!",
+
+                    messagePushNotification
+
+            );
+
+        } else {
+
+            log.warn("No FCM token found for user: {}", comment.getUser().getUserId());
+
+        }
 
         return ResponseEntity.ok(response);
     }
