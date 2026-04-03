@@ -4,6 +4,7 @@ import NytePulse.backend.dto.*;
 import NytePulse.backend.entity.*;
 import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.repository.*;
+import NytePulse.backend.service.FcmService;
 import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.ChatService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,10 @@ public class ChatServiceImpl implements ChatService {
     private ConversationParticipantRepository participantRepository;
     @Autowired
     private ChatMessageRepository messageRepository;
+
+    @Autowired
+
+    private FcmService fcmService;
     @Autowired
     private UserRepository userRepository;
 
@@ -346,6 +351,19 @@ public class ChatServiceImpl implements ChatService {
                         message.getId(),          // ✅ Reference to message
                         "MESSAGE"                 // ✅ Reference type
                 );
+
+                String messagePushNotification = notificationMessage;
+
+                String targetFcmToken = participant.getUser().getFcmToken();
+
+                if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+                    fcmService.sendPushNotification(
+                            targetFcmToken,
+                            "New Message!",
+                            messagePushNotification,
+                            Map.of("conversationId", conversationId.toString())
+                    );
+                }
             }
         }
 
