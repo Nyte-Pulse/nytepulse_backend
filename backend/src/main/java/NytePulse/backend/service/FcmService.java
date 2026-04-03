@@ -5,9 +5,11 @@ import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Service
 public class FcmService {
-    public void sendPushNotification(String targetToken, String title, String body) {
+    public void sendPushNotification(String targetToken, String title, String body, Map<String,String> data) {
         try {
             Message message = Message.builder()
                     .setToken(targetToken)

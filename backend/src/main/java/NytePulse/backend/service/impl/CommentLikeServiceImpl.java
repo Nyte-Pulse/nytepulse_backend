@@ -121,7 +121,8 @@ public class CommentLikeServiceImpl implements CommentLikeService {
 
                     "New Reaction!",
 
-                    messagePushNotification
+                    messagePushNotification,
+                    Map.of("type", "LIKE_COMMENT", "commentId", commentId.toString(), "postId", comment.getPost().getId().toString())
 
             );
 
