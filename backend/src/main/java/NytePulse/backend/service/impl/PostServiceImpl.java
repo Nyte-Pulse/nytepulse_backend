@@ -229,30 +229,37 @@ public class PostServiceImpl implements PostService {
                     .build();
 
 
-//            String tagMessagePushNotification = user.getUsername() + " tagged you in a post: \"" + (content.length() > 50 ? content.substring(0, 50) + "..." : content) + "\"";
-//
-//            User following = userRepository.findByUserId(post.getUser().getUserId());
-//            String targetFcmToken = following.getFcmToken();
-//
-//            if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
-//
-//                // Run this asynchronously if you don't want it to block the HTTP response
-//
-//                fcmService.sendPushNotification(
-//
-//                        targetFcmToken,
-//
-//                        "New Follower!",
-//
-//                        messagePushNotification
-//
-//                );
-//
-//            } else {
-//
-//                logger.warn("No FCM token found for user: {}", followingUserId);
-//
-//            }
+            String tagMessagePushNotification = user.getUsername() + " tagged you in a post: \"" + (content.length() > 50 ? content.substring(0, 50) + "..." : content) + "\"";
+
+                for (TaggedUserDTO taggedUser : taggedUserDTOs) {
+                    User taggedUserDetails = userRepository.findByUserId(taggedUser.getUserId());
+                    String targetFcmToken = taggedUserDetails.getFcmToken();
+
+                    if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+                        fcmService.sendPushNotification(
+                                targetFcmToken,
+                                "You've been tagged!",
+                                tagMessagePushNotification,
+                                Map.of("postId", savedPost.getId().toString())
+                        );
+                    }
+                }
+
+                String mentionMessagePushNotification = user.getUsername() + " mentioned you in a post: \"" + (content.length() > 50 ? content.substring(0, 50) + "..." : content) + "\"";
+
+                for (MentionedUserDTO mentionedUser : mentionedUserDTOs) {
+                    User mentionedUserDetails = userRepository.findByUserId(mentionedUser.getUserId());
+                    String targetFcmToken = mentionedUserDetails.getFcmToken();
+
+                    if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+                        fcmService.sendPushNotification(
+                                targetFcmToken,
+                                "You've been mentioned!",
+                                mentionMessagePushNotification,
+                                Map.of("postId", savedPost.getId().toString())
+                        );
+                    }
+                }
 
             return ResponseEntity.ok(response);
 

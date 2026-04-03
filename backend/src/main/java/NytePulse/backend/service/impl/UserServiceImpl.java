@@ -308,7 +308,8 @@ public class UserServiceImpl implements UserService {
                 fcmService.sendPushNotification(
                         targetFcmToken,
                         "New Follower!",
-                        messagePushNotification
+                        messagePushNotification,
+                        Map.of("type", "NEW_FOLLOWER", "followerUserId", followerUserId)
                 );
             } else {
                 logger.warn("No FCM token found for user: {}", followingUserId);

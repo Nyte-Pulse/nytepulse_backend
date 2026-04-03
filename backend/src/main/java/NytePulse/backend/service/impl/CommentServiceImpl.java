@@ -184,7 +184,8 @@ public class CommentServiceImpl implements CommentService {
 
                         "New Comment!",
 
-                        messagePushNotification
+                        messagePushNotification,
+                        Map.of("postId", post.getId().toString(), "commentId", savedComment.getId().toString())
 
                 );
 
@@ -659,6 +660,31 @@ public class CommentServiceImpl implements CommentService {
 
              // Send notification to story owner about new comment
             CommentResponseDTO responseDTO = mapToCommentResponseDTO(savedComment, userId);
+
+            String messagePushNotification = commenter.getUsername() + " commented on your story: \"" + savedComment.getContent() + "\"";
+
+                User following = userRepository.findByUserId(story.getUser().getUserId());
+
+                String targetFcmToken = following.getFcmToken();
+
+                if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+
+                    fcmService.sendPushNotification(
+
+                            targetFcmToken,
+
+                            "New Comment on Your Story!",
+
+                            messagePushNotification,
+                            Map.of("storyId", story.getId().toString(), "commentId", savedComment.getId().toString())
+
+                    );
+
+                } else {
+
+                    log.warn("No FCM token found for user: {}", story.getUser().getUserId());
+
+                }
 
             return ResponseEntity.ok(responseDTO);
 
