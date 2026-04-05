@@ -3,6 +3,7 @@ package NytePulse.backend.service.centralServices;
 import NytePulse.backend.auth.RegisterRequest;
 import NytePulse.backend.auth.ResetPasswordByConfirmingOldRequest;
 import NytePulse.backend.dto.FeedbackRequest;
+import NytePulse.backend.entity.UserSettings;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -62,6 +63,8 @@ public interface UserService {
     ResponseEntity<?> resetPasswordByConfirmingOld(ResetPasswordByConfirmingOldRequest request,Long userId);
 
     ResponseEntity<?> resetFullDataForTestingPurpose();
+
+    UserSettings getUserSettings(String userId);
 
 //  void updateUserStatus(Long userId, boolean isOnline);
 }

@@ -5,6 +5,7 @@ import NytePulse.backend.dto.FcmTokenRequest;
 import NytePulse.backend.dto.FeedbackRequest;
 import NytePulse.backend.dto.UserDetailsDto;
 import NytePulse.backend.entity.User;
+import NytePulse.backend.entity.UserSettings;
 import NytePulse.backend.repository.UserRepository;
 import NytePulse.backend.service.BunnyNetService;
 import NytePulse.backend.service.centralServices.UserDetailsService;
@@ -148,18 +149,41 @@ public class UserController {
 
         Map<String, Object> followingData = userService.isFollowing(userId, targetUserId);
         Map<String, Object> followedByData = userService.isFollowing(targetUserId, userId);
-
         boolean isBlockedBy = userService.isBlocked(userId, targetUserId);
 
+        boolean isFollowingTarget = (boolean) followingData.getOrDefault("isFollowing", false);
+
+        UserSettings targetSettings = userService.getUserSettings(targetUserId);
+
+        boolean canComment = false;
+
+        if (!isBlockedBy && targetSettings != null) {
+            String visibility = String.valueOf(targetSettings.getCommentVisibility());
+
+            if (visibility != null) {
+                switch (visibility.toUpperCase()) {
+                    case "EVERYONE":
+                        canComment = true;
+                        break;
+                    case "FOLLOWERS":
+                        canComment = isFollowingTarget;
+                        break;
+                    case "DISABLED":
+                    default:
+                        canComment = false;
+                        break;
+                }
+            }
+        }
+
         Map<String, Object> response = new HashMap<>();
-
-
         response.put("isFollowing", followingData.get("isFollowing"));
         response.put("isFollowedBy", followedByData.get("isFollowing"));
-
         response.put("relationShipType", followingData.get("relationShipType"));
-
         response.put("isBlockedBy", isBlockedBy);
+
+        response.put("canComment", canComment);
+
         response.put("userId", userId);
         response.put("targetUserId", targetUserId);
         response.put("status", HttpStatus.OK.value());
