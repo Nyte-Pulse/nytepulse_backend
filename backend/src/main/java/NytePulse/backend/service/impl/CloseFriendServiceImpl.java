@@ -44,15 +44,20 @@ public class CloseFriendServiceImpl implements CloseFriendService {
                     .findByUserIdAndCloseFriendUserId(userId, closeFriendUserId);
 
             if (existing.isPresent()) {
-                return ResponseEntity.badRequest().body("User already in close friends");
+                HashMap<String, Object> response = new HashMap<>();
+                response.put("message", "User already in close friends");
+                response.put("status", HttpStatus.BAD_REQUEST.value());
+                return ResponseEntity.ok(response);
             }
-
-            // Check if they follow each other (optional - Instagram allows only followers)
+            
             boolean isFollower = userRelationshipRepository.existsByFollower_UserIdAndFollowing_UserId(closeFriendUserId, userId);
 
 
             if (!isFollower) {
-                return ResponseEntity.badRequest().body("User must be your follower to add to close friends");
+                HashMap<String, Object> response = new HashMap<>();
+                response.put("message", "User must be your follower to add to close friends");
+                response.put("status", HttpStatus.BAD_REQUEST.value());
+                return ResponseEntity.ok(response);
             }
 
             CloseFriend closeFriend = new CloseFriend();
