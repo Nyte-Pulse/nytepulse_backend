@@ -359,7 +359,7 @@ public class ChatServiceImpl implements ChatService {
                 if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
                     fcmService.sendPushNotification(
                             targetFcmToken,
-                            "New Message!",
+                            "You have a new notification!",
                             messagePushNotification,
                             Map.of("conversationId", conversationId.toString())
                     );

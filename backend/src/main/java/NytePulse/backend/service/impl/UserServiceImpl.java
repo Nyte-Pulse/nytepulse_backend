@@ -715,6 +715,20 @@ public class UserServiceImpl implements UserService {
         return relationshipRepository.isBlocked(userId, targetUserId);
     }
 
+    @Override
+    public UserSettings getUserSettings(String userId) {
+        try {
+            User user = userRepository.findByUserId(userId);
+            if (user == null) return null;
+
+            Optional<UserSettings> settings = userSettingsRepository.findByUserId(user.getId());
+            return settings.orElse(null);
+        } catch (Exception e) {
+            logger.error("Error while fetching user settings: {}", e.getMessage());
+            return null;
+        }
+    }
+
     public Boolean isFollowers(String followerUserId, String followingUserId) {
         return relationshipRepository.isFollowers(followingUserId, followerUserId);
     }
