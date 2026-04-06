@@ -341,6 +341,12 @@ public class ChatServiceImpl implements ChatService {
                         
                     }
 
+                }else {
+                    ClubDetails clubDetails = clubDetailsRepository.findByUsername(sender.getUsername());
+                    if (content != null && !content.isEmpty()) {
+                        String preview = content.length() > 50 ? content.substring(0, 50) + "..." : content;
+                        notificationMessage = clubDetails.getName() + " sent you a message : " + preview + " profilePicture :" + clubDetails.getProfilePicture();
+                    }
                 }
               
                 notificationService.createNotification(

@@ -1021,6 +1021,10 @@ public class PostServiceImpl implements PostService {
 
                         Long totalLikes = postLikeRepository.countByPostId(post.getId());
 
+                        Optional<UserSettings> userSettings = userSettingsRepository.findByUserId(post.getUser().getId());
+
+                        postData.put("likeCountIsHide", userSettings.get().getHideLikeCount());
+
                         postData.put("totalLikes", totalLikes);
 
                         Optional<PostLike> userLikeOpt = postLikeRepository.findByPostIdAndUserId(post.getId(), viewerId);
