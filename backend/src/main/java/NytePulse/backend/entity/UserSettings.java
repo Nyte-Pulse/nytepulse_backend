@@ -52,6 +52,8 @@ public class UserSettings {
     @Column(name = "allow_direct_messages")
     private Boolean allowDirectMessages = true;
 
+    private Boolean hideLikeCount = false;
+
     @Column(name = "allow_mentions")
     private Boolean allowMentions = true;
 

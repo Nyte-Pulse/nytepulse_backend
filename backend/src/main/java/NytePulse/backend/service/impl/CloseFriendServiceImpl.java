@@ -31,7 +31,6 @@ public class CloseFriendServiceImpl implements CloseFriendService {
     @Autowired
     private UserDetailsRepository userDetailsRepository;
 
-    // Add user to close friends
     @Transactional
     public ResponseEntity<?> addCloseFriend(String userId, String closeFriendUserId) {
         try {
@@ -49,7 +48,7 @@ public class CloseFriendServiceImpl implements CloseFriendService {
                 response.put("status", HttpStatus.BAD_REQUEST.value());
                 return ResponseEntity.ok(response);
             }
-            
+
             boolean isFollower = userRelationshipRepository.existsByFollower_UserIdAndFollowing_UserId(closeFriendUserId, userId);
 
 

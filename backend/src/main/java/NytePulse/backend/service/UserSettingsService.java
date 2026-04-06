@@ -259,5 +259,25 @@ public class UserSettingsService {
 
         return ResponseEntity.ok(response);
     }
+
+    public ResponseEntity<?> hideOrShowLikeCount(Long userId, boolean hide) {
+
+        UserSettings settings = settingsRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Settings not found"));
+
+        settings.setHideLikeCount(hide);
+        UserSettings updated = settingsRepository.save(settings);
+
+        Map<String, Object> response = new HashMap<>();
+        if(hide){
+            response.put("message", "Like count hidden successfully");
+        } else {
+            response.put("message", "Like count shown successfully");
+        }
+        response.put("status", HttpStatus.OK.value());
+        response.put("result", convertToDTO(updated));
+
+        return ResponseEntity.ok(response);
+    }
 }
 
