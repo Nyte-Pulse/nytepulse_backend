@@ -42,6 +42,9 @@ public class CommentServiceImpl implements CommentService {
     private PostRepository postRepository;
 
     @Autowired
+    private ClubDetailsRepository clubDetailsRepository;
+
+    @Autowired
     private ConversationRepository conversationRepository;
     @Autowired
     private UserRepository userRepository;
@@ -144,16 +147,26 @@ public class CommentServiceImpl implements CommentService {
                     }
                 }
 
-                // Batch save all mentions to the database
                 if (!mentionsToSave.isEmpty()) {
                     commentMentionRepository.saveAll(mentionsToSave);
                 }
             }
 
             if (!post.getUser().getId().equals(commenter.getId())) {
-                System.out.println("Sending notification to post owner for new comment"+post.getUser().getId());
                 try {
                     String notifMsg = commenter.getUsername() + " commented on your post." + savedComment.getContent();
+                    String userId1 = post.getUser().getUserId();
+
+                    UserDetails userDetails = userDetailsRepository.findByUsername(post.getUser().getUsername());
+                    ClubDetails  clubDetails=clubDetailsRepository.findByUsername(post.getUser().getUsername());
+
+                    if (userId1.startsWith("PS")){
+                      notifMsg = commenter.getUsername() + " commented on your post." + savedComment.getContent()+ " profilePicture :" + userDetails.getProfilePicture();
+
+                    }else{
+                        notifMsg = commenter.getUsername() + " commented on your post." + savedComment.getContent()+ " profilePicture :" + clubDetails.getProfilePicture();
+                    }
+
                     notificationService.createNotification(
                             post.getUser().getId(), // Recipient (Post Owner)
                             commenter.getId(),      // Sender (Commenter)

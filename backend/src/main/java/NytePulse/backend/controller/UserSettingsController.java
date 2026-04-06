@@ -31,6 +31,13 @@ public class UserSettingsController {
         }
     }
 
+    @PostMapping("/hideOrShowLikeCount/{userId}")
+    public ResponseEntity<?> hideOrShowLikeCount(@PathVariable Long userId, @RequestParam boolean hide) {
+        return ResponseEntity.ok(settingsService.hideOrShowLikeCount(userId, hide));
+    }
+
+
+
     @GetMapping("/{userId}")
     public ResponseEntity<?> getSettings(@PathVariable Long userId) {
         HashMap<String, Object> settings = settingsService.getSettings(userId);
