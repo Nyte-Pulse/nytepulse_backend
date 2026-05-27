@@ -949,14 +949,13 @@ public class PostServiceImpl implements PostService {
             Collections.shuffle(normalPosts);
 
             List<Post> finalSortedList = new ArrayList<>();
-            finalSortedList.addAll(priorityPosts); // Newest always first
-            finalSortedList.addAll(normalPosts);   // These are now shuffled
+            finalSortedList.addAll(priorityPosts);
+            finalSortedList.addAll(normalPosts);
 
             Set<String> allUserIds = new HashSet<>();
             Set<String> personalUserIds = new HashSet<>();
             Set<String> businessUserIds = new HashSet<>();
 
-            // FIXED: Stream through the shuffled finalSortedList instead
             List<Post> visiblePosts = finalSortedList.stream()
                     .filter(post -> canViewPost(post, viewerId))
                     .collect(Collectors.toList());
@@ -966,7 +965,6 @@ public class PostServiceImpl implements PostService {
 
                 if (post.getTags() != null) {
                     post.getTags().forEach(tag -> {
-                        // Use the string column to avoid Lazy Loading the User entity just for the ID
                         String taggedId = tag.getTaggedUserId();
                         if (taggedId != null) {
                             categorizeUserId(taggedId, allUserIds, personalUserIds, businessUserIds);
