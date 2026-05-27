@@ -7,16 +7,21 @@ import NytePulse.backend.entity.Post;
 import NytePulse.backend.entity.PostLike;
 import NytePulse.backend.entity.User;
 import NytePulse.backend.entity.UserDetails;
+import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.enums.ReactionType;
 import NytePulse.backend.repository.*;
+import NytePulse.backend.service.FcmService;
+import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.centralServices.PostLikeService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.*;
 import java.util.function.Function;
@@ -24,6 +29,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PostLikeServiceImpl implements PostLikeService {
 
     @Autowired
@@ -40,6 +46,13 @@ public class PostLikeServiceImpl implements PostLikeService {
 
     @Autowired
     private  CommentRepository commentRepository;
+
+  @Autowired
+    private FcmService fcmService;
+
+    @Autowired
+    private NotificationService notificationService;
+
 
     @Override
     @Transactional
@@ -67,12 +80,10 @@ public class PostLikeServiceImpl implements PostLikeService {
             PostLike existingLike = existingLikeOpt.get();
 
             if (existingLike.getReactionType() == incomingReaction) {
-                // SCENARIO A: Same reaction clicked again -> Remove it (Toggle OFF)
                 postLikeRepository.delete(existingLike);
                 isReacted = false;
                 message = "Reaction removed successfully";
             } else {
-                // SCENARIO B: Different reaction clicked -> Update it
                 existingLike.setReactionType(incomingReaction);
                 postLikeRepository.save(existingLike);
 
@@ -81,13 +92,54 @@ public class PostLikeServiceImpl implements PostLikeService {
                 message = "Reaction updated to " + incomingReaction.name();
             }
         } else {
-            // SCENARIO C: No reaction exists -> Create new one
             PostLike newLike = new PostLike();
             newLike.setPost(post);
             newLike.setUser(user);
             newLike.setReactionType(incomingReaction);
 
             postLikeRepository.save(newLike);
+
+            if (post.getUser().getId() != userId) {
+                try {
+                    String notifMsg = user.getUsername() + " reacted to your post.";
+                    notificationService.createNotification(
+                            post.getUser().getId() ,       // Recipient (Comment Owner)
+                            user.getId(),                    // Sender (Liker)
+                            NotificationType.LIKE_POST,                   // Ensure this ENUM exists
+                            notifMsg,                                        // Message
+                            postId,       // Reference ID (Link to Post)
+                            "POST"                                           // Reference Type
+                    );
+                } catch (Exception e) {
+                    log.error("Failed to send reacted notification: {}", e.getMessage());
+                }
+            }
+
+            User following = userRepository.findByUserId(post.getUser().getUserId());
+
+
+            String messagePushNotification = user.getUsername() + " reacted to your post: " + post.getContent().substring(0, Math.min(50, post.getContent().length())) + "...";
+
+            String targetFcmToken = following.getFcmToken();
+
+            if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+
+                fcmService.sendPushNotification(
+
+                        targetFcmToken,
+
+                        "New Reaction!",
+
+                        messagePushNotification,
+                        Map.of("type", "REACTION", "reactionType", reactionTypeString, "postId", postId.toString())
+
+                );
+
+            } else {
+
+                log.warn("No FCM token found for user: {}", post.getUser().getUserId());
+
+            }
 
             isReacted = true;
             currentReactionName = incomingReaction.name();
