@@ -5,6 +5,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -14,4 +17,6 @@ public interface LiveStreamRepository extends JpaRepository<LiveStream, Long> {
 
     // To check if a specific user currently has an active stream
     boolean existsByUser_Id(Long userId);
+
+    List<LiveStream> findByLastActiveAtBefore(LocalDateTime timeThreshold);
 }

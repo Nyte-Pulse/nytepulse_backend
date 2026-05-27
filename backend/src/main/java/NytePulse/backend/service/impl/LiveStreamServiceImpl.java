@@ -15,9 +15,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -195,6 +197,28 @@ public class LiveStreamServiceImpl implements LiveStreamService {
 
             default:
                 return false;
+        }
+    }
+
+    @Transactional
+    public void updateHeartbeat(String streamKey) {
+        LiveStream stream = liveStreamRepository.findByStreamKey(streamKey)
+                .orElseThrow(() -> new RuntimeException("Stream not found"));
+
+        stream.setLastActiveAt(LocalDateTime.now());
+        liveStreamRepository.save(stream);
+    }
+
+    @Scheduled(fixedRate = 30000)
+    @Transactional
+    public void cleanupInactiveStreams() {
+        LocalDateTime threshold = LocalDateTime.now().minusSeconds(40);
+
+        List<LiveStream> inactiveStreams = liveStreamRepository.findByLastActiveAtBefore(threshold);
+
+        if (!inactiveStreams.isEmpty()) {
+            liveStreamRepository.deleteAll(inactiveStreams);
+            System.out.println("Cleaned up " + inactiveStreams.size() + " inactive streams.");
         }
     }
 }

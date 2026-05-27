@@ -8,4 +8,6 @@ public interface LiveStreamService {
     ResponseEntity<?> startStream(String userId, StartStreamRequestDTO request);
     void stopStream(String userId, String streamKey);
     ResponseEntity<?> checkStreamAccess(String viewerId);
+
+    void updateHeartbeat(String streamKey);
 }

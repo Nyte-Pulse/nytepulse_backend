@@ -401,6 +401,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
 
             List<UserDetails> userDetailsList = userDetailsRepository.findByUserIdIn(allowedUserIds);
+            List<ClubDetails> clubDetailsList = clubDetailsRepository.findByUserIdIn(allowedUserIds);
 
             List<Map<String, Object>> userResults = userDetailsList.stream()
                     .map(userDetails -> {
@@ -411,6 +412,21 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                         userMap.put("profilePicture", userDetails.getProfilePicture() != null ? userDetails.getProfilePicture() : "");
                         userMap.put("bio", userDetails.getBio() != null ? userDetails.getBio() : "");
                         userMap.put("isPrivate", userDetails.getIsPrivate());
+
+                        List<Map<String, Object>> userClubs = clubDetailsList.stream()
+                                .filter(club -> club.getUserId() != null && club.getUserId().equals(userDetails.getUserId()))
+                                .map(clubDetails -> {
+                                    Map<String, Object> clubMap = new HashMap<>();
+                                    clubMap.put("username", clubDetails.getUsername());
+                                    clubMap.put("name", clubDetails.getName());
+                                    clubMap.put("profilePicture", clubDetails.getProfilePicture() != null ? clubDetails.getProfilePicture() : "");
+                                    clubMap.put("bio", clubDetails.getBio() != null ? clubDetails.getBio() : "");
+                                    return clubMap;
+                                })
+                                .collect(Collectors.toList());
+
+                        userMap.put("clubDetails", userClubs);
+
                         return userMap;
                     })
                     .collect(Collectors.toList());
