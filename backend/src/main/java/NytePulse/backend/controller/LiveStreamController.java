@@ -76,7 +76,6 @@ public class LiveStreamController {
     @MessageMapping("/chat/{streamId}")
     @SendTo("/topic/stream/{streamId}")
     public ChatMessage sendComment(@DestinationVariable String streamId, @Payload ChatMessage message) {
-        // We do NOT save to DB. We just return it, which broadcasts it to everyone.
         return message;
     }
 
@@ -84,5 +83,25 @@ public class LiveStreamController {
     @SendTo("/topic/stream/{streamId}/react")
     public ReactionMessage sendReaction(@DestinationVariable String streamId, @Payload ReactionMessage reaction) {
         return reaction;
+    }
+
+
+    @PostMapping("/ping")
+    public ResponseEntity<?> pingBroadcast(@RequestBody Map<String, String> body) {
+        String streamKey = body.get("streamKey");
+
+        if (streamKey == null || streamKey.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Stream key is required"));
+        }
+
+        try {
+            liveStreamService.updateHeartbeat(streamKey);
+            Map<String, Object> res = new HashMap<>();
+            res.put("status", HttpStatus.OK.value());
+            res.put("message", "Heartbeat updated successfully");
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

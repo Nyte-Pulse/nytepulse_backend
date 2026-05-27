@@ -80,21 +80,21 @@ public class CommentLikeServiceImpl implements CommentLikeService {
             message = "Comment liked successfully";
         }
 
-//        if (!comment.getUser().getId().equals(user.getId())) {
-//            try {
-//                String notifMsg = user.getUsername() + " liked your comment.";
-//                notificationService.createNotification(
-//                        comment.getUser().getId(),       // Recipient (Comment Owner)
-//                        user.getId(),                    // Sender (Liker)
-//                        NotificationType.LIKE_COMMENT,                   // Ensure this ENUM exists
-//                        notifMsg,                                        // Message
-//                        comment.getPost().getId(),       // Reference ID (Link to Post)
-//                        "POST"                                           // Reference Type
-//                );
-//            } catch (Exception e) {
-//                log.error("Failed to send comment like notification: {}", e.getMessage());
-//            }
-//        }
+        if (!comment.getUser().getId().equals(user.getId())) {
+            try {
+                String notifMsg = user.getUsername() + " liked the comment.";
+                notificationService.createNotification(
+                        comment.getUser().getId(),       // Recipient (Comment Owner)
+                        user.getId(),                    // Sender (Liker)
+                        NotificationType.LIKE_COMMENT,                   // Ensure this ENUM exists
+                        notifMsg,                                        // Message
+                        comment.getPost().getId(),       // Reference ID (Link to Post)
+                        "POST"                                           // Reference Type
+                );
+            } catch (Exception e) {
+                log.error("Failed to send comment like notification: {}", e.getMessage());
+            }
+        }
 
 
         Long totalLikes = commentLikeRepository.countByCommentId(commentId);
@@ -107,7 +107,7 @@ public class CommentLikeServiceImpl implements CommentLikeService {
         User following = userRepository.findByUserId(comment.getUser().getUserId());
 
 
-        String messagePushNotification = user.getUsername() + " liked your comment: \"" + comment.getContent() + "\"";
+        String messagePushNotification = user.getUsername() + " liked the comment: \"" + comment.getContent() + "\"";
 
         String targetFcmToken = following.getFcmToken();
 

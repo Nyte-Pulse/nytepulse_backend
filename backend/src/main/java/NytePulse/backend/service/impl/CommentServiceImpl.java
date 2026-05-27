@@ -81,6 +81,8 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public ResponseEntity<?> addComment(Long postId, Long userId, CommentRequestDTO commentRequestDTO) {
         try {
+
+            int checkCommentType=0;
             Post post = postRepository.findById(postId)
                     .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
 
@@ -114,14 +116,16 @@ public class CommentServiceImpl implements CommentService {
 
             List<String> mentionIds = commentRequestDTO.getMentionedUserIds();
 
+            User following = userRepository.findByUserId(post.getUser().getUserId());
+
+            String targetFcmToken = following.getFcmToken();
+
             if (mentionIds != null && !mentionIds.isEmpty()) {
 
-                // Fetch all mentioned User entities in one query
                 List<User> mentionedUsers = userRepository.findByUserIdIn((ArrayList<String>) mentionIds);
                 List<CommentMention> mentionsToSave = new ArrayList<>();
 
                 for (User mentionedUser : mentionedUsers) {
-                    // Build the Mention Entity linking Post, Comment, and User
                     CommentMention mention = CommentMention.builder()
                             .comment(savedComment)               // Link to the newly saved Comment
                             .post(post)                          // Link to the Post (as requested)
@@ -142,6 +146,25 @@ public class CommentServiceImpl implements CommentService {
                                 post.getId(),                     // Reference ID (Post)
                                 "COMMENT_MENTION"                 // Reference Type
                         );
+
+                        if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+
+                            fcmService.sendPushNotification(
+
+                                    targetFcmToken,
+                                    "Mentioned you in a comment:",
+                                    mentionMsg,
+                                    Map.of("postId", post.getId().toString(), "commentId", savedComment.getId().toString())
+
+                            );
+
+                            checkCommentType=1;
+
+                        } else {
+
+                            log.warn("No FCM token found for user: {}", post.getUser().getUserId());
+
+                        }
                     } catch (Exception e) {
                         log.error("Failed to send mention notification to user {}: {}", mentionedUser.getId(), e.getMessage());
                     }
@@ -179,35 +202,24 @@ public class CommentServiceImpl implements CommentService {
                     log.error("Failed to send comment notification: {}", e.getMessage());
                 }
             }
-            CommentResponseDTO responseDTO = mapToCommentResponseDTO(savedComment, userId);
 
-            String messagePushNotification = commenter.getUsername() + " commented on your post: \"" + savedComment.getContent() + "\"";
+            if(checkCommentType==0){
+                String messagePushNotification = commenter.getUsername() + " commented on your post: \"" + savedComment.getContent() + "\"";
 
-             User following = userRepository.findByUserId(post.getUser().getUserId());
+                if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
 
-            String targetFcmToken = following.getFcmToken();
+                    fcmService.sendPushNotification(
+                            targetFcmToken,
+                            "New Comment!",
+                            messagePushNotification,
+                            Map.of("postId", post.getId().toString(), "commentId", savedComment.getId().toString())
+                    );
 
-
-
-            if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
-
-                fcmService.sendPushNotification(
-
-                        targetFcmToken,
-
-                        "New Comment!",
-
-                        messagePushNotification,
-                        Map.of("postId", post.getId().toString(), "commentId", savedComment.getId().toString())
-
-                );
-
-            } else {
-
-                log.warn("No FCM token found for user: {}", post.getUser().getUserId());
-
+                } else {
+                    log.warn("No FCM token found for user: {}", post.getUser().getUserId());
+                }
             }
-
+            CommentResponseDTO responseDTO = mapToCommentResponseDTO(savedComment, userId);
             return ResponseEntity.ok(responseDTO);
 
         } catch (ResourceNotFoundException e) {
@@ -449,6 +461,33 @@ public class CommentServiceImpl implements CommentService {
                 } catch (Exception e) {
                     log.error("Failed to send reply notification: {}", e.getMessage());
                 }
+
+                User following = userRepository.findByUserId(parentComment.getUser().getUserId());
+
+                String messagePushNotification = user.getUsername() + " replied to your comment: " + savedReply.getContent();
+
+                String targetFcmToken = following.getFcmToken();
+
+
+
+                if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+
+                    fcmService.sendPushNotification(
+
+                            targetFcmToken,
+
+                            "New Reply!",
+
+                            messagePushNotification,
+                            Map.of("type", "REPLY", "commentId", commentId.toString(), "postId", parentComment.getPost().getId().toString()
+
+                    ));
+
+                } else {
+
+                    log.warn("No FCM token found for user: {}", following.getId());
+
+                }
             }
 
             CommentResponseDTO responseDTO = mapToCommentResponseDTO(savedReply, userId);
@@ -576,6 +615,9 @@ public class CommentServiceImpl implements CommentService {
             // Get reply count from database
             Long replyCount = commentRepository.countByParentCommentId(comment.getId());
             dto.setReplyCount(replyCount != null ? replyCount : 0L);
+
+            Long totalCommentCount = commentRepository.countByPostId(comment.getPost().getId());
+            dto.setTotalCommentCount(totalCommentCount != null ? totalCommentCount : 0L);
 
             // Initialize empty replies list (will be populated by withReplies method)
             dto.setReplies(new ArrayList<>());

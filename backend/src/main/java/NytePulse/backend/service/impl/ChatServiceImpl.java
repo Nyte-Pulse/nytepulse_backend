@@ -80,6 +80,8 @@ public class ChatServiceImpl implements ChatService {
                 return ResponseEntity.ok(mapToConversationDTO(existingConversation.get(), userId1));
             }
 
+
+
             boolean isFollower = userRelationshipRepository.existsByFollower_IdAndFollowing_Id(userId1, userId2);
 
             Conversation.ConversationStatus initialStatus = isFollower
@@ -95,6 +97,39 @@ public class ChatServiceImpl implements ChatService {
                     .orElseThrow(() -> new RuntimeException("User not found"));
             User user2 = userRepository.findById(userId2)
                     .orElseThrow(() -> new RuntimeException("User not found"));
+
+            boolean isPrivate = false;
+
+            UserDetails details = userDetailsRepository.findByUserId(user2.getUserId());
+            isPrivate = details.getIsPrivate();
+
+            if(isPrivate){
+                conversation.setStatus(Conversation.ConversationStatus.PENDING);
+                User following = userRepository.findByUserId(user1.getUserId());
+
+                String messagePushNotification = user1.getUsername() + " wants to send you a message.";
+
+                String targetFcmToken = following.getFcmToken();
+
+                if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+
+                    fcmService.sendPushNotification(
+
+                            targetFcmToken,
+
+                            "New Message Request!",
+
+                            messagePushNotification,
+                            Map.of("type", "MESSAGE_REQUEST", "senderId", user1.getUserId().toString(), "conversationId", conversation.getId().toString())
+
+                    );
+
+                } else {
+
+                    log.warn("No FCM token found for user: {}", user2.getUserId());
+
+                }
+            }
 
             ConversationParticipant participant1 = new ConversationParticipant();
             participant1.setConversation(conversation);
@@ -307,9 +342,6 @@ public class ChatServiceImpl implements ChatService {
         conversationRepository.save(conversation);
 
 
-
-
-
         for (ConversationParticipant participant : participants) {
 
             Long recipientId = participant.getUser().getId();
@@ -358,14 +390,15 @@ public class ChatServiceImpl implements ChatService {
                         "MESSAGE"                 // ✅ Reference type
                 );
 
-                String messagePushNotification = notificationMessage;
+                String messagePushNotification = sender.getUsername() + " sent you a message";
 
                 String targetFcmToken = participant.getUser().getFcmToken();
+
 
                 if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
                     fcmService.sendPushNotification(
                             targetFcmToken,
-                            "You have a new notification!",
+                            "You have a new message!",
                             messagePushNotification,
                             Map.of("conversationId", conversationId.toString())
                     );

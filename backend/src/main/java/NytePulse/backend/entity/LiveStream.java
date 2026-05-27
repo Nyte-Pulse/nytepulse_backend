@@ -44,8 +44,12 @@ public class LiveStream {
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
+    @Column(name = "last_active_at")
+    private LocalDateTime lastActiveAt;
+
     @PrePersist
     protected void onCreate() {
         startedAt = LocalDateTime.now();
+        lastActiveAt = LocalDateTime.now();
     }
 }
