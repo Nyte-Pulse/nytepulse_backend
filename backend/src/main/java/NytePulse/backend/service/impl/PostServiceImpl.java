@@ -147,7 +147,6 @@ public class PostServiceImpl implements PostService {
                         User taggedUserDetails = userRepository.findByUserId(taggedUserId);
                         User creator = userRepository.findByUserId(userId);
 
-                        // ✅ NOTIFICATION: Send Tag Notification
                         String notifMsg = user.getUsername() + " tagged you in a post.";
                         notificationService.createNotification(
                                 taggedUserDetails.getId(),                   // Recipient (The tagged user)
@@ -951,13 +950,14 @@ public class PostServiceImpl implements PostService {
 
             List<Post> finalSortedList = new ArrayList<>();
             finalSortedList.addAll(priorityPosts); // Newest always first
-            finalSortedList.addAll(normalPosts);
+            finalSortedList.addAll(normalPosts);   // These are now shuffled
 
             Set<String> allUserIds = new HashSet<>();
             Set<String> personalUserIds = new HashSet<>();
             Set<String> businessUserIds = new HashSet<>();
 
-            List<Post> visiblePosts = postPage.getContent().stream()
+            // FIXED: Stream through the shuffled finalSortedList instead
+            List<Post> visiblePosts = finalSortedList.stream()
                     .filter(post -> canViewPost(post, viewerId))
                     .collect(Collectors.toList());
 
