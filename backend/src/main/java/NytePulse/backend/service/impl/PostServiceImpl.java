@@ -917,7 +917,8 @@ public class PostServiceImpl implements PostService {
 
             List<Long> followingIds = postRepository.findFollowingIds(viewerId);
 
-            LocalDateTime latestTime = LocalDateTime.now().minusSeconds(3);
+//            LocalDateTime latestTime = LocalDateTime.now().minusSeconds(3);
+            LocalDateTime latestTime = LocalDateTime.now().minusHours(12);
 
             Pageable pageable = PageRequest.of(page, size);
 
