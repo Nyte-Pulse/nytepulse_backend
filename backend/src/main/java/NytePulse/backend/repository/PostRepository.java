@@ -31,6 +31,39 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 2. YOUR EXISTING SMART FEED (For users with friends)
     // Keep this exactly as is
+//    @Query("SELECT DISTINCT p FROM Post p " +
+//            "LEFT JOIN UserRelationship ur ON ur.following = p.user " +
+//            "LEFT JOIN PostLike pl ON pl.post = p AND pl.user.id IN :followingIds " +
+//            "LEFT JOIN Comment c ON c.post = p AND c.user.id IN :followingIds " +
+//            "WHERE p.user.id IN :followingIds OR p.user.id = :viewerId " +
+//            "GROUP BY p.id " +
+//            "ORDER BY " +
+//            " (CASE WHEN p.createdAt >= :latestTime THEN 1 ELSE 0 END) DESC, " +
+//            " (COUNT(DISTINCT c.id) * 5 + COUNT(DISTINCT pl.id) * 2 + (COUNT(DISTINCT ur.id) * 0.01)) DESC, " +
+//            " p.createdAt DESC")
+//    Page<Post> findSmartFeed(
+//            @Param("followingIds") List<Long> followingIds,
+//            @Param("viewerId") Long viewerId,
+//            @Param("latestTime") LocalDateTime latestTime,
+//            Pageable pageable
+//    );
+//
+//    // 3. NEW: GLOBAL DISCOVERY FEED (For new users with 0 friends)
+//    // Uses the SAME 3-second rule, but orders by TOTAL likes/comments
+//    @Query("SELECT p FROM Post p " +
+//            "LEFT JOIN p.likes pl " +
+//            "LEFT JOIN p.comments c " +
+//            "GROUP BY p.id " +
+//            "ORDER BY " +
+//            " (CASE WHEN p.createdAt >= :latestTime THEN 1 ELSE 0 END) DESC, " + // 3-Sec Rule
+//            " (SIZE(p.likes) + SIZE(p.comments)) DESC, " + // Global Popularity
+//            " p.createdAt DESC")
+//    Page<Post> findGlobalDiscoveryFeed(
+//            @Param("latestTime") LocalDateTime latestTime,
+//            Pageable pageable
+//    );
+
+    // 1. SMART FEED
     @Query("SELECT DISTINCT p FROM Post p " +
             "LEFT JOIN UserRelationship ur ON ur.following = p.user " +
             "LEFT JOIN PostLike pl ON pl.post = p AND pl.user.id IN :followingIds " +
@@ -38,8 +71,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             "WHERE p.user.id IN :followingIds OR p.user.id = :viewerId " +
             "GROUP BY p.id " +
             "ORDER BY " +
-            " (CASE WHEN p.createdAt >= :latestTime THEN 1 ELSE 0 END) DESC, " +
-            " (COUNT(DISTINCT c.id) * 5 + COUNT(DISTINCT pl.id) * 2 + (COUNT(DISTINCT ur.id) * 0.01)) DESC, " +
+            " ( (COUNT(DISTINCT c.id) * 5) + (COUNT(DISTINCT pl.id) * 2) + (COUNT(DISTINCT ur.id) * 0.01) + " +
+            "   (CASE WHEN p.createdAt >= :latestTime THEN 20 ELSE 0 END) ) DESC, " +
             " p.createdAt DESC")
     Page<Post> findSmartFeed(
             @Param("followingIds") List<Long> followingIds,
@@ -48,21 +81,19 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             Pageable pageable
     );
 
-    // 3. NEW: GLOBAL DISCOVERY FEED (For new users with 0 friends)
-    // Uses the SAME 3-second rule, but orders by TOTAL likes/comments
+    // 2. GLOBAL DISCOVERY FEED
     @Query("SELECT p FROM Post p " +
             "LEFT JOIN p.likes pl " +
             "LEFT JOIN p.comments c " +
             "GROUP BY p.id " +
             "ORDER BY " +
-            " (CASE WHEN p.createdAt >= :latestTime THEN 1 ELSE 0 END) DESC, " + // 3-Sec Rule
-            " (SIZE(p.likes) + SIZE(p.comments)) DESC, " + // Global Popularity
+            " ( (SIZE(p.likes) * 2) + (SIZE(p.comments) * 5) + " +
+            "   (CASE WHEN p.createdAt >= :latestTime THEN 20 ELSE 0 END) ) DESC, " +
             " p.createdAt DESC")
     Page<Post> findGlobalDiscoveryFeed(
             @Param("latestTime") LocalDateTime latestTime,
             Pageable pageable
     );
-
     Page<Post> findByUserIdIn(List<Long> userIds, Pageable pageable);
 
     List<Post> findByIdIn(List<Long> ids);
