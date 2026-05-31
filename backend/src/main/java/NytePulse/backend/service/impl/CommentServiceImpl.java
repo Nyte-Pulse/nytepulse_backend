@@ -558,12 +558,14 @@ public class CommentServiceImpl implements CommentService {
                     if (userDetails != null) {
                         userDto.setName(userDetails.getName());
                         userDto.setProfilePicture(userDetails != null ? userDetails.getProfilePicture() : null);
+                        userDto.setUserId(userDetails.getUserId());
                     }
                     else{
                         ClubDetails clubDetails = clubDetailsRepository.findByUsername(comment.getUser().getUsername());
                         if(clubDetails != null){
                             userDto.setName(clubDetails.getName());
                             userDto.setProfilePicture(clubDetails.getProfilePicture());
+                            userDto.setUserId(clubDetails.getUserId());
                         }
                     }
                 } catch (Exception e) {
@@ -589,11 +591,13 @@ public class CommentServiceImpl implements CommentService {
                                 if (mDetails != null) {
                                     mDto.setName(mDetails.getName());
                                     mDto.setProfilePicture(mDetails.getProfilePicture());
+                                    mDto.setUserId(mDetails.getUserId());
                                 }else{
                                     ClubDetails mClubDetails = clubDetailsRepository.findByUsername(mUser.getUsername());
                                     if(mClubDetails != null){
                                         mDto.setName(mClubDetails.getName());
                                         mDto.setProfilePicture(mClubDetails.getProfilePicture());
+                                        mDto.setUserId(mClubDetails.getUserId());
                                     }
                                 }
                             } catch (Exception e) {
