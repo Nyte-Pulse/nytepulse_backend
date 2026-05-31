@@ -559,6 +559,13 @@ public class CommentServiceImpl implements CommentService {
                         userDto.setName(userDetails.getName());
                         userDto.setProfilePicture(userDetails != null ? userDetails.getProfilePicture() : null);
                     }
+                    else{
+                        ClubDetails clubDetails = clubDetailsRepository.findByUsername(comment.getUser().getUsername());
+                        if(clubDetails != null){
+                            userDto.setName(clubDetails.getName());
+                            userDto.setProfilePicture(clubDetails.getProfilePicture());
+                        }
+                    }
                 } catch (Exception e) {
                     System.err.println("Error fetching user details: " + e.getMessage());
                 }
@@ -582,6 +589,12 @@ public class CommentServiceImpl implements CommentService {
                                 if (mDetails != null) {
                                     mDto.setName(mDetails.getName());
                                     mDto.setProfilePicture(mDetails.getProfilePicture());
+                                }else{
+                                    ClubDetails mClubDetails = clubDetailsRepository.findByUsername(mUser.getUsername());
+                                    if(mClubDetails != null){
+                                        mDto.setName(mClubDetails.getName());
+                                        mDto.setProfilePicture(mClubDetails.getProfilePicture());
+                                    }
                                 }
                             } catch (Exception e) {
                                 // Log error silently
