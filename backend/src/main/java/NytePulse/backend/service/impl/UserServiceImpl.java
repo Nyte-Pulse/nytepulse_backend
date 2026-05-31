@@ -13,6 +13,7 @@ import NytePulse.backend.service.FcmService;
 import NytePulse.backend.service.NotificationService;
 import NytePulse.backend.service.UserSettingsService;
 import NytePulse.backend.service.centralServices.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 
 
 @Service
+@Slf4j
 public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
@@ -836,6 +838,33 @@ public class UserServiceImpl implements UserService {
                     follower.getId(),            // Reference to follower
                     "USER"                       // Reference type
             );
+
+
+
+            String messagePushNotification = follower.getUsername() + " has sent you a follow request!";
+
+            String targetFcmToken = following.getFcmToken();
+
+
+
+            if (targetFcmToken != null && !targetFcmToken.isEmpty()) {
+
+                fcmService.sendPushNotification(
+
+                        targetFcmToken,
+
+                        "Follow Request!",
+
+                        messagePushNotification,
+                        Map.of("type", "FOLLOW_REQUEST", "followerId", follower.getUserId())
+
+                        );
+
+            } else {
+
+                log.warn("No FCM token found for user: {}", following.getId());
+
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Follow request sent to user: " + followingUserId);
