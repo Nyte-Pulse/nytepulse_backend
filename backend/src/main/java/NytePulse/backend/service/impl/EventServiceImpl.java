@@ -206,7 +206,6 @@ public class EventServiceImpl implements EventService {
 
             if (eventDetailsDto.getOrganizerDetails() != null) {
 
-                // Initialize list if null, otherwise clear existing to replace them
                 if (existingEvent.getOrganizers() == null) {
                     existingEvent.setOrganizers(new ArrayList<>());
                 } else {
@@ -220,14 +219,12 @@ public class EventServiceImpl implements EventService {
                     organizer.setOrganizerEmail(orgDto.getOrganizerEmail());
                     organizer.setWebsiteUrl(orgDto.getWebsiteUrl());
 
-                    // Validate User/Club ID existence
                     if (orgDto.getUserId() != null) {
                         if (clubDetailsRepository.existsById(orgDto.getUserId())) {
                             organizer.setUserId(orgDto.getUserId());
                         }
                     }
 
-                    // Add to parent entity
                     existingEvent.addOrganizer(organizer);
                 }
             }
@@ -241,9 +238,9 @@ public class EventServiceImpl implements EventService {
             existingEvent.setDressCode(eventDetailsDto.getDressCode());
             existingEvent.setTicketType(eventDetailsDto.getTicketType());
 
-            if (eventDetailsDto.getUserId() != null) {
-                existingEvent.setClubId(eventDetailsDto.getUserId());
-            }
+//            if (eventDetailsDto.getUserId() != null) {
+//                existingEvent.setClubId(eventDetailsDto.getUserId());
+//            }
             existingEvent.setClubName(eventDetailsDto.getClubName());
 
             existingEvent.setStatus(eventDetailsDto.getStatus());
@@ -251,10 +248,8 @@ public class EventServiceImpl implements EventService {
             existingEvent.setWebsiteUrl(eventDetailsDto.getWebsiteUrl());
 
 
-            // Consistent with saveEvent: set CDN URL, Filename, and map PosterUrl to the CDN URL
             existingEvent.setEventPosterFileName(eventDetailsDto.getEventPosterFileName());
             existingEvent.setEventPosterCdnUrl(eventDetailsDto.getEventPosterCdnUrl());
-            // In saveEvent, you set PosterUrl to the CDN URL
             existingEvent.setPosterUrl(eventDetailsDto.getEventPosterCdnUrl());
 
             existingEvent.setAddress(eventDetailsDto.getVenueAddress());

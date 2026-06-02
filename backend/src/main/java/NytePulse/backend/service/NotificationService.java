@@ -1,14 +1,10 @@
 package NytePulse.backend.service;
 
 import NytePulse.backend.dto.NotificationDTO;
-import NytePulse.backend.entity.Notification;
-import NytePulse.backend.entity.User;
-import NytePulse.backend.entity.UserSettings;
+import NytePulse.backend.entity.*;
 import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.exception.ResourceNotFoundException;
-import NytePulse.backend.repository.NotificationRepository;
-import NytePulse.backend.repository.UserRepository;
-import NytePulse.backend.repository.UserSettingsRepository;
+import NytePulse.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,6 +25,10 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final WebSocketService webSocketService;
+
+    private final ClubDetailsRepository clubDetailsRepository;
+
+    private final UserDetailsRepository userDetailsRepository;
 
     private final UserSettingsRepository userSettingsRepository;
 
@@ -186,7 +186,6 @@ public class NotificationService {
         notification.setIsRead(true);
         notificationRepository.save(notification);
 
-        // ✅ Send updated unread count via WebSocket
         Long unreadCount = getUnreadCount(userId);
         webSocketService.sendUnreadCountUpdate(userId, unreadCount);
 
@@ -201,7 +200,6 @@ public class NotificationService {
     public ResponseEntity<?> markAllAsRead(Long userId) {
         notificationRepository.markAllAsReadByRecipientId(userId);
 
-        // ✅ Send updated unread count (should be 0)
         webSocketService.sendUnreadCountUpdate(userId, 0L);
 
         HashMap<String,Object> res = new HashMap<>();
@@ -222,7 +220,6 @@ public class NotificationService {
 
         notificationRepository.delete(notification);
 
-        // ✅ Send updated unread count
         Long unreadCount = getUnreadCount(userId);
         webSocketService.sendUnreadCountUpdate(userId, unreadCount);
 
@@ -240,7 +237,7 @@ public class NotificationService {
                 .message(notification.getMessage())
                 .actorId(notification.getActor() != null ? notification.getActor().getId() : null)
                 .actorUsername(notification.getActor() != null ? notification.getActor().getUsername() : null)
-                .actorProfilePicture(notification.getActor() != null ? getActorProfilePicture(notification.getActor()) : null)
+                .actorProfilePicture(getActorProfilePicture(notification.getActor()))
                 .referenceId(notification.getReferenceId())
                 .referenceType(notification.getReferenceType())
                 .isRead(notification.getIsRead())
@@ -249,7 +246,24 @@ public class NotificationService {
     }
 
     private String getActorProfilePicture(User actor) {
-        // Implement logic to get profile picture
+
+       Optional<User> userOpt = userRepository.findById(actor.getId());
+         if (userOpt.isPresent()) {
+              User user = userOpt.get();
+              if(user.getUserId().startsWith("PS")){
+                  UserDetails details = userDetailsRepository.findByUsername(user.getUsername());
+                    if (details != null) {
+                        return details.getProfilePicture();
+                    }
+              }else{
+                  ClubDetails details = clubDetailsRepository.findByUsername(user.getUsername());
+                    if (details != null) {
+                        return details.getProfilePicture();
+                    }
+              }
+
+         }
+
         return null;
     }
 }
