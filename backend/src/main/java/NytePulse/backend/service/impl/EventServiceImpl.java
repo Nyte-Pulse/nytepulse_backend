@@ -247,7 +247,6 @@ public class EventServiceImpl implements EventService {
             existingEvent.setHighlightTags(eventDetailsDto.getHighlightTags());
             existingEvent.setWebsiteUrl(eventDetailsDto.getWebsiteUrl());
 
-
             existingEvent.setEventPosterFileName(eventDetailsDto.getEventPosterFileName());
             existingEvent.setEventPosterCdnUrl(eventDetailsDto.getEventPosterCdnUrl());
             existingEvent.setPosterUrl(eventDetailsDto.getEventPosterCdnUrl());

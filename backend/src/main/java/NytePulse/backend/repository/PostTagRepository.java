@@ -13,4 +13,7 @@ public interface PostTagRepository extends JpaRepository<PostTag, Long> {
     void deleteByPostId(Long postId);
 
     List<PostTag> findByTaggedUser_Id(Long userId);
+
+    // Assuming your Post entity has a 'createdAt' field
+
 }
