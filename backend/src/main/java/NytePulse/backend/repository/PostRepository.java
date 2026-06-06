@@ -128,6 +128,41 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             Pageable pageable
     );
 
+    @Query("SELECT p FROM Post p " +
+            "ORDER BY " +
+            " ( " +
+            // 1. NETWORK TIER: Huge boost if you follow the author
+            "   (CASE WHEN p.user.id IN (" +
+            "       SELECT ur.following.id FROM UserRelationship ur WHERE ur.follower.id = :viewerId" +
+            "   ) THEN 1500 ELSE 0 END) + " +
+
+            // 2. RECENCY TIER: Time-decay buckets.
+            // Gives brand new posts with 0 likes a chance to be seen!
+            "   (CASE " +
+            "      WHEN p.createdAt >= :last1Hour THEN 1000 " +   // Super fresh
+            "      WHEN p.createdAt >= :last12Hours THEN 500 " +  // Today
+            "      WHEN p.createdAt >= :last24Hours THEN 200 " +  // Yesterday
+            "      WHEN p.createdAt >= :last3Days THEN 50 " +     // Recent
+            "      ELSE 0 " +
+            "    END) + " +
+
+            // 3. ENGAGEMENT TIER: Rewards virality.
+            // Allows highly liked posts from strangers to overtake regular posts.
+            "   (SIZE(p.comments) * 5) + " +  // Comments are high-effort, worth more
+            "   (SIZE(p.likes) * 2) " +       // Likes are low-effort
+
+            " ) DESC, " +
+            // Tie-breaker: If scores are exactly the same, show the newest one
+            " p.createdAt DESC")
+    Page<Post> findAdvancedSmartFeed(
+            @Param("viewerId") Long viewerId,
+            @Param("last1Hour") LocalDateTime last1Hour,
+            @Param("last12Hours") LocalDateTime last12Hours,
+            @Param("last24Hours") LocalDateTime last24Hours,
+            @Param("last3Days") LocalDateTime last3Days,
+            Pageable pageable
+    );
+
 
 
     // 2. GLOBAL DISCOVERY FEED
