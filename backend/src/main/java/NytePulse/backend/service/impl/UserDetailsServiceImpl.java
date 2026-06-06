@@ -231,7 +231,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                         clubMap.put("userId", club.getUserId());
                         clubMap.put("accountName", club.getName());
                         clubMap.put("username", club.getUsername());
-                        clubMap.put("profilePictureUrl", club.getProfilePictureId());
+                        clubMap.put("profilePictureUrl", club.getProfilePicture());
                         return clubMap;
                     })
                     .collect(Collectors.toList());

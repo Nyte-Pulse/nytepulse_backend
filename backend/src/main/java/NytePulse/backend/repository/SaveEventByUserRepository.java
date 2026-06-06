@@ -9,7 +9,7 @@ import java.util.List;
 
 @Repository
 public interface SaveEventByUserRepository extends JpaRepository<SaveEvent,Long> {
-    List<SaveEvent> findByUserId(String userId);
+    List<SaveEvent> findByUserIdOrderByCreatedAtDesc(String userId);
 
     SaveEvent findByUserIdAndEventId(String userId, String eventId);
 }

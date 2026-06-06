@@ -1208,7 +1208,7 @@ public class PostServiceImpl implements PostService {
                     .map(tag -> tag.getPost().getId())
                     .collect(Collectors.toList());
 
-            List<Post> taggedPosts = postRepository.findByIdIn(postIds);
+            List<Post> taggedPosts = postRepository.findByIdInOrderByCreatedAtDesc(postIds);
 
 
             Map<String, Object> response = new HashMap<>();
