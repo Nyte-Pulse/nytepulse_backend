@@ -529,7 +529,7 @@ public class EventServiceImpl implements EventService {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
             }
 
-            List<SaveEvent> savedEvents = saveEventByUserRepository.findByUserId(userId);
+            List<SaveEvent> savedEvents = saveEventByUserRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
             if (savedEvents.isEmpty()) {
                 Map<String, Object> response = new HashMap<>();
