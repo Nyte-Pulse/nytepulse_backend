@@ -109,6 +109,27 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             Pageable pageable
     );
 
+    @Query("SELECT DISTINCT p FROM Post p " +
+            // This line removes posts the viewer has already liked
+            "WHERE NOT EXISTS (SELECT 1 FROM PostLike pl WHERE pl.post = p AND pl.user.id = :viewerId) " +
+            "ORDER BY " +
+            " ( " +
+            "   (SIZE(p.comments) * 3) + " +
+            "   (SIZE(p.likes) * 1) + " +
+            "   (CASE WHEN p.user.id IN (" +
+            "       SELECT ur.following.id FROM UserRelationship ur WHERE ur.follower.id = :viewerId" +
+            "   ) THEN 200 ELSE 0 END) + " +          // Massive boost if following the author
+            "   (CASE WHEN p.createdAt >= :last24h THEN 100 ELSE 0 END) " +
+            " ) DESC, " +
+            " p.createdAt DESC")
+    Page<Post> findPersonalizedSmartFeed(
+            @Param("viewerId") Long viewerId,
+            @Param("last24h") LocalDateTime last24h,
+            Pageable pageable
+    );
+
+
+
     // 2. GLOBAL DISCOVERY FEED
     @Query("SELECT p FROM Post p " +
             "ORDER BY " +
