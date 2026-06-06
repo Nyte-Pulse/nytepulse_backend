@@ -247,7 +247,6 @@ public class EventServiceImpl implements EventService {
             existingEvent.setHighlightTags(eventDetailsDto.getHighlightTags());
             existingEvent.setWebsiteUrl(eventDetailsDto.getWebsiteUrl());
 
-
             existingEvent.setEventPosterFileName(eventDetailsDto.getEventPosterFileName());
             existingEvent.setEventPosterCdnUrl(eventDetailsDto.getEventPosterCdnUrl());
             existingEvent.setPosterUrl(eventDetailsDto.getEventPosterCdnUrl());
@@ -530,7 +529,7 @@ public class EventServiceImpl implements EventService {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
             }
 
-            List<SaveEvent> savedEvents = saveEventByUserRepository.findByUserId(userId);
+            List<SaveEvent> savedEvents = saveEventByUserRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
             if (savedEvents.isEmpty()) {
                 Map<String, Object> response = new HashMap<>();

@@ -103,4 +103,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 //            "WHERE p.id IN :postIds " +
 //            "ORDER BY p.createdAt DESC")
 //    List<Post> findPostsWithMediaByIds(@Param("postIds") List<Long> postIds);
+
+    List<Post> findByIdInOrderByCreatedAtDesc(List<Long> postIds);
 }
