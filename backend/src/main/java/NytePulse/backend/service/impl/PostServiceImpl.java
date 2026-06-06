@@ -926,7 +926,7 @@ public class PostServiceImpl implements PostService {
             if (followingIds.isEmpty()) {
                 postPage = postRepository.findGlobalDiscoveryFeed(latestTime, pageable);
             } else {
-                postPage = postRepository.findSmartFeed(viewerId, latestTime, pageable);
+                postPage = postRepository.findPersonalizedSmartFeed(viewerId, latestTime, pageable);
             }
 
             List<Post> rawPosts = postPage.getContent();
