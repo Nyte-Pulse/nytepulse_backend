@@ -64,14 +64,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 //    );
 
     // 1. SMART FEED
+    // 1. SMART FEED
     @Query("SELECT DISTINCT p FROM Post p " +
             "LEFT JOIN UserRelationship ur ON ur.following = p.user " +
-            "LEFT JOIN PostLike pl ON pl.post = p AND pl.user.id IN :followingIds " +
-            "LEFT JOIN Comment c ON c.post = p AND c.user.id IN :followingIds " +
             "WHERE p.user.id IN :followingIds OR p.user.id = :viewerId " +
             "GROUP BY p.id " +
             "ORDER BY " +
-            " ( (COUNT(DISTINCT c.id) * 5) + (COUNT(DISTINCT pl.id) * 2) + (COUNT(DISTINCT ur.id) * 0.01) + " +
+            " ( (COUNT(DISTINCT ur.id) * 0.01) + " +
             "   (CASE WHEN p.createdAt >= :latestTime THEN 20 ELSE 0 END) ) DESC, " +
             " p.createdAt DESC")
     Page<Post> findSmartFeed(
@@ -83,12 +82,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 2. GLOBAL DISCOVERY FEED
     @Query("SELECT p FROM Post p " +
-            "LEFT JOIN p.likes pl " +
-            "LEFT JOIN p.comments c " +
-            "GROUP BY p.id " +
             "ORDER BY " +
-            " ( (SIZE(p.likes) * 2) + (SIZE(p.comments) * 5) + " +
-            "   (CASE WHEN p.createdAt >= :latestTime THEN 20 ELSE 0 END) ) DESC, " +
+            " (CASE WHEN p.createdAt >= :latestTime THEN 20 ELSE 0 END) DESC, " +
             " p.createdAt DESC")
     Page<Post> findGlobalDiscoveryFeed(
             @Param("latestTime") LocalDateTime latestTime,
