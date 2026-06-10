@@ -3,10 +3,7 @@ package NytePulse.backend.service.impl;
 import NytePulse.backend.dto.LikeResponseDTO;
 import NytePulse.backend.dto.LikedUserDTO;
 import NytePulse.backend.dto.PostStatsDTO;
-import NytePulse.backend.entity.Post;
-import NytePulse.backend.entity.PostLike;
-import NytePulse.backend.entity.User;
-import NytePulse.backend.entity.UserDetails;
+import NytePulse.backend.entity.*;
 import NytePulse.backend.enums.NotificationType;
 import NytePulse.backend.enums.ReactionType;
 import NytePulse.backend.repository.*;
@@ -37,6 +34,9 @@ public class PostLikeServiceImpl implements PostLikeService {
 
     @Autowired
     private UserDetailsRepository userDetailsRepository;
+
+    @Autowired
+    private ClubDetailsRepository clubDetailsRepository;
 
     @Autowired
     private  PostRepository postRepository;
@@ -282,15 +282,19 @@ public class PostLikeServiceImpl implements PostLikeService {
                     .collect(Collectors.toList());
 
             List<UserDetails> userDetailsList = userDetailsRepository.findByUserIdIn(userIds);
-
             Map<String, UserDetails> userDetailsMap = userDetailsList.stream()
                     .collect(Collectors.toMap(UserDetails::getUserId, Function.identity()));
 
+            List<ClubDetails> clubDetailsList = clubDetailsRepository.findByUserIdIn(userIds);
+            Map<String, ClubDetails> clubDetailsMap = clubDetailsList.stream()
+                    .collect(Collectors.toMap(ClubDetails::getUserId, Function.identity()));
+
+
             List<LikedUserDTO> dtos = likesPage.getContent().stream().map(like -> {
                 LikedUserDTO dto = new LikedUserDTO();
+                String currentUserId = like.getUser().getUserId();
 
-                UserDetails details = userDetailsMap.get(like.getUser().getUserId());
-
+                UserDetails details = userDetailsMap.get(currentUserId);
                 if (details != null) {
                     dto.setUserDetailsId(details.getUserDetailsId());
                     dto.setUserId(details.getUserId());
@@ -298,6 +302,16 @@ public class PostLikeServiceImpl implements PostLikeService {
                     dto.setName(details.getName());
                     dto.setProfilePicture(details.getProfilePicture());
                     dto.setBio(details.getBio());
+                }
+
+                ClubDetails clubDetails = clubDetailsMap.get(currentUserId);
+                if (clubDetails != null) {
+                    dto.setUserId(clubDetails.getUserId());
+                    dto.setUsername(clubDetails.getUsername());
+                        dto.setName(clubDetails.getName());
+                        dto.setBio(clubDetails.getBio());
+                   dto.setProfilePicture(clubDetails.getProfilePicture());
+                    dto.setBio(clubDetails.getBio());
                 }
 
                 if (like.getReactionType() != null) {

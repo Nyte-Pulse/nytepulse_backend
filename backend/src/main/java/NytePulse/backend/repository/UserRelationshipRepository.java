@@ -95,33 +95,34 @@ public interface UserRelationshipRepository extends JpaRepository<UserRelationsh
 
 
     @Query(value = """
-    SELECT 
-        u.user_id as userId,
-        COALESCE(ud.username, cd.username) as username,
-        COALESCE(ud.name, cd.name) as name,
-        COALESCE(ud.profile_picture, cd.profile_picture) as profilePicture,
-        COUNT(DISTINCT ur2.follower_id) as mutualFriendsCount,
-        COALESCE(ud.account_type, cd.account_type) as accountType
-    FROM user_relationships ur1
-    INNER JOIN user_relationships ur2 
-        ON ur1.following_id = ur2.following_id
-    INNER JOIN users u ON u.id = ur2.follower_id
-    LEFT JOIN user_details ud ON ud.user_id = u.user_id
-    LEFT JOIN club_details cd ON cd.user_id = u.user_id AND ud.user_id IS NULL
-    WHERE ur1.follower_id = :currentUserId
-        AND ur2.follower_id != :currentUserId
-        AND ur2.follower_id NOT IN (
-            SELECT ur3.following_id 
-            FROM user_relationships ur3
-            WHERE ur3.follower_id = :currentUserId
-        )
-        AND u.user_id IS NOT NULL
-        AND (ud.status = 'active' OR cd.status = 'active' OR (ud.status IS NULL AND cd.status IS NULL))
-    GROUP BY u.user_id, ud.username, cd.username, ud.name, cd.name, 
-             ud.profile_picture, cd.profile_picture, ud.account_type, cd.account_type
-    ORDER BY mutualFriendsCount DESC
-    LIMIT :limit
-    """, nativeQuery = true)
+SELECT 
+    u.user_id as userId,
+    COALESCE(ud.username, cd.username) as username,
+    COALESCE(ud.name, cd.name) as name,
+    COALESCE(ud.profile_picture, cd.profile_picture) as profilePicture,
+    COUNT(DISTINCT ur1.following_id) as mutualFriendsCount,
+    COALESCE(ud.account_type, cd.account_type) as accountType
+FROM user_relationships ur1
+INNER JOIN user_relationships ur2 
+    ON ur1.following_id = ur2.following_id
+INNER JOIN users u 
+    ON u.id = ur2.follower_id
+LEFT JOIN user_details ud ON ud.user_id = u.user_id
+LEFT JOIN club_details cd ON cd.user_id = u.user_id AND ud.user_id IS NULL
+WHERE ur1.follower_id = :currentUserId
+    AND ur2.follower_id != :currentUserId
+    AND ur2.follower_id NOT IN (
+        SELECT ur3.following_id 
+        FROM user_relationships ur3
+        WHERE ur3.follower_id = :currentUserId
+    )
+    AND u.user_id IS NOT NULL
+    AND (ud.status = 'active' OR cd.status = 'active' OR (ud.status IS NULL AND cd.status IS NULL))
+GROUP BY u.user_id, ud.username, cd.username, ud.name, cd.name, 
+         ud.profile_picture, cd.profile_picture, ud.account_type, cd.account_type
+ORDER BY mutualFriendsCount DESC
+LIMIT :limit
+""", nativeQuery = true)
     List<Object[]> findFriendSuggestionsByMutualFollowers(
             @Param("currentUserId") Long currentUserId,
             @Param("limit") int limit
