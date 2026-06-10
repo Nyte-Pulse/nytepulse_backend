@@ -45,14 +45,12 @@ public class FriendSuggestionServiceImpl implements FriendSuggestionService {
             List<UserSuggestionDTO> followingNetworkSuggestions =
                     getFollowingNetworkSuggestions(currentUser.get().getId(), limit);
 
-            // Merge and deduplicate by userId
             Map<String, UserSuggestionDTO> suggestionMap = new LinkedHashMap<>();
 
             for (UserSuggestionDTO suggestion : mutualFollowerSuggestions) {
                 if (!suggestionMap.containsKey(suggestion.getUserId())) {
                     suggestionMap.put(suggestion.getUserId(), suggestion);
                 } else {
-                    // If exists, keep the one with higher mutual friends count
                     UserSuggestionDTO existing = suggestionMap.get(suggestion.getUserId());
                     if (suggestion.getMutualFriendsCount() > existing.getMutualFriendsCount()) {
                         suggestionMap.put(suggestion.getUserId(), suggestion);
@@ -97,6 +95,7 @@ public class FriendSuggestionServiceImpl implements FriendSuggestionService {
             log.debug("Fetching mutual follower suggestions for userId: {}", currentUserId);
             List<Object[]> results = userRelationshipRepository
                     .findFriendSuggestionsByMutualFollowers(currentUserId, limit);
+            System.out.println( "Mutual Follower Suggestions for userId " + currentUserId + ": " + results.size());
             return convertToDTO(results);
         } catch (Exception e) {
             log.error("Error fetching mutual follower suggestions for userId: {}",
