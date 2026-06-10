@@ -161,20 +161,33 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public ResponseEntity<?> getAccountNameByEmail(String email) {
         try {
             UserDetails userDetails = userDetailsRepository.findByEmail(email);
-            if (userDetails == null) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("error", "User details not found");
-                errorResponse.put("email", email);
-                errorResponse.put("message", "No user details found for the provided email");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-            }
+
+            Optional<ClubDetails> clubDetails = clubDetailsRepository.findByEmail(email);
 
             Map<String, Object> response = new HashMap<>();
-            response.put("userId", userDetails.getUserId());
-            response.put("accountName", userDetails.getName());
-            response.put("profile Picture Url", userDetails.getProfilePicture());
+            if (userDetails != null) {
+                response.put("userId", userDetails.getUserId());
+                response.put("accountName", userDetails.getName());
+                response.put("profilePictureUrl", userDetails.getProfilePicture());
+                response.put("accountType", "USER");
 
-            return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
+            }
+            else if (clubDetails != null) {
+                response.put("userId", clubDetails.get().getUserId());
+                response.put("accountName", clubDetails.get().getName());
+                response.put("profilePictureUrl", clubDetails.get().getProfilePicture());
+                response.put("accountType", "CLUB");
+
+                return ResponseEntity.ok(response);
+            }
+            else {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Account not found");
+                errorResponse.put("email", email);
+                errorResponse.put("message", "No user or club details found for the provided email");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
 
         } catch (Exception e) {
             logger.error("Error retrieving account name for email: {}", email, e);
@@ -370,7 +383,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public ResponseEntity<?> getMentionedAllowUserList(Long currentUserId) {
         try {
-
             List<UserSettings> userSettingsList = userSettingsRepository.findByAllowMentionsTrue();
 
             if (userSettingsList.isEmpty()) {
@@ -382,13 +394,21 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
 
+
+            String currentUserStringId = userRepository.findById(currentUserId)
+                    .map(User::getUserId)
+                    .orElse("");
+
             List<String> allowedUserIds = userSettingsList.stream()
                     .filter(settings -> {
                         String targetUserId = settings.getUser().getUserId();
-                        return canMentionUser(settings, targetUserId, currentUserId);
+
+                        return !targetUserId.equals(currentUserStringId) && canMentionUser(settings, targetUserId, currentUserId);
                     })
                     .map(settings -> settings.getUser().getUserId())
                     .collect(Collectors.toList());
+
+            System.out.println("Allowed user IDs for mentions: " + allowedUserIds);
 
             if (allowedUserIds.isEmpty()) {
                 Map<String, Object> response = new HashMap<>();
@@ -399,41 +419,46 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 return ResponseEntity.ok(response);
             }
 
-
             List<UserDetails> userDetailsList = userDetailsRepository.findByUserIdIn(allowedUserIds);
             List<ClubDetails> clubDetailsList = clubDetailsRepository.findByUserIdIn(allowedUserIds);
+
+
+            List<Map<String, Object>> combinedResults = new ArrayList<>();
 
             List<Map<String, Object>> userResults = userDetailsList.stream()
                     .map(userDetails -> {
                         Map<String, Object> userMap = new HashMap<>();
-                        userMap.put("userId", userDetails.getUserId());
                         userMap.put("username", userDetails.getUsername());
                         userMap.put("name", userDetails.getName());
+                        userMap.put("userId", userDetails.getUserId());
                         userMap.put("profilePicture", userDetails.getProfilePicture() != null ? userDetails.getProfilePicture() : "");
                         userMap.put("bio", userDetails.getBio() != null ? userDetails.getBio() : "");
                         userMap.put("isPrivate", userDetails.getIsPrivate());
-
-                        List<Map<String, Object>> userClubs = clubDetailsList.stream()
-                                .filter(club -> club.getUserId() != null && club.getUserId().equals(userDetails.getUserId()))
-                                .map(clubDetails -> {
-                                    Map<String, Object> clubMap = new HashMap<>();
-                                    clubMap.put("username", clubDetails.getUsername());
-                                    clubMap.put("name", clubDetails.getName());
-                                    clubMap.put("profilePicture", clubDetails.getProfilePicture() != null ? clubDetails.getProfilePicture() : "");
-                                    clubMap.put("bio", clubDetails.getBio() != null ? clubDetails.getBio() : "");
-                                    return clubMap;
-                                })
-                                .collect(Collectors.toList());
-
-                        userMap.put("clubDetails", userClubs);
-
+                        userMap.put("accountType", "USER");
                         return userMap;
                     })
                     .collect(Collectors.toList());
 
+            List<Map<String, Object>> clubResults = clubDetailsList.stream()
+                    .map(clubDetails -> {
+                        Map<String, Object> clubMap = new HashMap<>();
+
+                        clubMap.put("username", clubDetails.getUsername());
+                        clubMap.put("name", clubDetails.getName());
+                        clubMap.put("userId", clubDetails.getUserId());
+                        clubMap.put("profilePicture", clubDetails.getProfilePicture() != null ? clubDetails.getProfilePicture() : "");
+                        clubMap.put("bio", clubDetails.getBio() != null ? clubDetails.getBio() : "");
+                        clubMap.put("accountType", "CLUB");
+                        return clubMap;
+                    })
+                    .collect(Collectors.toList());
+
+            combinedResults.addAll(userResults);
+            combinedResults.addAll(clubResults);
+
             Map<String, Object> response = new HashMap<>();
-            response.put("users", userResults);
-            response.put("totalUsers", userResults.size());
+            response.put("users", combinedResults);
+            response.put("totalUsers", combinedResults.size());
             response.put("message", "Data fetched successfully");
             response.put("status", 200);
 
@@ -450,7 +475,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
-
 
     private boolean canTagUser(UserSettings targetUserSettings, String targetUserId, Long currentUserId) {
         try {
@@ -637,10 +661,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
 
+            String currentUserStringId = userDetailsRepository.findById(currentUserId)
+                    .map(UserDetails::getUserId)
+                    .orElse("");
+
             List<String> allowedUserIds = userSettingsList.stream()
                     .filter(settings -> {
                         String targetUserId = settings.getUser().getUserId();
-                        return canTagUser(settings, targetUserId, currentUserId);
+                        return !targetUserId.equals(currentUserStringId) && canTagUser(settings, targetUserId, currentUserId);
                     })
                     .map(settings -> settings.getUser().getUserId())
                     .collect(Collectors.toList());
@@ -655,23 +683,43 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             }
 
             List<UserDetails> userDetailsList = userDetailsRepository.findByUserIdIn(allowedUserIds);
+            List<ClubDetails> clubDetailsList = clubDetailsRepository.findByUserIdIn(allowedUserIds);
+
+            List<Map<String, Object>> combinedResults = new ArrayList<>();
 
             List<Map<String, Object>> userResults = userDetailsList.stream()
                     .map(userDetails -> {
                         Map<String, Object> userMap = new HashMap<>();
-                        userMap.put("userId", userDetails.getUserId());
                         userMap.put("username", userDetails.getUsername());
                         userMap.put("name", userDetails.getName());
+                        userMap.put("userId", userDetails.getUserId());
                         userMap.put("profilePicture", userDetails.getProfilePicture() != null ? userDetails.getProfilePicture() : "");
                         userMap.put("bio", userDetails.getBio() != null ? userDetails.getBio() : "");
                         userMap.put("isPrivate", userDetails.getIsPrivate());
+                        userMap.put("accountType", "USER");
                         return userMap;
                     })
                     .collect(Collectors.toList());
 
+            List<Map<String, Object>> clubResults = clubDetailsList.stream()
+                    .map(clubDetails -> {
+                        Map<String, Object> clubMap = new HashMap<>();
+                        clubMap.put("username", clubDetails.getUsername());
+                        clubMap.put("name", clubDetails.getName());
+                        clubMap.put("userId", clubDetails.getUserId());
+                        clubMap.put("profilePicture", clubDetails.getProfilePicture() != null ? clubDetails.getProfilePicture() : "");
+                        clubMap.put("bio", clubDetails.getBio() != null ? clubDetails.getBio() : "");
+                        clubMap.put("accountType", "CLUB");
+                        return clubMap;
+                    })
+                    .collect(Collectors.toList());
+
+            combinedResults.addAll(userResults);
+            combinedResults.addAll(clubResults);
+
             Map<String, Object> response = new HashMap<>();
-            response.put("users", userResults);
-            response.put("totalUsers", userResults.size());
+            response.put("users", combinedResults);
+            response.put("totalUsers", combinedResults.size());
             response.put("message", "Data fetched successfully");
             response.put("status", 200);
 
@@ -688,8 +736,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
-
-
 
 
     private boolean canMentionUser(UserSettings targetUserSettings, String targetUserId, Long currentUserId) {
