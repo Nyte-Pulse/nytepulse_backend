@@ -396,7 +396,7 @@ public class PostServiceImpl implements PostService {
         try {
             Post post = getPostById(postId);
             // Generate share URL
-            String shareUrl = baseUrl + "/api/posts/share/" + postId;
+            String shareUrl = "https://www.nytepulse.com/api/posts/share/" + postId;
 
             // Create share text
             String shareText = createShareText(post);

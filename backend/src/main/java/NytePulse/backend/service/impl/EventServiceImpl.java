@@ -966,7 +966,7 @@ public class EventServiceImpl implements EventService {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
 
-            String baseUrl = "https://nytepulse.com/events/"; // Replace with actual base URL
+            String baseUrl = "https://www.nytepulse.com/events/";
             String shareLink = baseUrl + eventDetails.getEventId();
 
             Map<String, Object> response = new HashMap<>();
