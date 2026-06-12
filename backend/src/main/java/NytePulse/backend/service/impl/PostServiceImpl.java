@@ -918,10 +918,8 @@ public class PostServiceImpl implements PostService {
             LocalDateTime latestTime = LocalDateTime.now().minusHours(12);
             Pageable pageable = PageRequest.of(page, size);
 
-            // --- CHANGED POST FILTER LOGIC ---
-            // No relationship checks. Simply fetch posts the user hasn't liked yet.
+            // Fetch unseen posts
             Page<Post> postPage = postRepository.findUnseenPostsForViewer(viewerId, pageable);
-            // ---------------------------------
 
             List<Post> rawPosts = postPage.getContent();
             List<Post> priorityPosts = new ArrayList<>(); // Posts < 12 hours old
@@ -932,15 +930,20 @@ public class PostServiceImpl implements PostService {
                 if (!uniqueIds.add(p.getId())) continue;
 
                 if (p.getCreatedAt().isAfter(latestTime)) {
-                    priorityPosts.add(p); // Stay at top
+                    priorityPosts.add(p); // Collect new posts
                 } else {
-                    normalPosts.add(p);   // Get shuffled
+                    normalPosts.add(p);   // Collect older posts
                 }
             }
 
-            System.out.println("Priority Posts Count: " +priorityPosts.size() + ", Normal Posts Count: " + normalPosts.size());
+            System.out.println("Priority Posts Count: " + priorityPosts.size() + ", Normal Posts Count: " + normalPosts.size());
 
+            // --- THE FIX: SHUFFLE BOTH LISTS INDEPENDENTLY ---
+            // This guarantees the top of the feed is mixed up every time,
+            // while still keeping newer posts generally higher up than older ones.
+            Collections.shuffle(priorityPosts);
             Collections.shuffle(normalPosts);
+            // -------------------------------------------------
 
             List<Post> finalSortedList = new ArrayList<>();
             finalSortedList.addAll(priorityPosts);
@@ -1014,11 +1017,10 @@ public class PostServiceImpl implements PostService {
 
                         Optional<UserSettings> userSettings = userSettingsRepository.findByUserId(post.getUser().getId());
 
-// This safely extracts the boolean if it exists, and defaults to 'false' if the setting is missing OR if the field itself is null.
+                        // Safely handles null checks
                         boolean isHidden = userSettings.map(UserSettings::getHideLikeCount).orElse(false);
 
                         postData.put("likeCountIsHide", isHidden);
-
                         postData.put("totalLikes", totalLikes);
 
                         Optional<PostLike> userLikeOpt = postLikeRepository.findByPostIdAndUserId(post.getId(), viewerId);
