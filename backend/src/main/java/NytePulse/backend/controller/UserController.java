@@ -269,6 +269,7 @@ public class UserController {
     @GetMapping("/searchAccountByName/{name}")
     public ResponseEntity<?> searchAccountByName(
             @PathVariable String name,
+            @RequestParam Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
@@ -279,7 +280,7 @@ public class UserController {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        return userDetailsService.searchAccountByName(name.trim(), pageable);
+        return userDetailsService.searchAccountByName(name.trim(), pageable,userId);
     }
 
     @GetMapping("/searchPostByPublishedUser/{name}")

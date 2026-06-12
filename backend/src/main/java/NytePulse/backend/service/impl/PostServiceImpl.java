@@ -906,44 +906,58 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+
+
     @Override
     public ResponseEntity<?> getPostForFeed(
             int page,
-            int size,
+             int size,
             Long viewerId) {
         try {
             User viewer = userRepository.findById(viewerId)
                     .orElseThrow(() -> new ResourceNotFoundException("Viewer not found"));
 
+            List<Long> followingIds = postRepository.findFollowingIds(viewerId);
+
+//            LocalDateTime latestTime = LocalDateTime.now().minusSeconds(3);
             LocalDateTime latestTime = LocalDateTime.now().minusHours(12);
+
             Pageable pageable = PageRequest.of(page, size);
 
-            // Fetch unseen posts
-            Page<Post> postPage = postRepository.findUnseenPostsForViewer(viewerId, pageable);
+            Page<Post> postPage;
+            if (followingIds.isEmpty()) {
+                postPage = postRepository.findGlobalDiscoveryFeed(latestTime, pageable);
+            } else {
+                LocalDateTime now = LocalDateTime.now();
+                postPage = postRepository.findAdvancedSmartFeed(
+                        viewerId,
+                        now.minusHours(1),
+                        now.minusHours(12),
+                        now.minusDays(1),
+                        now.minusDays(3),
+                        PageRequest.of(page, size)
+                );
+            }
 
             List<Post> rawPosts = postPage.getContent();
-            List<Post> priorityPosts = new ArrayList<>(); // Posts < 12 hours old
+            List<Post> priorityPosts = new ArrayList<>(); // Posts < 3 seconds old
             List<Post> normalPosts = new ArrayList<>();   // Older posts
             Set<Long> uniqueIds = new HashSet<>();
+
 
             for (Post p : rawPosts) {
                 if (!uniqueIds.add(p.getId())) continue;
 
                 if (p.getCreatedAt().isAfter(latestTime)) {
-                    priorityPosts.add(p); // Collect new posts
+                    priorityPosts.add(p); // Stay at top
                 } else {
-                    normalPosts.add(p);   // Collect older posts
+                    normalPosts.add(p);   // Get shuffled
                 }
             }
 
-            System.out.println("Priority Posts Count: " + priorityPosts.size() + ", Normal Posts Count: " + normalPosts.size());
+            System.out.println("Priority Posts Count: " +priorityPosts.size() + ", Normal Posts Count: " + normalPosts.size());
 
-            // --- THE FIX: SHUFFLE BOTH LISTS INDEPENDENTLY ---
-            // This guarantees the top of the feed is mixed up every time,
-            // while still keeping newer posts generally higher up than older ones.
-            Collections.shuffle(priorityPosts);
             Collections.shuffle(normalPosts);
-            // -------------------------------------------------
 
             List<Post> finalSortedList = new ArrayList<>();
             finalSortedList.addAll(priorityPosts);
@@ -1013,14 +1027,13 @@ public class PostServiceImpl implements PostService {
                         postData.put("likesCount", post.getLikes() != null ? post.getLikes().size() : 0);
                         postData.put("commentsCount", post.getComments() != null ? post.getComments().size() : 0);
 
+
                         Long totalLikes = postLikeRepository.countByPostId(post.getId());
 
                         Optional<UserSettings> userSettings = userSettingsRepository.findByUserId(post.getUser().getId());
 
-                        // Safely handles null checks
-                        boolean isHidden = userSettings.map(UserSettings::getHideLikeCount).orElse(false);
+                        postData.put("likeCountIsHide", userSettings.get().getHideLikeCount());
 
-                        postData.put("likeCountIsHide", isHidden);
                         postData.put("totalLikes", totalLikes);
 
                         Optional<PostLike> userLikeOpt = postLikeRepository.findByPostIdAndUserId(post.getId(), viewerId);
@@ -1106,218 +1119,6 @@ public class PostServiceImpl implements PostService {
             ));
         }
     }
-
-//    @Override
-//    public ResponseEntity<?> getPostForFeed(
-//            int page,
-//             int size,
-//            Long viewerId) {
-//        try {
-//            User viewer = userRepository.findById(viewerId)
-//                    .orElseThrow(() -> new ResourceNotFoundException("Viewer not found"));
-//
-//            List<Long> followingIds = postRepository.findFollowingIds(viewerId);
-//
-////            LocalDateTime latestTime = LocalDateTime.now().minusSeconds(3);
-//            LocalDateTime latestTime = LocalDateTime.now().minusHours(12);
-//
-//            Pageable pageable = PageRequest.of(page, size);
-//
-//            Page<Post> postPage;
-//            if (followingIds.isEmpty()) {
-//                postPage = postRepository.findGlobalDiscoveryFeed(latestTime, pageable);
-//            } else {
-//                LocalDateTime now = LocalDateTime.now();
-//                postPage = postRepository.findAdvancedSmartFeed(
-//                        viewerId,
-//                        now.minusHours(1),
-//                        now.minusHours(12),
-//                        now.minusDays(1),
-//                        now.minusDays(3),
-//                        PageRequest.of(page, size)
-//                );
-//            }
-//
-//            List<Post> rawPosts = postPage.getContent();
-//            List<Post> priorityPosts = new ArrayList<>(); // Posts < 3 seconds old
-//            List<Post> normalPosts = new ArrayList<>();   // Older posts
-//            Set<Long> uniqueIds = new HashSet<>();
-//
-//
-//            for (Post p : rawPosts) {
-//                if (!uniqueIds.add(p.getId())) continue;
-//
-//                if (p.getCreatedAt().isAfter(latestTime)) {
-//                    priorityPosts.add(p); // Stay at top
-//                } else {
-//                    normalPosts.add(p);   // Get shuffled
-//                }
-//            }
-//
-//            System.out.println("Priority Posts Count: " +priorityPosts.size() + ", Normal Posts Count: " + normalPosts.size());
-//
-//            Collections.shuffle(normalPosts);
-//
-//            List<Post> finalSortedList = new ArrayList<>();
-//            finalSortedList.addAll(priorityPosts);
-//            finalSortedList.addAll(normalPosts);
-//
-//            Set<String> allUserIds = new HashSet<>();
-//            Set<String> personalUserIds = new HashSet<>();
-//            Set<String> businessUserIds = new HashSet<>();
-//
-//            List<Post> visiblePosts = finalSortedList.stream()
-//                    .filter(post -> canViewPost(post, viewerId))
-//                    .collect(Collectors.toList());
-//
-//            visiblePosts.forEach(post -> {
-//                categorizeUserId(post.getUser().getUserId(), allUserIds, personalUserIds, businessUserIds);
-//
-//                if (post.getTags() != null) {
-//                    post.getTags().forEach(tag -> {
-//                        String taggedId = tag.getTaggedUserId();
-//                        if (taggedId != null) {
-//                            categorizeUserId(taggedId, allUserIds, personalUserIds, businessUserIds);
-//                        }
-//                    });
-//                }
-//
-//                if (post.getMentions() != null) {
-//                    post.getMentions().forEach(mention -> {
-//                        String mentionedId = mention.getMentionedUserId();
-//                        if (mentionedId != null) {
-//                            categorizeUserId(mentionedId, allUserIds, personalUserIds, businessUserIds);
-//                        }
-//                    });
-//                }
-//            });
-//
-//            List<User> usersList = userRepository.findByUserIdIn(new ArrayList<>(allUserIds));
-//
-//            List<UserDetails> userDetailsList = personalUserIds.isEmpty() ?
-//                    Collections.emptyList() :
-//                    userDetailsRepository.findByUserIdIn(new ArrayList<>(personalUserIds));
-//
-//            List<ClubDetails> clubDetailsList = businessUserIds.isEmpty() ?
-//                    Collections.emptyList() :
-//                    clubDetailsRepository.findByUserIdIn(new ArrayList<>(businessUserIds));
-//
-//            Map<String, User> usersMap = usersList.stream()
-//                    .collect(Collectors.toMap(User::getUserId, u -> u));
-//
-//            Map<String, UserDetails> userDetailsMap = userDetailsList.stream()
-//                    .collect(Collectors.toMap(UserDetails::getUserId, ud -> ud));
-//
-//            Map<String, ClubDetails> clubDetailsMap = clubDetailsList.stream()
-//                    .collect(Collectors.toMap(ClubDetails::getUserId, cd -> cd));
-//
-//            List<Map<String, Object>> enrichedPosts = visiblePosts.stream()
-//                    .map(post -> {
-//                        Map<String, Object> postData = new HashMap<>();
-//
-//                        postData.put("id", post.getId());
-//                        postData.put("content", post.getContent());
-//                        postData.put("location", post.getLocation());
-//                        postData.put("createdAt", post.getCreatedAt());
-//                        postData.put("updatedAt", post.getUpdatedAt());
-//                        postData.put("shareCount", post.getShareCount());
-//                        postData.put("media", post.getMedia());
-//
-//                        postData.put("likesCount", post.getLikes() != null ? post.getLikes().size() : 0);
-//                        postData.put("commentsCount", post.getComments() != null ? post.getComments().size() : 0);
-//
-//
-//                        Long totalLikes = postLikeRepository.countByPostId(post.getId());
-//
-//                        Optional<UserSettings> userSettings = userSettingsRepository.findByUserId(post.getUser().getId());
-//
-//                        postData.put("likeCountIsHide", userSettings.get().getHideLikeCount());
-//
-//                        postData.put("totalLikes", totalLikes);
-//
-//                        Optional<PostLike> userLikeOpt = postLikeRepository.findByPostIdAndUserId(post.getId(), viewerId);
-//
-//                        if (userLikeOpt.isPresent()) {
-//                            postData.put("reactionType", userLikeOpt.get().getReactionType());
-//                            postData.put("isLiked", true);
-//                            postData.put("currentReaction", userLikeOpt.get().getReactionType().name());
-//                        } else {
-//                            postData.put("reactionType", null);
-//                            postData.put("isLiked", false);
-//                            postData.put("currentReaction", null);
-//                        }
-//
-//                        User user = post.getUser();
-//                        Map<String, Object> userInfo = buildUserInfo(
-//                                user,
-//                                userDetailsMap.get(user.getUserId()),
-//                                clubDetailsMap.get(user.getUserId())
-//                        );
-//                        postData.put("userDetails", userInfo);
-//
-//                        List<Map<String, Object>> taggedUsersList = new ArrayList<>();
-//                        if (post.getTags() != null) {
-//                            taggedUsersList = post.getTags().stream()
-//                                    .map(tag -> {
-//                                        String uid = tag.getTaggedUserId();
-//                                        User taggedUser = usersMap.get(uid);
-//                                        if (taggedUser != null) {
-//                                            return buildUserInfo(
-//                                                    taggedUser,
-//                                                    userDetailsMap.get(uid),
-//                                                    clubDetailsMap.get(uid)
-//                                            );
-//                                        }
-//                                        return null;
-//                                    })
-//                                    .filter(Objects::nonNull)
-//                                    .collect(Collectors.toList());
-//                        }
-//                        postData.put("taggedUsers", taggedUsersList);
-//
-//                        List<Map<String, Object>> mentionedUsersList = new ArrayList<>();
-//                        if (post.getMentions() != null) {
-//                            mentionedUsersList = post.getMentions().stream()
-//                                    .map(mention -> {
-//                                        String uid = mention.getMentionedUserId();
-//                                        User mentionedUser = usersMap.get(uid);
-//                                        if (mentionedUser != null) {
-//                                            return buildUserInfo(
-//                                                    mentionedUser,
-//                                                    userDetailsMap.get(uid),
-//                                                    clubDetailsMap.get(uid)
-//                                            );
-//                                        }
-//                                        return null;
-//                                    })
-//                                    .filter(Objects::nonNull)
-//                                    .collect(Collectors.toList());
-//                        }
-//                        postData.put("mentionedUsers", mentionedUsersList);
-//
-//                        return postData;
-//                    })
-//                    .collect(Collectors.toList());
-//
-//            Map<String, Object> response = new HashMap<>();
-//            response.put("posts", enrichedPosts);
-//            response.put("currentPage", postPage.getNumber());
-//            response.put("totalPages", postPage.getTotalPages());
-//            response.put("totalPosts", (long) visiblePosts.size());
-//            response.put("hasNext", postPage.hasNext());
-//            response.put("hasPrevious", postPage.hasPrevious());
-//            response.put("status", HttpStatus.OK.value());
-//
-//            return ResponseEntity.ok(response);
-//
-//        } catch (Exception e) {
-//            log.error("Error fetching feed posts: {}", e.getMessage(), e);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-//                    "error", "Failed to fetch feed posts",
-//                    "message", e.getMessage()
-//            ));
-//        }
-//    }
 
 
     private void categorizeUserId(String userId, Set<String> allIds, Set<String> personalIds, Set<String> businessIds) {

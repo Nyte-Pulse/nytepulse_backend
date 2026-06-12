@@ -198,61 +198,75 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     @Override
-    public ResponseEntity<?> searchAccountByName(String name, Pageable pageable) {
+    public ResponseEntity<?> searchAccountByName(String name, Pageable pageable, Long currentUserId) {
         try {
-            Page<UserDetails> userDetailsPage = userDetailsRepository
-                    .findActiveByName(name, pageable);
+            Set<Long> usersWhoBlockedMe = userRelationshipRepository.findUsersWhoBlockedMe(currentUserId, RelationshipType.BLOCKED);
+            if (usersWhoBlockedMe == null) {
+                usersWhoBlockedMe = new HashSet<>();
+            }
 
-            Page<ClubDetails> clubDetailsPage = clubDetailsRepository
-                    .findActiveByName(name, pageable);
+            Page<UserDetails> userDetailsPage = userDetailsRepository.findActiveByName(name, pageable);
+            Page<ClubDetails> clubDetailsPage = clubDetailsRepository.findActiveByName(name, pageable);
 
+            Set<Long> finalBlockedUserIds = usersWhoBlockedMe;
             List<Map<String, Object>> userResults = userDetailsPage.getContent()
                     .stream()
                     .map(user -> {
-                        Map<String, Object> userMap = new HashMap<>();
-
                         Optional<User> userOptional = userRepository.findByUsername(user.getUsername());
 
                         if (userOptional.isPresent()) {
-                            userMap.put("id", userOptional.get().getId());
+                            Long fetchedUserId = userOptional.get().getId();
+
+                            if (finalBlockedUserIds.contains(fetchedUserId)) {
+                                return null;
+                            }
+
+                            Map<String, Object> userMap = new HashMap<>();
+                            userMap.put("id", fetchedUserId);
+                            userMap.put("userId", user.getUserId());
+                            userMap.put("accountName", user.getName());
+                            userMap.put("profilePictureUrl", user.getProfilePicture());
+                            userMap.put("username", user.getUsername());
+                            return userMap;
                         } else {
-                            userMap.put("id", null);
                             logger.warn("User not found for username: {}", user.getUsername());
+                            return null;
                         }
-
-                        userMap.put("userId", user.getUserId());
-                        userMap.put("accountName", user.getName());
-                        userMap.put("profilePictureUrl", user.getProfilePicture());
-                        userMap.put("username", user.getUsername());
-
-                        return userMap;
                     })
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             List<Map<String, Object>> clubResults = clubDetailsPage.getContent()
                     .stream()
                     .map(club -> {
-                        Map<String, Object> clubMap = new HashMap<>();
                         Optional<User> userOptional = userRepository.findByUsername(club.getUsername());
 
                         if (userOptional.isPresent()) {
-                            clubMap.put("id", userOptional.get().getId());
+                            Long fetchedUserId = userOptional.get().getId();
+
+                            if (finalBlockedUserIds.contains(fetchedUserId)) {
+                                return null;
+                            }
+
+                            Map<String, Object> clubMap = new HashMap<>();
+                            clubMap.put("id", fetchedUserId);
+                            clubMap.put("userId", club.getUserId());
+                            clubMap.put("accountName", club.getName());
+                            clubMap.put("username", club.getUsername());
+                            clubMap.put("profilePictureUrl", club.getProfilePicture());
+                            return clubMap;
                         } else {
-                            clubMap.put("id", null);
                             logger.warn("User not found for username: {}", club.getUsername());
+                            return null;
                         }
-                        clubMap.put("userId", club.getUserId());
-                        clubMap.put("accountName", club.getName());
-                        clubMap.put("username", club.getUsername());
-                        clubMap.put("profilePictureUrl", club.getProfilePicture());
-                        return clubMap;
                     })
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             List<Map<String, Object>> combinedResults = new ArrayList<>();
             combinedResults.addAll(userResults);
             combinedResults.addAll(clubResults);
-
+            
             long totalItems = userDetailsPage.getTotalElements() + clubDetailsPage.getTotalElements();
             int totalPages = Math.max(userDetailsPage.getTotalPages(), clubDetailsPage.getTotalPages());
 
