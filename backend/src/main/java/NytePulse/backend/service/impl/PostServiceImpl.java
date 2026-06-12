@@ -906,30 +906,54 @@ public class PostServiceImpl implements PostService {
         }
     }
 
-    public ResponseEntity<?> getPostForFeed(int page, int size, Long viewerId) {
+    @Override
+    public ResponseEntity<?> getPostForFeed(
+            int page,
+            int size,
+            Long viewerId) {
         try {
             User viewer = userRepository.findById(viewerId)
                     .orElseThrow(() -> new ResourceNotFoundException("Viewer not found"));
 
+            LocalDateTime latestTime = LocalDateTime.now().minusHours(12);
             Pageable pageable = PageRequest.of(page, size);
 
-            // 1. Fetch a clean pool of posts (ignoring relationships)
-            Page<Post> postPage = postRepository.findRandomPoolPosts(viewerId, pageable);
+            // --- CHANGED POST FILTER LOGIC ---
+            // No relationship checks. Simply fetch posts the user hasn't liked yet.
+            Page<Post> postPage = postRepository.findUnseenPostsForViewer(viewerId, pageable);
+            // ---------------------------------
 
-            // 2. Extract and ALWAYS shuffle the posts
-            List<Post> rawPosts = new ArrayList<>(postPage.getContent());
-            Collections.shuffle(rawPosts); // Pure random shuffle
+            List<Post> rawPosts = postPage.getContent();
+            List<Post> priorityPosts = new ArrayList<>(); // Posts < 12 hours old
+            List<Post> normalPosts = new ArrayList<>();   // Older posts
+            Set<Long> uniqueIds = new HashSet<>();
+
+            for (Post p : rawPosts) {
+                if (!uniqueIds.add(p.getId())) continue;
+
+                if (p.getCreatedAt().isAfter(latestTime)) {
+                    priorityPosts.add(p); // Stay at top
+                } else {
+                    normalPosts.add(p);   // Get shuffled
+                }
+            }
+
+            System.out.println("Priority Posts Count: " +priorityPosts.size() + ", Normal Posts Count: " + normalPosts.size());
+
+            Collections.shuffle(normalPosts);
+
+            List<Post> finalSortedList = new ArrayList<>();
+            finalSortedList.addAll(priorityPosts);
+            finalSortedList.addAll(normalPosts);
 
             Set<String> allUserIds = new HashSet<>();
             Set<String> personalUserIds = new HashSet<>();
             Set<String> businessUserIds = new HashSet<>();
 
-            // 3. Filter for visibility based on your custom logic
-            List<Post> visiblePosts = rawPosts.stream()
+            List<Post> visiblePosts = finalSortedList.stream()
                     .filter(post -> canViewPost(post, viewerId))
                     .collect(Collectors.toList());
 
-            // 4. Gather IDs for batch fetching
             visiblePosts.forEach(post -> {
                 categorizeUserId(post.getUser().getUserId(), allUserIds, personalUserIds, businessUserIds);
 
@@ -952,7 +976,6 @@ public class PostServiceImpl implements PostService {
                 }
             });
 
-            // 5. Batch fetch user and club details
             List<User> usersList = userRepository.findByUserIdIn(new ArrayList<>(allUserIds));
 
             List<UserDetails> userDetailsList = personalUserIds.isEmpty() ?
@@ -972,7 +995,6 @@ public class PostServiceImpl implements PostService {
             Map<String, ClubDetails> clubDetailsMap = clubDetailsList.stream()
                     .collect(Collectors.toMap(ClubDetails::getUserId, cd -> cd));
 
-            // 6. Map to enriched response objects
             List<Map<String, Object>> enrichedPosts = visiblePosts.stream()
                     .map(post -> {
                         Map<String, Object> postData = new HashMap<>();
@@ -989,9 +1011,14 @@ public class PostServiceImpl implements PostService {
                         postData.put("commentsCount", post.getComments() != null ? post.getComments().size() : 0);
 
                         Long totalLikes = postLikeRepository.countByPostId(post.getId());
+
                         Optional<UserSettings> userSettings = userSettingsRepository.findByUserId(post.getUser().getId());
 
-                        postData.put("likeCountIsHide", userSettings.isPresent() ? userSettings.get().getHideLikeCount() : false);
+// This safely extracts the boolean if it exists, and defaults to 'false' if the setting is missing OR if the field itself is null.
+                        boolean isHidden = userSettings.map(UserSettings::getHideLikeCount).orElse(false);
+
+                        postData.put("likeCountIsHide", isHidden);
+
                         postData.put("totalLikes", totalLikes);
 
                         Optional<PostLike> userLikeOpt = postLikeRepository.findByPostIdAndUserId(post.getId(), viewerId);
@@ -1058,7 +1085,6 @@ public class PostServiceImpl implements PostService {
                     })
                     .collect(Collectors.toList());
 
-            // 7. Build Response
             Map<String, Object> response = new HashMap<>();
             response.put("posts", enrichedPosts);
             response.put("currentPage", postPage.getNumber());
