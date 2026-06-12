@@ -13,7 +13,7 @@ public interface UserDetailsService {
 
     ResponseEntity<?> getAccountNameByEmail(String email);
 
-    ResponseEntity<?> searchAccountByName(String name, Pageable pageable);
+    ResponseEntity<?> searchAccountByName(String name, Pageable pageable,Long currentUserId);
 
     ResponseEntity<?> getAllBusinessAccount();
 

@@ -247,4 +247,9 @@ LIMIT :limit
             "  (r.follower.id = :userId2 AND r.following.id = :userId1) " +
             ")")
     boolean hasBlockedRelationship(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
+
+
+    @Query("SELECT ur.follower.id FROM UserRelationship ur " +
+            "WHERE ur.following.id = :userId AND ur.relationshipType = :status")
+    Set<Long> findUsersWhoBlockedMe(@Param("userId") Long userId, @Param("status") RelationshipType status);
 }
