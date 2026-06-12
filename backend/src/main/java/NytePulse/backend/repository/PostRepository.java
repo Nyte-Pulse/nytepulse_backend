@@ -165,8 +165,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
 
     @Query("SELECT DISTINCT p FROM Post p " +
-            "WHERE NOT EXISTS (SELECT 1 FROM PostLike pl WHERE pl.post = p AND pl.user.id = :viewerId) ")
-    Page<Post> findRandomPoolPosts(@Param("viewerId") Long viewerId, Pageable pageable);
+            "WHERE NOT EXISTS (SELECT 1 FROM PostLike pl WHERE pl.post = p AND pl.user.id = :viewerId) " +
+            "ORDER BY p.createdAt DESC")
+    Page<Post> findUnseenPostsForViewer(@Param("viewerId") Long viewerId, Pageable pageable);
 
 
     // 2. GLOBAL DISCOVERY FEED
