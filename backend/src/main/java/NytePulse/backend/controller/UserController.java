@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -118,7 +119,6 @@ public class UserController {
     public ResponseEntity<?> getFollowers(@PathVariable String userId,Authentication authentication,@RequestParam(defaultValue = "0") int page,@RequestParam(defaultValue = "10") int size) {
         String currentLoginUserId = null;
         if (authentication != null && authentication.isAuthenticated()) {
-            // Assuming your principal is the username or you have a custom UserDetails
             currentLoginUserId = authentication.getName();
         }
         return userService.getFollowers(userId,currentLoginUserId,page, size);
@@ -303,13 +303,14 @@ public class UserController {
             @RequestParam Long userId,
             @PathVariable String name,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size, Principal principal) {
 
         if (name == null || name.trim().length() < 1) {
             return ResponseEntity
                     .badRequest()
                     .body("Please enter at least 1 characters to search");
         }
+
 
         Pageable pageable = PageRequest.of(page, size);
         return userDetailsService.searchFollowerAccountByName(userId, name.trim(), pageable);
