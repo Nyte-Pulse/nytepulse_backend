@@ -752,7 +752,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ResponseEntity<?> acceptOrRejectedFollowRequest(String userId, String followingUserId,String status){
+    public ResponseEntity<?> acceptOrRejectedFollowRequest(String userId, String followingUserId,String status,Long notificationId){
 
         try {
             Optional<UserRelationship> relationshipOpt = relationshipRepository.findByFollowerUserIdAndFollowingUserId(followingUserId, userId);
@@ -769,6 +769,10 @@ public class UserServiceImpl implements UserService {
                         .status(HttpStatus.BAD_REQUEST)
                         .body("No pending follow request from user: " + followingUserId);
             }
+
+            Optional<Notification> notification=notificationRepository.findById(notificationId);
+
+            notificationRepository.delete(notification.get());
 
             if(status.equalsIgnoreCase("ACCEPT")){
                 relationship.setRelationshipType(RelationshipType.FOLLOWING);
@@ -790,6 +794,8 @@ public class UserServiceImpl implements UserService {
                         .status(HttpStatus.BAD_REQUEST)
                         .body("Invalid status. Use 'ACCEPT' or 'REJECT'.");
             }
+
+
 
         } catch (Exception e) {
             logger.error("Error while processing follow request: {}", e.getMessage());
