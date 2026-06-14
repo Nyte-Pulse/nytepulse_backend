@@ -101,8 +101,8 @@ public class UserController {
     }
 
     @PutMapping("/acceptOrRejectedFollowRequest/{userId}/follow/{followingUserId}/{status}")
-    public ResponseEntity<?> acceptOrRejectedFollowRequest(@PathVariable String userId, @PathVariable String followingUserId, @PathVariable String status) {
-        return userService.acceptOrRejectedFollowRequest(userId, followingUserId,status);
+    public ResponseEntity<?> acceptOrRejectedFollowRequest(@PathVariable String userId, @PathVariable String followingUserId, @PathVariable String status,@RequestParam Long notificationId) {
+        return userService.acceptOrRejectedFollowRequest(userId, followingUserId,status,notificationId);
     }
 
     @PostMapping("/{userId}/block/{followingUserId}")

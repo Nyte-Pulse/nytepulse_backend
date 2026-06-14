@@ -266,7 +266,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             List<Map<String, Object>> combinedResults = new ArrayList<>();
             combinedResults.addAll(userResults);
             combinedResults.addAll(clubResults);
-            
+
             long totalItems = userDetailsPage.getTotalElements() + clubDetailsPage.getTotalElements();
             int totalPages = Math.max(userDetailsPage.getTotalPages(), clubDetailsPage.getTotalPages());
 

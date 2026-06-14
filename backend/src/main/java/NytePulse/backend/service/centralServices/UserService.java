@@ -58,7 +58,7 @@ public interface UserService {
 
     ResponseEntity<?> sendFollowRequest(String userId, String followingUserId);
 
-    ResponseEntity<?> acceptOrRejectedFollowRequest(String userId, String followingUserId,String status);
+    ResponseEntity<?> acceptOrRejectedFollowRequest(String userId, String followingUserId,String status,Long notificationId);
 
     ResponseEntity<?> resetPasswordByConfirmingOld(ResetPasswordByConfirmingOldRequest request,Long userId);
 
