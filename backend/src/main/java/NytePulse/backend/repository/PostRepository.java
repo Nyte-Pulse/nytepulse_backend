@@ -110,7 +110,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     );
 
     @Query("SELECT DISTINCT p FROM Post p " +
-            // This line removes posts the viewer has already liked
             "WHERE NOT EXISTS (SELECT 1 FROM PostLike pl WHERE pl.post = p AND pl.user.id = :viewerId) " +
             "ORDER BY " +
             " ( " +
@@ -119,7 +118,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             "   (CASE WHEN p.user.id IN (" +
             "       SELECT ur.following.id FROM UserRelationship ur WHERE ur.follower.id = :viewerId" +
             "   ) THEN 200 ELSE 0 END) " +
-            " ) DESC")                           // Removed the comma and p.createdAt DESC
+            " ) * FUNCTION('RAND') DESC")    // <--- Added * FUNCTION('RAND')
     Page<Post> findPersonalizedSmartFeed(
             @Param("viewerId") Long viewerId,
             Pageable pageable
