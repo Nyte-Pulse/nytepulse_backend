@@ -941,33 +941,23 @@ public class PostServiceImpl implements PostService {
             }
 
             List<Post> rawPosts = postPage.getContent();
-            List<Post> priorityPosts = new ArrayList<>(); // Posts < 3 seconds old
-            List<Post> normalPosts = new ArrayList<>();   // Older posts
+            List<Post> finalSortedList = new ArrayList<>();
             Set<Long> uniqueIds = new HashSet<>();
 
 
             for (Post p : rawPosts) {
-                if (!uniqueIds.add(p.getId())) continue;
-
-                if (p.getCreatedAt().isAfter(latestTime)) {
-                    priorityPosts.add(p); // Stay at top
-                } else {
-                    normalPosts.add(p);   // Get shuffled
+                if (uniqueIds.add(p.getId())) {
+                    finalSortedList.add(p);
                 }
             }
 
-            System.out.println("Priority Posts Count: " +priorityPosts.size() + ", Normal Posts Count: " + normalPosts.size());
-
-            Collections.shuffle(normalPosts);
-
-            List<Post> finalSortedList = new ArrayList<>();
-            finalSortedList.addAll(priorityPosts);
-            finalSortedList.addAll(normalPosts);
+            Collections.shuffle(finalSortedList);
 
             Set<String> allUserIds = new HashSet<>();
             Set<String> personalUserIds = new HashSet<>();
             Set<String> businessUserIds = new HashSet<>();
 
+            // 3. Filter out posts the user isn't allowed to view
             List<Post> visiblePosts = finalSortedList.stream()
                     .filter(post -> canViewPost(post, viewerId))
                     .collect(Collectors.toList());
