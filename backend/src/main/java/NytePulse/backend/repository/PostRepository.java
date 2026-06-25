@@ -118,14 +118,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             "   (SIZE(p.likes) * 1) + " +
             "   (CASE WHEN p.user.id IN (" +
             "       SELECT ur.following.id FROM UserRelationship ur WHERE ur.follower.id = :viewerId" +
-            "   ) THEN 200 ELSE 0 END) + " +          // Massive boost if following the author
-            "   (CASE WHEN p.createdAt >= :last24h THEN 100 ELSE 0 END) " +
+            "   ) THEN 200 ELSE 0 END) " +       // Removed the + and the time-boost line below this
             " ) DESC, " +
-            " p.createdAt DESC")
+            " p.createdAt DESC")                 // Kept as a fallback so equal-scoring posts are still sorted newest first
     Page<Post> findPersonalizedSmartFeed(
             @Param("viewerId") Long viewerId,
-            @Param("last24h") LocalDateTime last24h,
-            Pageable pageable
+            Pageable pageable                    // Removed the last24h parameter
     );
 
     @Query("SELECT p FROM Post p " +
