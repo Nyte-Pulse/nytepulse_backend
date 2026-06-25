@@ -919,8 +919,8 @@ public class PostServiceImpl implements PostService {
 
             List<Long> followingIds = postRepository.findFollowingIds(viewerId);
 
-//            LocalDateTime latestTime = LocalDateTime.now().minusSeconds(3);
-            LocalDateTime latestTime = LocalDateTime.now().minusHours(12);
+            LocalDateTime latestTime = LocalDateTime.now().minusSeconds(3);
+//            LocalDateTime latestTime = LocalDateTime.now().minusHours(12);
 
             Pageable pageable = PageRequest.of(page, size);
 
@@ -929,14 +929,15 @@ public class PostServiceImpl implements PostService {
                 postPage = postRepository.findGlobalDiscoveryFeed(latestTime, pageable);
             } else {
                 LocalDateTime now = LocalDateTime.now();
-                postPage = postRepository.findAdvancedSmartFeed(
-                        viewerId,
-                        now.minusHours(1),
-                        now.minusHours(12),
-                        now.minusDays(1),
-                        now.minusDays(3),
-                        PageRequest.of(page, size)
-                );
+//                postPage = postRepository.findAdvancedSmartFeed(
+//                        viewerId,
+//                        now.minusHours(1),
+//                        now.minusHours(12),
+//                        now.minusDays(1),
+//                        now.minusDays(3),
+//                        PageRequest.of(page, size)
+//                );
+                postPage = postRepository.findSmartFeed(viewerId,now,pageable);
             }
 
             List<Post> rawPosts = postPage.getContent();
