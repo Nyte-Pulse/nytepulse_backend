@@ -937,7 +937,7 @@ public class PostServiceImpl implements PostService {
 //                        now.minusDays(3),
 //                        PageRequest.of(page, size)
 //                );
-                postPage = postRepository.findSmartFeed(viewerId,now,pageable);
+                postPage = postRepository.findPersonalizedSmartFeed(viewerId,now,pageable);
             }
 
             List<Post> rawPosts = postPage.getContent();
