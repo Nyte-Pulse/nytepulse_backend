@@ -113,17 +113,16 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             "WHERE NOT EXISTS (SELECT 1 FROM PostLike pl WHERE pl.post = p AND pl.user.id = :viewerId) " +
             "ORDER BY " +
             " ( " +
-            "   (SIZE(p.comments) * 3) + " +
-            "   (SIZE(p.likes) * 1) + " +
+            "   (SIZE(p.comments) * 3.0) + " +
+            "   (SIZE(p.likes) * 1.0) + " +
             "   (CASE WHEN p.user.id IN (" +
             "       SELECT ur.following.id FROM UserRelationship ur WHERE ur.follower.id = :viewerId" +
-            "   ) THEN 200 ELSE 0 END) " +
-            " ) * FUNCTION('RAND') DESC")    // <--- Added * FUNCTION('RAND')
+            "   ) THEN 200.0 ELSE 0.0 END) " +
+            " ) * RAND() DESC")
     Page<Post> findPersonalizedSmartFeed(
             @Param("viewerId") Long viewerId,
             Pageable pageable
     );
-
     @Query("SELECT p FROM Post p " +
             "ORDER BY " +
             " ( " +
